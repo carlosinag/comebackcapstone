@@ -1,5 +1,8 @@
 from django.db import models
 from django.utils import timezone
+import json
+import os
+from django.conf import settings
 
 class Patient(models.Model):
     GENDER_CHOICES = [
@@ -12,7 +15,14 @@ class Patient(models.Model):
     age = models.IntegerField()
     sex = models.CharField(max_length=1, choices=GENDER_CHOICES)
     date_of_birth = models.DateField()
-    address = models.TextField()
+    
+    # Address fields as simple text fields
+    region = models.CharField("Region", max_length=100)
+    province = models.CharField("Province", max_length=100)
+    city = models.CharField("City/Municipality", max_length=100)
+    barangay = models.CharField("Barangay", max_length=100)
+    street_address = models.TextField(help_text="House/Building Number, Street Name, etc.")
+    
     contact_number = models.CharField(max_length=20)
     email = models.EmailField(blank=True, null=True)
     emergency_contact = models.CharField(max_length=100, blank=True, null=True)
@@ -22,6 +32,39 @@ class Patient(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.contact_number}"
+
+    def _load_json_data(self, filename):
+        file_path = os.path.join(settings.BASE_DIR, 'patients', 'static', 'philippine-addresses', filename)
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                return json.load(file)
+        except Exception as e:
+            print(f"Error loading {filename}: {e}")
+            return []
+
+    @property
+    def region_name(self):
+        regions = self._load_json_data('region.json')
+        region = next((r for r in regions if r['region_code'] == self.region), None)
+        return region['region_name'] if region else self.region
+
+    @property
+    def province_name(self):
+        provinces = self._load_json_data('province.json')
+        province = next((p for p in provinces if p['province_code'] == self.province), None)
+        return province['province_name'] if province else self.province
+
+    @property
+    def city_name(self):
+        cities = self._load_json_data('city.json')
+        city = next((c for c in cities if c['city_code'] == self.city), None)
+        return city['city_name'] if city else self.city
+
+    @property
+    def barangay_name(self):
+        barangays = self._load_json_data('barangay.json')
+        barangay = next((b for b in barangays if b['brgy_code'] == self.barangay), None)
+        return barangay['brgy_name'] if barangay else self.barangay
 
     class Meta:
         ordering = ['-created_at']

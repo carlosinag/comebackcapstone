@@ -44,7 +44,13 @@
                         </tr>
                         <tr>
                             <th>Address:</th>
-                            <td>{{ patient.address }}</td>
+                            <td>
+                                {{ patient.street_address }}<br>
+                                {% if patient.barangay_name %}{{ patient.barangay_name }}{% else %}{{ patient.barangay }}{% endif %}, 
+                                {% if patient.city_name %}{{ patient.city_name }}{% else %}{{ patient.city }}{% endif %}<br>
+                                {% if patient.province_name %}{{ patient.province_name }}{% else %}{{ patient.province }}{% endif %}, 
+                                {% if patient.region_name %}{{ patient.region_name }}{% else %}{{ patient.region }}{% endif %}
+                            </td>
                         </tr>
                         <tr>
                             <th>Contact Number:</th>

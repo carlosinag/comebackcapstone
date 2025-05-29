@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.views.generic import ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView
 from django.urls import reverse_lazy
+from django.http import JsonResponse
 from .models import Patient, UltrasoundExam
 from .forms import PatientForm, UltrasoundExamForm
 
