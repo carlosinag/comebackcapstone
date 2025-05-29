@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{% if form.instance.pk %}Edit Ultrasound Exam{% else %}New Ultrasound Exam{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        {% if form.instance.pk %}
+                            Edit Ultrasound Examination
+                        {% else %}
+                            New Ultrasound Examination
+                        {% endif %}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <!-- Patient Information -->
+                            <div class="col-md-6 mb-4">
+                                <h4>Patient Information</h4>
+                                <div class="mb-3">
+                                    {{ form.patient|add_class:'form-control' }}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ form.referring_physician.id_for_label }}" class="form-label">
+                                        {{ form.referring_physician.label }}
+                                    </label>
+                                    {{ form.referring_physician|add_class:'form-control' }}
+                                </div>
+                            </div>
+
+                            <!-- Procedure Details -->
+                            <div class="col-md-6 mb-4">
+                                <h4>Procedure Details</h4>
+                                <div class="mb-3">
+                                    <label for="{{ form.procedure_type.id_for_label }}" class="form-label">
+                                        {{ form.procedure_type.label }}
+                                    </label>
+                                    {{ form.procedure_type|add_class:'form-control' }}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ form.doppler_site.id_for_label }}" class="form-label">
+                                        {{ form.doppler_site.label }}
+                                    </label>
+                                    {{ form.doppler_site|add_class:'form-control' }}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ form.other_procedure.id_for_label }}" class="form-label">
+                                        {{ form.other_procedure.label }}
+                                    </label>
+                                    {{ form.other_procedure|add_class:'form-control' }}
+                                </div>
+                            </div>
+
+                            <!-- Clinical Information -->
+                            <div class="col-md-12 mb-4">
+                                <h4>Clinical Information</h4>
+                                <div class="mb-3">
+                                    <label for="{{ form.clinical_diagnosis.id_for_label }}" class="form-label">
+                                        {{ form.clinical_diagnosis.label }}
+                                    </label>
+                                    {{ form.clinical_diagnosis|add_class:'form-control' }}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ form.medical_history.id_for_label }}" class="form-label">
+                                        {{ form.medical_history.label }}
+                                    </label>
+                                    {{ form.medical_history|add_class:'form-control' }}
+                                </div>
+                            </div>
+
+                            <!-- Exam Details -->
+                            <div class="col-md-6 mb-4">
+                                <h4>Exam Details</h4>
+                                <div class="mb-3">
+                                    <label for="{{ form.exam_date.id_for_label }}" class="form-label">
+                                        {{ form.exam_date.label }}
+                                    </label>
+                                    {{ form.exam_date|add_class:'form-control' }}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ form.exam_time.id_for_label }}" class="form-label">
+                                        {{ form.exam_time.label }}
+                                    </label>
+                                    {{ form.exam_time|add_class:'form-control' }}
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <h4>Staff Information</h4>
+                                <div class="mb-3">
+                                    <label for="{{ form.technologist.id_for_label }}" class="form-label">
+                                        {{ form.technologist.label }}
+                                    </label>
+                                    {{ form.technologist|add_class:'form-control' }}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ form.radiologist.id_for_label }}" class="form-label">
+                                        {{ form.radiologist.label }}
+                                    </label>
+                                    {{ form.radiologist|add_class:'form-control' }}
+                                </div>
+                            </div>
+
+                            <!-- Findings and Impressions -->
+                            <div class="col-md-12 mb-4">
+                                <h4>Findings and Impressions</h4>
+                                <div class="mb-3">
+                                    <label for="{{ form.findings.id_for_label }}" class="form-label">
+                                        {{ form.findings.label }}
+                                    </label>
+                                    {{ form.findings|add_class:'form-control' }}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ form.impression.id_for_label }}" class="form-label">
+                                        {{ form.impression.label }}
+                                    </label>
+                                    {{ form.impression|add_class:'form-control' }}
+                                </div>
+                            </div>
+
+                            <!-- Recommendations -->
+                            <div class="col-md-12 mb-4">
+                                <h4>Recommendations</h4>
+                                <div class="mb-3">
+                                    <label for="{{ form.recommendations.id_for_label }}" class="form-label">
+                                        {{ form.recommendations.label }}
+                                    </label>
+                                    {{ form.recommendations|add_class:'form-control' }}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ form.followup_duration.id_for_label }}" class="form-label">
+                                        {{ form.followup_duration.label }}
+                                    </label>
+                                    {{ form.followup_duration|add_class:'form-control' }}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ form.specialist_referral.id_for_label }}" class="form-label">
+                                        {{ form.specialist_referral.label }}
+                                    </label>
+                                    {{ form.specialist_referral|add_class:'form-control' }}
+                                </div>
+                            </div>
+
+                            <!-- Technologist Notes and Signatures -->
+                            <div class="col-md-12 mb-4">
+                                <h4>Notes and Signatures</h4>
+                                <div class="mb-3">
+                                    <label for="{{ form.technologist_notes.id_for_label }}" class="form-label">
+                                        {{ form.technologist_notes.label }}
+                                    </label>
+                                    {{ form.technologist_notes|add_class:'form-control' }}
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.technologist_signature.id_for_label }}" class="form-label">
+                                                {{ form.technologist_signature.label }}
+                                            </label>
+                                            {{ form.technologist_signature|add_class:'form-control' }}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.radiologist_signature.id_for_label }}" class="form-label">
+                                                {{ form.radiologist_signature.label }}
+                                            </label>
+                                            {{ form.radiologist_signature|add_class:'form-control' }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'patient-detail' form.initial.patient.pk %}" class="btn btn-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                {% if form.instance.pk %}
+                                    Update Examination
+                                {% else %}
+                                    Save Examination
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

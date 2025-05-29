@@ -1,0 +1,5 @@
+Django==5.0.2
+django-crispy-forms==2.1
+python-dateutil==2.8.2
+Pillow==10.2.0
+django-widget-tweaks==1.5.0 

@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Bill Details - {{ bill.bill_number }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'billing:bill_list' %}">Bills</a></li>
+            <li class="breadcrumb-item active">{{ bill.bill_number }}</li>
+        </ol>
+    </nav>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Bill Details -->
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-invoice"></i> Bill Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Bill Number:</strong> {{ bill.bill_number }}</p>
+                            <p><strong>Patient:</strong> {{ bill.patient.name }}</p>
+                            <p><strong>Service:</strong> {{ bill.service.name }}</p>
+                            <p><strong>Bill Date:</strong> {{ bill.bill_date }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Subtotal:</strong> ₱{{ bill.subtotal }}</p>
+                            <p><strong>Discount:</strong> ₱{{ bill.discount }}</p>
+                            <p><strong>Tax:</strong> ₱{{ bill.tax }}</p>
+                            <p><strong>Total Amount:</strong> ₱{{ bill.total_amount }}</p>
+                            <p><strong>Amount Paid:</strong> ₱{{ total_paid }}</p>
+                            <p><strong>Remaining Balance:</strong> ₱{{ remaining_balance }}</p>
+                            <p>
+                                <strong>Status:</strong>
+                                {% if bill.status == 'PAID' %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% elif bill.status == 'PARTIAL' %}
+                                    <span class="badge bg-warning">Partial</span>
+                                {% elif bill.status == 'PENDING' %}
+                                    <span class="badge bg-danger">Pending</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ bill.status }}</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment History -->
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> Payment History
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Method</th>
+                                    <th>Reference</th>
+                                    <th>Staff</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                <tr>
+                                    <td>{{ payment.payment_date }}</td>
+                                    <td>₱{{ payment.amount }}</td>
+                                    <td>{{ payment.get_payment_method_display }}</td>
+                                    <td>{{ payment.reference_number|default:"-" }}</td>
+                                    <td>{{ payment.created_by }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No payments recorded yet.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Record Payment Form -->
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-money-bill-wave"></i> Record Payment
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ payment_form|crispy }}
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-save"></i> Record Payment
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

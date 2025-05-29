@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ patient.name }} - Details{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Patient Details</h2>
+        </div>
+        <div class="col text-end">
+            <a href="{% url 'patient-update' patient.pk %}" class="btn btn-warning me-2">
+                <i class="fas fa-edit me-2"></i>Edit Patient
+            </a>
+            <a href="{% url 'exam-create' patient.pk %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>New Exam
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Personal Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>Name:</th>
+                            <td>{{ patient.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Age:</th>
+                            <td>{{ patient.age }}</td>
+                        </tr>
+                        <tr>
+                            <th>Sex:</th>
+                            <td>{{ patient.get_sex_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date of Birth:</th>
+                            <td>{{ patient.date_of_birth }}</td>
+                        </tr>
+                        <tr>
+                            <th>Address:</th>
+                            <td>{{ patient.address }}</td>
+                        </tr>
+                        <tr>
+                            <th>Contact Number:</th>
+                            <td>{{ patient.contact_number }}</td>
+                        </tr>
+                        {% if patient.email %}
+                        <tr>
+                            <th>Email:</th>
+                            <td>{{ patient.email }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if patient.emergency_contact %}
+                        <tr>
+                            <th>Emergency Contact:</th>
+                            <td>{{ patient.emergency_contact }}</td>
+                        </tr>
+                        <tr>
+                            <th>Emergency Contact Number:</th>
+                            <td>{{ patient.emergency_contact_number }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Examination History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Procedure</th>
+                                    <th>Radiologist</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for exam in exams %}
+                                <tr>
+                                    <td>{{ exam.exam_date }}</td>
+                                    <td>{{ exam.get_procedure_type_display }}</td>
+                                    <td>{{ exam.radiologist }}</td>
+                                    <td>
+                                        <a href="{% url 'exam-detail' exam.pk %}" class="btn btn-sm btn-info me-2" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'exam-update' exam.pk %}" class="btn btn-sm btn-warning" title="Edit Exam">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No examinations found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

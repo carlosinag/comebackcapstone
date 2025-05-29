@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+
+{% block title %}Ultrasound Examination Details{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Ultrasound Examination Details</h2>
+        </div>
+        <div class="col text-end">
+            {% if not exam.bill %}
+            <a href="{% url 'billing:create_bill' exam.pk %}" class="btn btn-success me-2">
+                <i class="fas fa-file-invoice-dollar me-2"></i>Create Bill
+            </a>
+            {% else %}
+            <a href="{% url 'billing:bill_detail' exam.bill.bill_number %}" class="btn btn-info me-2">
+                <i class="fas fa-file-invoice-dollar me-2"></i>View Bill
+            </a>
+            {% endif %}
+            <a href="{% url 'exam-update' exam.pk %}" class="btn btn-warning me-2">
+                <i class="fas fa-edit me-2"></i>Edit Exam
+            </a>
+            <a href="{% url 'patient-detail' exam.patient.pk %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Patient
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Patient Information -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Patient Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>Name:</th>
+                            <td>{{ exam.patient.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Email:</th>
+                            <td>{{ exam.patient.email }}</td>
+                        </tr>
+                        <tr>
+                            <th>Referring Physician:</th>
+                            <td>{{ exam.referring_physician }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Procedure Details -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Procedure Details</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>Procedure Type:</th>
+                            <td>{{ exam.get_procedure_type_display }}</td>
+                        </tr>
+                        {% if exam.doppler_site %}
+                        <tr>
+                            <th>Doppler Site:</th>
+                            <td>{{ exam.doppler_site }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if exam.other_procedure %}
+                        <tr>
+                            <th>Other Procedure:</th>
+                            <td>{{ exam.other_procedure }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th>Date:</th>
+                            <td>{{ exam.exam_date }}</td>
+                        </tr>
+                        <tr>
+                            <th>Time:</th>
+                            <td>{{ exam.exam_time }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clinical Information -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Clinical Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6>Clinical Diagnosis/Indication:</h6>
+                        <p class="border rounded p-3">{{ exam.clinical_diagnosis|linebreaks }}</p>
+                    </div>
+                    <div>
+                        <h6>Medical History:</h6>
+                        <p class="border rounded p-3">{{ exam.medical_history|linebreaks }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Findings and Impression -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Findings and Impression</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6>Findings:</h6>
+                        <p class="border rounded p-3">{{ exam.findings|linebreaks }}</p>
+                    </div>
+                    <div>
+                        <h6>Impression:</h6>
+                        <p class="border rounded p-3">{{ exam.impression|linebreaks }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recommendations</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>Recommendation:</th>
+                            <td>{{ exam.get_recommendations_display }}</td>
+                        </tr>
+                        {% if exam.followup_duration %}
+                        <tr>
+                            <th>Follow-up Duration:</th>
+                            <td>{{ exam.followup_duration }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if exam.specialist_referral %}
+                        <tr>
+                            <th>Specialist Referral:</th>
+                            <td>{{ exam.specialist_referral }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Staff Information -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Staff Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>Technologist:</th>
+                            <td>{{ exam.technologist }}</td>
+                        </tr>
+                        <tr>
+                            <th>Radiologist:</th>
+                            <td>{{ exam.radiologist }}</td>
+                        </tr>
+                        <tr>
+                            <th>Technologist Signature:</th>
+                            <td>{{ exam.technologist_signature }}</td>
+                        </tr>
+                        <tr>
+                            <th>Radiologist Signature:</th>
+                            <td>{{ exam.radiologist_signature }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {% if exam.technologist_notes %}
+        <!-- Technologist Notes -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Technologist Notes</h5>
+                </div>
+                <div class="card-body">
+                    <p class="border rounded p-3">{{ exam.technologist_notes|linebreaks }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

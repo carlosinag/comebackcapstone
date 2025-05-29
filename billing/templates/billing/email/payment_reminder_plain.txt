@@ -1,0 +1,29 @@
+Payment Reminder - {{ clinic_name }}
+
+Dear {{ patient.name }},
+
+This is a friendly reminder that the payment for your ultrasound examination (Bill #{{ bill.bill_number }}) is currently overdue by {{ days_overdue }} days.
+
+Bill Details:
+- Bill Number: {{ bill.bill_number }}
+- Service: {{ bill.service.name }}
+- Due Date: {{ bill.due_date }}
+- Remaining Balance: ₱{{ remaining_balance }}
+
+Please settle your outstanding balance at your earliest convenience. You can pay through any of our accepted payment methods:
+- Cash payment at our clinic
+- Credit/Debit Card
+- GCash
+- Maya
+- Bank Transfer
+
+If you have already made the payment, please disregard this reminder and provide us with your payment details for our records.
+
+For any questions or concerns, please contact us:
+Phone: {{ clinic_phone }}
+Email: {{ clinic_email }}
+
+Best regards,
+{{ clinic_name }}
+
+Note: This is an automated reminder. Please do not reply to this email. 
