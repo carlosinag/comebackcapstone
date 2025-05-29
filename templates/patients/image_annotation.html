@@ -1,0 +1,455 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ patient.name }} - Image Annotation{% endblock %}
+
+{% block extra_css %}
+<style>
+    .annotation-container {
+        position: relative;
+        margin: 20px 0;
+    }
+    .canvas-container {
+        margin: 0 auto;
+    }
+    .annotation-tools {
+        margin-top: 10px;
+    }
+    .color-picker {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border: none;
+        margin-right: 10px;
+    }
+    .upload-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .drag-drop-zone {
+        border: 2px dashed #ccc;
+        padding: 20px;
+        text-align: center;
+        background: white;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .drag-drop-zone:hover {
+        border-color: #0d6efd;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Image Annotation - {{ patient.name }}</h2>
+        </div>
+        <div class="col text-end">
+            <a href="{% url 'patient-detail' patient.pk %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Patient Details
+            </a>
+        </div>
+    </div>
+
+    <!-- Image Upload Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Upload New Ultrasound Image</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" action="{% url 'exam-image-upload' patient.pk %}" id="uploadForm">
+                        {% csrf_token %}
+                        <div class="upload-section">
+                            <div class="drag-drop-zone" id="dragDropZone">
+                                <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                                <h5>Drag and drop your ultrasound image here</h5>
+                                <p class="text-muted">or</p>
+                                <input type="file" name="image" id="imageInput" class="d-none" accept="image/*">
+                                <button type="button" class="btn btn-primary" onclick="document.getElementById('imageInput').click()">
+                                    <i class="fas fa-file-upload me-2"></i>Choose File
+                                </button>
+                                <p class="mt-2 selected-file-name"></p>
+                            </div>
+                            <div class="mt-3">
+                                <label for="examSelect" class="form-label">Select Examination:</label>
+                                <select name="exam_id" id="examSelect" class="form-select" required>
+                                    <option value="">Select an examination</option>
+                                    {% for exam in exams %}
+                                        <option value="{{ exam.id }}">{{ exam.exam_date }} - {{ exam.get_procedure_type_display }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="text-end mt-3">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save me-2"></i>Upload Image
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Available Ultrasound Images</h5>
+                </div>
+                <div class="card-body">
+                    {% if exams %}
+                        {% for exam in exams %}
+                            <div class="mb-4">
+                                <h6>Exam Date: {{ exam.exam_date }}</h6>
+                                <div class="annotation-container border p-3">
+                                    {% if exam.image %}
+                                        <div class="text-center">
+                                            <canvas id="canvas-{{ exam.id }}" width="800" height="600"></canvas>
+                                        </div>
+                                        <div class="annotation-tools text-center mt-3">
+                                            <input type="color" class="color-picker" id="color-{{ exam.id }}" value="#ff0000">
+                                            <button class="btn btn-primary btn-sm" onclick="setMode('{{ exam.id }}', 'draw')">
+                                                <i class="fas fa-pencil-alt"></i> Draw
+                                            </button>
+                                            <button class="btn btn-primary btn-sm" onclick="setMode('{{ exam.id }}', 'circle')">
+                                                <i class="fas fa-circle"></i> Circle
+                                            </button>
+                                            <button class="btn btn-primary btn-sm" onclick="setMode('{{ exam.id }}', 'rectangle')">
+                                                <i class="fas fa-square"></i> Rectangle
+                                            </button>
+                                            <button class="btn btn-primary btn-sm" onclick="setMode('{{ exam.id }}', 'line')">
+                                                <i class="fas fa-minus"></i> Line
+                                            </button>
+                                            <button class="btn btn-info btn-sm" onclick="setMode('{{ exam.id }}', 'text')">
+                                                <i class="fas fa-font"></i> Add Text
+                                            </button>
+                                            <button class="btn btn-secondary btn-sm" onclick="undo('{{ exam.id }}')">
+                                                <i class="fas fa-undo"></i> Undo
+                                            </button>
+                                            <button class="btn btn-warning btn-sm" onclick="clearCanvas('{{ exam.id }}')">
+                                                <i class="fas fa-eraser"></i> Clear
+                                            </button>
+                                            <button class="btn btn-success btn-sm" onclick="saveAnnotations('{{ exam.id }}')">
+                                                <i class="fas fa-save"></i> Save
+                                            </button>
+                                        </div>
+                                        <input type="hidden" id="image-url-{{ exam.id }}" value="{{ exam.image.url }}">
+                                    {% else %}
+                                        <p class="text-muted">No image available for this exam.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center">No examinations found for this patient.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+<script>
+    const canvases = {};
+    let currentMode = 'draw';
+    let isDrawing = false;
+    let startPoint;
+    const undoStack = {};
+
+    document.addEventListener('DOMContentLoaded', function() {
+        {% for exam in exams %}
+            {% if exam.image %}
+                initCanvas('{{ exam.id }}');
+            {% endif %}
+        {% endfor %}
+
+        const dragDropZone = document.getElementById('dragDropZone');
+        const imageInput = document.getElementById('imageInput');
+        const selectedFileName = document.querySelector('.selected-file-name');
+
+        // Handle file selection
+        imageInput.addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                selectedFileName.textContent = this.files[0].name;
+            }
+        });
+
+        // Handle drag and drop
+        dragDropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#0d6efd';
+        });
+
+        dragDropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#ccc';
+        });
+
+        dragDropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#ccc';
+            
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                imageInput.files = e.dataTransfer.files;
+                selectedFileName.textContent = e.dataTransfer.files[0].name;
+            }
+        });
+
+        // Form submission handling
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!imageInput.files || !imageInput.files[0]) {
+                alert('Please select an image to upload');
+                return;
+            }
+
+            const examId = document.getElementById('examSelect').value;
+            if (!examId) {
+                alert('Please select an examination');
+                return;
+            }
+
+            this.submit();
+        });
+    });
+
+    function initCanvas(examId) {
+        const canvas = new fabric.Canvas(`canvas-${examId}`);
+        canvases[examId] = canvas;
+        undoStack[examId] = [];
+        
+        // Load the ultrasound image
+        const imageUrl = document.getElementById(`image-url-${examId}`).value;
+        fabric.Image.fromURL(imageUrl, function(img) {
+            // Scale image to fit canvas while maintaining aspect ratio
+            const scale = Math.min(800 / img.width, 600 / img.height);
+            img.scale(scale);
+            
+            // Center the image
+            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+                originX: 'center',
+                originY: 'center',
+                left: canvas.width / 2,
+                top: canvas.height / 2
+            });
+        });
+
+        // Load existing annotations if any
+        loadAnnotations(examId);
+
+        // Set up drawing mode
+        canvas.isDrawingMode = true;
+        canvas.freeDrawingBrush.width = 2;
+        canvas.freeDrawingBrush.color = document.getElementById(`color-${examId}`).value;
+
+        // Save state after each object modification
+        canvas.on('object:added', function() {
+            saveToUndoStack(examId);
+        });
+
+        // Mouse event handlers for shape drawing
+        canvas.on('mouse:down', function(o) {
+            if (!canvas.isDrawingMode && (currentMode === 'rectangle' || currentMode === 'circle' || currentMode === 'line')) {
+                isDrawing = true;
+                const pointer = canvas.getPointer(o.e);
+                startPoint = { x: pointer.x, y: pointer.y };
+
+                if (currentMode === 'rectangle') {
+                    const rect = new fabric.Rect({
+                        left: startPoint.x,
+                        top: startPoint.y,
+                        width: 0,
+                        height: 0,
+                        fill: 'transparent',
+                        stroke: document.getElementById(`color-${examId}`).value,
+                        strokeWidth: 2
+                    });
+                    canvas.add(rect);
+                    canvas.renderAll();
+                } else if (currentMode === 'circle') {
+                    const circle = new fabric.Circle({
+                        left: startPoint.x,
+                        top: startPoint.y,
+                        radius: 0,
+                        fill: 'transparent',
+                        stroke: document.getElementById(`color-${examId}`).value,
+                        strokeWidth: 2
+                    });
+                    canvas.add(circle);
+                    canvas.renderAll();
+                } else if (currentMode === 'line') {
+                    const line = new fabric.Line([startPoint.x, startPoint.y, startPoint.x, startPoint.y], {
+                        stroke: document.getElementById(`color-${examId}`).value,
+                        strokeWidth: 2
+                    });
+                    canvas.add(line);
+                    canvas.renderAll();
+                }
+            }
+        });
+
+        canvas.on('mouse:move', function(o) {
+            if (!isDrawing) return;
+            const pointer = canvas.getPointer(o.e);
+            const activeObj = canvas.getActiveObject() || canvas.getObjects()[canvas.getObjects().length - 1];
+
+            if (currentMode === 'rectangle') {
+                const width = Math.abs(pointer.x - startPoint.x);
+                const height = Math.abs(pointer.y - startPoint.y);
+                activeObj.set({
+                    width: width,
+                    height: height,
+                    left: Math.min(startPoint.x, pointer.x),
+                    top: Math.min(startPoint.y, pointer.y)
+                });
+            } else if (currentMode === 'circle') {
+                const radius = Math.sqrt(Math.pow(pointer.x - startPoint.x, 2) + Math.pow(pointer.y - startPoint.y, 2)) / 2;
+                const center = {
+                    x: (startPoint.x + pointer.x) / 2,
+                    y: (startPoint.y + pointer.y) / 2
+                };
+                activeObj.set({
+                    radius: radius,
+                    left: center.x - radius,
+                    top: center.y - radius
+                });
+            } else if (currentMode === 'line') {
+                activeObj.set({
+                    x2: pointer.x,
+                    y2: pointer.y
+                });
+            }
+            canvas.renderAll();
+        });
+
+        canvas.on('mouse:up', function() {
+            isDrawing = false;
+            if (currentMode !== 'draw') {
+                saveToUndoStack(examId);
+            }
+        });
+    }
+
+    function setMode(examId, mode) {
+        const canvas = canvases[examId];
+        currentMode = mode;
+        
+        if (mode === 'draw') {
+            canvas.isDrawingMode = true;
+            canvas.freeDrawingBrush.color = document.getElementById(`color-${examId}`).value;
+        } else {
+            canvas.isDrawingMode = false;
+            if (mode === 'text') {
+                const text = new fabric.IText('Click to edit', {
+                    left: 100,
+                    top: 100,
+                    fontSize: 20,
+                    fill: document.getElementById(`color-${examId}`).value
+                });
+                canvas.add(text);
+                canvas.setActiveObject(text);
+                saveToUndoStack(examId);
+            }
+        }
+    }
+
+    function saveToUndoStack(examId) {
+        const canvas = canvases[examId];
+        const json = JSON.stringify(canvas.toJSON());
+        undoStack[examId].push(json);
+        // Limit undo stack size
+        if (undoStack[examId].length > 20) {
+            undoStack[examId].shift();
+        }
+    }
+
+    function undo(examId) {
+        const canvas = canvases[examId];
+        if (undoStack[examId] && undoStack[examId].length > 0) {
+            undoStack[examId].pop(); // Remove current state
+            if (undoStack[examId].length > 0) {
+                const previousState = undoStack[examId][undoStack[examId].length - 1];
+                canvas.loadFromJSON(JSON.parse(previousState), function() {
+                    canvas.renderAll();
+                });
+            } else {
+                clearCanvas(examId);
+            }
+        }
+    }
+
+    function clearCanvas(examId) {
+        const canvas = canvases[examId];
+        canvas.getObjects().forEach(obj => {
+            if (obj !== canvas.backgroundImage) {
+                canvas.remove(obj);
+            }
+        });
+        canvas.renderAll();
+    }
+
+    async function saveAnnotations(examId) {
+        const canvas = canvases[examId];
+        const annotations = JSON.stringify(canvas.toJSON(['id']));
+        
+        try {
+            const response = await fetch(`/api/exams/${examId}/annotations/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ annotations: annotations })
+            });
+            
+            if (response.ok) {
+                alert('Annotations saved successfully!');
+            } else {
+                alert('Error saving annotations');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error saving annotations');
+        }
+    }
+
+    function loadAnnotations(examId) {
+        fetch(`/api/exams/${examId}/annotations/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.annotations) {
+                    canvases[examId].loadFromJSON(data.annotations, function() {
+                        canvases[examId].renderAll();
+                    });
+                }
+            })
+            .catch(error => console.error('Error loading annotations:', error));
+    }
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %} 

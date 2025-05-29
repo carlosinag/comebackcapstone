@@ -76,7 +76,8 @@ class UltrasoundExamForm(forms.ModelForm):
             'exam_date', 'exam_time', 'technologist', 'radiologist',
             'findings', 'impression', 'recommendations', 'followup_duration',
             'specialist_referral', 'technologist_notes',
-            'technologist_signature', 'radiologist_signature'
+            'technologist_signature', 'radiologist_signature',
+            'image'
         ]
         widgets = {
             'exam_date': forms.DateInput(attrs={'type': 'date'}),
@@ -86,4 +87,5 @@ class UltrasoundExamForm(forms.ModelForm):
             'findings': forms.Textarea(attrs={'rows': 6}),
             'impression': forms.Textarea(attrs={'rows': 4}),
             'technologist_notes': forms.Textarea(attrs={'rows': 4}),
+            'image': forms.FileInput(attrs={'accept': 'image/*', 'class': 'form-control'})
         } 
