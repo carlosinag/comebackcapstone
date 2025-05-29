@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h1 class="h3 mb-4">Analytics Dashboard</h1>
+    
+    <!-- Summary Cards Row -->
+    <div class="row mb-4">
+        <!-- Total Patients Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Patients</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_patients }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Procedures Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Procedures</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_procedures }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-stethoscope fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly Revenue Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Weekly Revenue</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₱{{ weekly_revenue }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-peso-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="row">
+        <!-- Procedure Distribution Chart -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Procedure Type Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <div id="procedureDistributionChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Findings Distribution Chart -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Findings Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <div id="findingsDistributionChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="row">
+        <!-- Monthly Revenue Chart -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Monthly Revenue (Last 6 Months)</h6>
+                </div>
+                <div class="card-body">
+                    <div id="monthlyRevenueChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly Procedures Chart -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Daily Procedures (This Week)</h6>
+                </div>
+                <div class="card-body">
+                    <div id="weekProceduresChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<!-- Load Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+    // Procedure Distribution Chart
+    const procedureData = {
+        values: {{ procedure_distribution_data|safe }},
+        labels: {{ procedure_distribution_labels|safe }},
+        type: 'pie',
+        hole: 0.4,
+        marker: {
+            colors: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796', '#5a5c69', '#2e59d9', '#17a673', '#2c9faf']
+        }
+    };
+    Plotly.newPlot('procedureDistributionChart', [procedureData], {
+        margin: { t: 0, b: 0, l: 0, r: 0 },
+        showlegend: true,
+        legend: { orientation: 'h', y: -0.1 }
+    });
+
+    // Findings Distribution Chart
+    const findingsData = {
+        values: {{ findings_distribution_data|safe }},
+        labels: {{ findings_distribution_labels|safe }},
+        type: 'pie',
+        marker: {
+            colors: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b']
+        }
+    };
+    Plotly.newPlot('findingsDistributionChart', [findingsData], {
+        margin: { t: 0, b: 0, l: 0, r: 0 },
+        showlegend: true,
+        legend: { orientation: 'h', y: -0.1 }
+    });
+
+    // Monthly Revenue Chart
+    const revenueData = {
+        x: {{ monthly_revenue_dates|safe }},
+        y: {{ monthly_revenue_values|safe }},
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: { color: '#4e73df', width: 3 },
+        marker: { size: 8 }
+    };
+    Plotly.newPlot('monthlyRevenueChart', [revenueData], {
+        margin: { t: 20, b: 40, l: 60, r: 20 },
+        yaxis: {
+            title: 'Revenue (₱)',
+            tickformat: ',.0f'
+        },
+        showlegend: false
+    });
+
+    // Weekly Procedures Chart
+    const weeklyData = {
+        x: {{ week_procedures_dates|safe }},
+        y: {{ week_procedures_counts|safe }},
+        type: 'bar',
+        marker: { color: '#36b9cc' }
+    };
+    Plotly.newPlot('weekProceduresChart', [weeklyData], {
+        margin: { t: 20, b: 40, l: 40, r: 20 },
+        yaxis: {
+            title: 'Number of Procedures',
+            dtick: 1
+        },
+        showlegend: false
+    });
+</script>
+{% endblock %}
+{% endblock %} 

@@ -3,7 +3,9 @@ from . import views
 from . import api
 
 urlpatterns = [
-    path('', views.PatientListView.as_view(), name='patient-list'),
+    path('', views.home_dashboard, name='home-dashboard'),
+    path('dashboard/', views.dashboard, name='dashboard'),
+    path('patients/', views.PatientListView.as_view(), name='patient-list'),
     path('patient/new/', views.PatientCreateView.as_view(), name='patient-create'),
     path('patient/<int:pk>/', views.PatientDetailView.as_view(), name='patient-detail'),
     path('patient/<int:pk>/update/', views.PatientUpdateView.as_view(), name='patient-update'),
