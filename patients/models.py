@@ -52,6 +52,10 @@ class UltrasoundExam(models.Model):
     clinical_diagnosis = models.TextField()
     medical_history = models.TextField()
     
+    # Image and Annotations
+    image = models.ImageField(upload_to='ultrasound_images/', null=True, blank=True)
+    annotations = models.TextField(null=True, blank=True)
+    
     # Procedure Details
     procedure_type = models.CharField(max_length=3, choices=PROCEDURE_CHOICES)
     doppler_site = models.CharField(max_length=100, blank=True, null=True)
