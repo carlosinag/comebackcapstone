@@ -112,32 +112,54 @@
                                         <div class="text-center">
                                             <canvas id="canvas-{{ exam.id }}" width="800" height="600"></canvas>
                                         </div>
-                                        <div class="annotation-tools text-center mt-3">
-                                            <input type="color" class="color-picker" id="color-{{ exam.id }}" value="#ff0000">
-                                            <button class="btn btn-primary btn-sm" onclick="setMode('{{ exam.id }}', 'draw')">
-                                                <i class="fas fa-pencil-alt"></i> Draw
-                                            </button>
-                                            <button class="btn btn-primary btn-sm" onclick="setMode('{{ exam.id }}', 'circle')">
-                                                <i class="fas fa-circle"></i> Circle
-                                            </button>
-                                            <button class="btn btn-primary btn-sm" onclick="setMode('{{ exam.id }}', 'rectangle')">
-                                                <i class="fas fa-square"></i> Rectangle
-                                            </button>
-                                            <button class="btn btn-primary btn-sm" onclick="setMode('{{ exam.id }}', 'line')">
-                                                <i class="fas fa-minus"></i> Line
-                                            </button>
-                                            <button class="btn btn-info btn-sm" onclick="setMode('{{ exam.id }}', 'text')">
-                                                <i class="fas fa-font"></i> Add Text
-                                            </button>
-                                            <button class="btn btn-secondary btn-sm" onclick="undo('{{ exam.id }}')">
-                                                <i class="fas fa-undo"></i> Undo
-                                            </button>
-                                            <button class="btn btn-warning btn-sm" onclick="clearCanvas('{{ exam.id }}')">
-                                                <i class="fas fa-eraser"></i> Clear
-                                            </button>
-                                            <button class="btn btn-success btn-sm" onclick="saveAnnotations('{{ exam.id }}')">
-                                                <i class="fas fa-save"></i> Save
-                                            </button>
+                                        <div class="annotation-tools mt-3">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="card">
+                                                        <div class="card-header">
+                                                            <h5 class="card-title mb-0">Procedure Measurements</h5>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="mb-3">
+                                                                <label class="form-label">Select Procedure Type:</label>
+                                                                <select class="form-select" id="procedure-type-{{ exam.id }}" onchange="loadProcedureFields('{{ exam.id }}')">
+                                                                    <option value="">Select Procedure</option>
+                                                                    <option value="pelvic">Pelvic Ultrasound</option>
+                                                                    <option value="abdominal">Abdominal Ultrasound</option>
+                                                                    <option value="breast">Breast Ultrasound</option>
+                                                                    <option value="thyroid">Thyroid Ultrasound</option>
+                                                                </select>
+                                                            </div>
+                                                            <div id="procedure-fields-{{ exam.id }}">
+                                                                <!-- Dynamic fields will be loaded here -->
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <div class="card">
+                                                        <div class="card-header">
+                                                            <h5 class="card-title mb-0">Annotation Preview</h5>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="btn-group mb-3">
+                                                                <button class="btn btn-success btn-sm" onclick="saveAnnotations('{{ exam.id }}')">
+                                                                    <i class="fas fa-save"></i> Save Measurements
+                                                                </button>
+                                                                <button class="btn btn-warning btn-sm" onclick="clearAnnotations('{{ exam.id }}')">
+                                                                    <i class="fas fa-eraser"></i> Clear
+                                                                </button>
+                                                                <button class="btn btn-secondary btn-sm" onclick="undoLastAnnotation('{{ exam.id }}')">
+                                                                    <i class="fas fa-undo"></i> Undo
+                                                                </button>
+                                                            </div>
+                                                            <div id="measurement-summary-{{ exam.id }}" class="measurement-summary">
+                                                                <!-- Measurement summary will be displayed here -->
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                         <input type="hidden" id="image-url-{{ exam.id }}" value="{{ exam.image.url }}">
                                     {% else %}
@@ -160,10 +182,38 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
 <script>
     const canvases = {};
-    let currentMode = 'draw';
-    let isDrawing = false;
-    let startPoint;
+    const measurements = {};
     const undoStack = {};
+
+    // Procedure-specific measurement fields
+    const procedureFields = {
+        pelvic: [
+            { id: 'uterus_length', label: 'Uterus Length (cm)', type: 'measurement' },
+            { id: 'uterus_width', label: 'Uterus Width (cm)', type: 'measurement' },
+            { id: 'endometrial_thickness', label: 'Endometrial Thickness (mm)', type: 'measurement' },
+            { id: 'right_ovary_location', label: 'Right Ovary Location', type: 'location' },
+            { id: 'left_ovary_location', label: 'Left Ovary Location', type: 'location' }
+        ],
+        abdominal: [
+            { id: 'liver_size', label: 'Liver Size (cm)', type: 'measurement' },
+            { id: 'liver_location', label: 'Liver Location', type: 'location' },
+            { id: 'gallbladder_location', label: 'Gallbladder Location', type: 'location' },
+            { id: 'spleen_size', label: 'Spleen Size (cm)', type: 'measurement' },
+            { id: 'kidney_right_size', label: 'Right Kidney Size (cm)', type: 'measurement' },
+            { id: 'kidney_left_size', label: 'Left Kidney Size (cm)', type: 'measurement' }
+        ],
+        breast: [
+            { id: 'mass_location', label: 'Mass Location', type: 'location' },
+            { id: 'mass_size', label: 'Mass Size (cm)', type: 'measurement' },
+            { id: 'distance_from_nipple', label: 'Distance from Nipple (cm)', type: 'measurement' }
+        ],
+        thyroid: [
+            { id: 'right_lobe_size', label: 'Right Lobe Size (cm)', type: 'measurement' },
+            { id: 'left_lobe_size', label: 'Left Lobe Size (cm)', type: 'measurement' },
+            { id: 'nodule_location', label: 'Nodule Location', type: 'location' },
+            { id: 'nodule_size', label: 'Nodule Size (mm)', type: 'measurement' }
+        ]
+    };
 
     document.addEventListener('DOMContentLoaded', function() {
         {% for exam in exams %}
@@ -226,16 +276,15 @@
     function initCanvas(examId) {
         const canvas = new fabric.Canvas(`canvas-${examId}`);
         canvases[examId] = canvas;
+        measurements[examId] = {};
         undoStack[examId] = [];
         
         // Load the ultrasound image
         const imageUrl = document.getElementById(`image-url-${examId}`).value;
         fabric.Image.fromURL(imageUrl, function(img) {
-            // Scale image to fit canvas while maintaining aspect ratio
             const scale = Math.min(800 / img.width, 600 / img.height);
             img.scale(scale);
             
-            // Center the image
             canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
                 originX: 'center',
                 originY: 'center',
@@ -244,163 +293,159 @@
             });
         });
 
-        // Load existing annotations if any
-        loadAnnotations(examId);
-
-        // Set up drawing mode
-        canvas.isDrawingMode = true;
-        canvas.freeDrawingBrush.width = 2;
-        canvas.freeDrawingBrush.color = document.getElementById(`color-${examId}`).value;
-
-        // Save state after each object modification
-        canvas.on('object:added', function() {
-            saveToUndoStack(examId);
-        });
-
-        // Mouse event handlers for shape drawing
-        canvas.on('mouse:down', function(o) {
-            if (!canvas.isDrawingMode && (currentMode === 'rectangle' || currentMode === 'circle' || currentMode === 'line')) {
-                isDrawing = true;
-                const pointer = canvas.getPointer(o.e);
-                startPoint = { x: pointer.x, y: pointer.y };
-
-                if (currentMode === 'rectangle') {
-                    const rect = new fabric.Rect({
-                        left: startPoint.x,
-                        top: startPoint.y,
-                        width: 0,
-                        height: 0,
-                        fill: 'transparent',
-                        stroke: document.getElementById(`color-${examId}`).value,
-                        strokeWidth: 2
-                    });
-                    canvas.add(rect);
-                    canvas.renderAll();
-                } else if (currentMode === 'circle') {
-                    const circle = new fabric.Circle({
-                        left: startPoint.x,
-                        top: startPoint.y,
-                        radius: 0,
-                        fill: 'transparent',
-                        stroke: document.getElementById(`color-${examId}`).value,
-                        strokeWidth: 2
-                    });
-                    canvas.add(circle);
-                    canvas.renderAll();
-                } else if (currentMode === 'line') {
-                    const line = new fabric.Line([startPoint.x, startPoint.y, startPoint.x, startPoint.y], {
-                        stroke: document.getElementById(`color-${examId}`).value,
-                        strokeWidth: 2
-                    });
-                    canvas.add(line);
-                    canvas.renderAll();
-                }
-            }
-        });
-
-        canvas.on('mouse:move', function(o) {
-            if (!isDrawing) return;
-            const pointer = canvas.getPointer(o.e);
-            const activeObj = canvas.getActiveObject() || canvas.getObjects()[canvas.getObjects().length - 1];
-
-            if (currentMode === 'rectangle') {
-                const width = Math.abs(pointer.x - startPoint.x);
-                const height = Math.abs(pointer.y - startPoint.y);
-                activeObj.set({
-                    width: width,
-                    height: height,
-                    left: Math.min(startPoint.x, pointer.x),
-                    top: Math.min(startPoint.y, pointer.y)
-                });
-            } else if (currentMode === 'circle') {
-                const radius = Math.sqrt(Math.pow(pointer.x - startPoint.x, 2) + Math.pow(pointer.y - startPoint.y, 2)) / 2;
-                const center = {
-                    x: (startPoint.x + pointer.x) / 2,
-                    y: (startPoint.y + pointer.y) / 2
-                };
-                activeObj.set({
-                    radius: radius,
-                    left: center.x - radius,
-                    top: center.y - radius
-                });
-            } else if (currentMode === 'line') {
-                activeObj.set({
-                    x2: pointer.x,
-                    y2: pointer.y
-                });
-            }
-            canvas.renderAll();
-        });
-
-        canvas.on('mouse:up', function() {
-            isDrawing = false;
-            if (currentMode !== 'draw') {
-                saveToUndoStack(examId);
+        // Enable object selection
+        canvas.on('mouse:down', function(options) {
+            if (options.target) {
+                updateMeasurementSummary(examId);
             }
         });
     }
 
-    function setMode(examId, mode) {
-        const canvas = canvases[examId];
-        currentMode = mode;
+    function loadProcedureFields(examId) {
+        const procedureType = document.getElementById(`procedure-type-${examId}`).value;
+        const fieldsContainer = document.getElementById(`procedure-fields-${examId}`);
+        const fields = procedureFields[procedureType] || [];
         
-        if (mode === 'draw') {
-            canvas.isDrawingMode = true;
-            canvas.freeDrawingBrush.color = document.getElementById(`color-${examId}`).value;
-        } else {
-            canvas.isDrawingMode = false;
-            if (mode === 'text') {
-                const text = new fabric.IText('Click to edit', {
-                    left: 100,
-                    top: 100,
-                    fontSize: 20,
-                    fill: document.getElementById(`color-${examId}`).value
-                });
-                canvas.add(text);
-                canvas.setActiveObject(text);
-                saveToUndoStack(examId);
+        let html = '';
+        fields.forEach(field => {
+            html += `
+                <div class="mb-3">
+                    <label class="form-label">${field.label}:</label>
+                    ${field.type === 'location' ? `
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="${field.id}-${examId}" placeholder="Click on image to set location">
+                            <button class="btn btn-outline-primary" onclick="startLocationSelection('${examId}', '${field.id}')">
+                                Set Location
+                            </button>
+                        </div>
+                    ` : `
+                        <input type="number" class="form-control" id="${field.id}-${examId}" 
+                               onchange="updateMeasurement('${examId}', '${field.id}', this.value)">
+                    `}
+                </div>
+            `;
+        });
+        
+        fieldsContainer.innerHTML = html;
+        clearAnnotations(examId);
+    }
+
+    function startLocationSelection(examId, fieldId) {
+        const canvas = canvases[examId];
+        const input = document.getElementById(`${fieldId}-${examId}`);
+        
+        canvas.on('mouse:down', function handler(options) {
+            const pointer = canvas.getPointer(options.e);
+            addLocationMarker(examId, fieldId, pointer.x, pointer.y);
+            input.value = `X: ${Math.round(pointer.x)}, Y: ${Math.round(pointer.y)}`;
+            canvas.off('mouse:down', handler);
+            updateMeasurementSummary(examId);
+        });
+    }
+
+    function addLocationMarker(examId, fieldId, x, y) {
+        const canvas = canvases[examId];
+        const circle = new fabric.Circle({
+            left: x - 5,
+            top: y - 5,
+            radius: 5,
+            fill: 'red',
+            stroke: 'white',
+            strokeWidth: 2
+        });
+        
+        const label = new fabric.Text(fieldId.replace(/_/g, ' '), {
+            left: x + 10,
+            top: y - 10,
+            fontSize: 14,
+            fill: 'red'
+        });
+        
+        const group = new fabric.Group([circle, label], {
+            id: fieldId
+        });
+        
+        // Remove existing marker for this field if it exists
+        const existingObjects = canvas.getObjects().filter(obj => obj.id === fieldId);
+        existingObjects.forEach(obj => canvas.remove(obj));
+        
+        canvas.add(group);
+        canvas.renderAll();
+        saveToUndoStack(examId);
+    }
+
+    function updateMeasurement(examId, fieldId, value) {
+        measurements[examId][fieldId] = value;
+        updateMeasurementSummary(examId);
+    }
+
+    function updateMeasurementSummary(examId) {
+        const procedureType = document.getElementById(`procedure-type-${examId}`).value;
+        const summaryContainer = document.getElementById(`measurement-summary-${examId}`);
+        const fields = procedureFields[procedureType] || [];
+        
+        let html = '<h6>Measurements Summary:</h6><ul class="list-unstyled">';
+        fields.forEach(field => {
+            const value = document.getElementById(`${field.id}-${examId}`).value;
+            if (value) {
+                html += `<li><strong>${field.label}:</strong> ${value}</li>`;
             }
-        }
+        });
+        html += '</ul>';
+        
+        summaryContainer.innerHTML = html;
+    }
+
+    function clearAnnotations(examId) {
+        const canvas = canvases[examId];
+        canvas.getObjects().forEach(obj => canvas.remove(obj));
+        canvas.renderAll();
+        
+        // Clear measurements
+        measurements[examId] = {};
+        undoStack[examId] = [];
+        
+        // Clear input fields
+        const procedureType = document.getElementById(`procedure-type-${examId}`).value;
+        const fields = procedureFields[procedureType] || [];
+        fields.forEach(field => {
+            const input = document.getElementById(`${field.id}-${examId}`);
+            if (input) input.value = '';
+        });
+        
+        updateMeasurementSummary(examId);
     }
 
     function saveToUndoStack(examId) {
         const canvas = canvases[examId];
-        const json = JSON.stringify(canvas.toJSON());
-        undoStack[examId].push(json);
-        // Limit undo stack size
-        if (undoStack[examId].length > 20) {
-            undoStack[examId].shift();
-        }
-    }
-
-    function undo(examId) {
-        const canvas = canvases[examId];
-        if (undoStack[examId] && undoStack[examId].length > 0) {
-            undoStack[examId].pop(); // Remove current state
-            if (undoStack[examId].length > 0) {
-                const previousState = undoStack[examId][undoStack[examId].length - 1];
-                canvas.loadFromJSON(JSON.parse(previousState), function() {
-                    canvas.renderAll();
-                });
-            } else {
-                clearCanvas(examId);
-            }
-        }
-    }
-
-    function clearCanvas(examId) {
-        const canvas = canvases[examId];
-        canvas.getObjects().forEach(obj => {
-            if (obj !== canvas.backgroundImage) {
-                canvas.remove(obj);
-            }
+        undoStack[examId].push({
+            canvas: JSON.stringify(canvas.toJSON(['id'])),
+            measurements: JSON.parse(JSON.stringify(measurements[examId]))
         });
-        canvas.renderAll();
+    }
+
+    function undoLastAnnotation(examId) {
+        if (undoStack[examId].length > 0) {
+            const previousState = undoStack[examId].pop();
+            const canvas = canvases[examId];
+            
+            canvas.loadFromJSON(JSON.parse(previousState.canvas), function() {
+                canvas.renderAll();
+                measurements[examId] = previousState.measurements;
+                updateMeasurementSummary(examId);
+            });
+        }
     }
 
     async function saveAnnotations(examId) {
         const canvas = canvases[examId];
-        const annotations = JSON.stringify(canvas.toJSON(['id']));
+        const procedureType = document.getElementById(`procedure-type-${examId}`).value;
+        
+        const data = {
+            procedure_type: procedureType,
+            measurements: measurements[examId],
+            annotations: canvas.toJSON(['id'])
+        };
         
         try {
             const response = await fetch(`/api/exams/${examId}/annotations/`, {
@@ -409,31 +454,18 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify({ annotations: annotations })
+                body: JSON.stringify(data)
             });
             
             if (response.ok) {
-                alert('Annotations saved successfully!');
+                alert('Measurements and annotations saved successfully!');
             } else {
-                alert('Error saving annotations');
+                alert('Error saving measurements and annotations');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error saving annotations');
+            alert('Error saving measurements and annotations');
         }
-    }
-
-    function loadAnnotations(examId) {
-        fetch(`/api/exams/${examId}/annotations/`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.annotations) {
-                    canvases[examId].loadFromJSON(data.annotations, function() {
-                        canvases[examId].renderAll();
-                    });
-                }
-            })
-            .catch(error => console.error('Error loading annotations:', error));
     }
 
     // Helper function to get CSRF token
