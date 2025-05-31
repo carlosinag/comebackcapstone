@@ -6,7 +6,7 @@
 <div class="container">
     <div class="row mb-4">
         <div class="col">
-            <h2>Ultrasound Examination Details</h2>
+            <h2>Ultrasound Examination Report</h2>
         </div>
         <div class="col text-end">
             {% if not exam.bill %}
@@ -28,177 +28,153 @@
     </div>
 
     <div class="row">
-        <!-- Patient Information -->
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Patient Information</h5>
-                </div>
+        <div class="col-12">
+            <div class="card shadow">
                 <div class="card-body">
-                    <table class="table">
-                        <tr>
-                            <th>Name:</th>
-                            <td>{{ exam.patient.first_name }} {{ exam.patient.last_name }}</td>
-                        </tr>
-                        <tr>
-                            <th>Email:</th>
-                            <td>{{ exam.patient.email }}</td>
-                        </tr>
-                        <tr>
-                            <th>Referring Physician:</th>
-                            <td>{{ exam.referring_physician }}</td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Procedure Details -->
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Procedure Details</h5>
-                </div>
-                <div class="card-body">
-                    <table class="table">
-                        <tr>
-                            <th>Procedure Type:</th>
-                            <td>{{ exam.get_procedure_type_display }}</td>
-                        </tr>
-                        {% if exam.doppler_site %}
-                        <tr>
-                            <th>Doppler Site:</th>
-                            <td>{{ exam.doppler_site }}</td>
-                        </tr>
-                        {% endif %}
-                        {% if exam.other_procedure %}
-                        <tr>
-                            <th>Other Procedure:</th>
-                            <td>{{ exam.other_procedure }}</td>
-                        </tr>
-                        {% endif %}
-                        <tr>
-                            <th>Date:</th>
-                            <td>{{ exam.exam_date }}</td>
-                        </tr>
-                        <tr>
-                            <th>Time:</th>
-                            <td>{{ exam.exam_time }}</td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Clinical Information -->
-        <div class="col-md-12 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Clinical Information</h5>
-                </div>
-                <div class="card-body">
-                    <div class="mb-4">
-                        <h6>Clinical Diagnosis/Indication:</h6>
-                        <p class="border rounded p-3">{{ exam.clinical_diagnosis|linebreaks }}</p>
+                    <!-- Header Information -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="200">CASE NUMBER:</th>
+                                    <td>{{ exam.id }}</td>
+                                    <th width="100">DATE:</th>
+                                    <td>{{ exam.exam_date }}</td>
+                                </tr>
+                                <tr>
+                                    <th>NAME OF PATIENT:</th>
+                                    <td colspan="3">{{ exam.patient.first_name }} {{ exam.patient.last_name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>AGE:</th>
+                                    <td>{{ exam.patient.age }}</td>
+                                    <th>GENDER:</th>
+                                    <td>{{ exam.patient.get_sex_display }}</td>
+                                </tr>
+                                <tr>
+                                    <th>MARITAL STATUS:</th>
+                                    <td colspan="3">{{ exam.patient.marital_status|default:"N/A" }}</td>
+                                </tr>
+                            </table>
+                        </div>
                     </div>
-                    <div>
-                        <h6>Medical History:</h6>
-                        <p class="border rounded p-3">{{ exam.medical_history|linebreaks }}</p>
+
+                    <!-- Examination Details -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="200">EXAMINATION PERFORMED:</th>
+                                    <td colspan="3" style="text-transform: uppercase;">{{ exam.procedure_type.name }} ULTRASOUND</td>
+                                </tr>
+                                <tr>
+                                    <th>O.R.:</th>
+                                    <td>{{ exam.or_number|default:"" }}</td>
+                                    <th width="150">AMOUNT PAID:</th>
+                                    <td>{% if exam.bill %}₱{{ exam.bill.total_amount }}{% else %}Pending{% endif %}</td>
+                                </tr>
+                                <tr>
+                                    <th>REQUESTING PHYSICIAN:</th>
+                                    <td>{{ exam.referring_physician }}</td>
+                                    <th>WARD:</th>
+                                    <td>{{ exam.patient.get_patient_status_display }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Radiological Findings -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="border-bottom pb-2">RADIOLOGICAL FINDINGS:</h5>
+                            <div class="findings-content mt-3">
+                                {{ exam.findings|linebreaks }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Specific Measurements -->
+                    {% if exam.procedure_type == 'OB' %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="200">FETAL HEART RATE:</th>
+                                    <td>{{ exam.fetal_heart_rate|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>AMNIOTIC FLUID:</th>
+                                    <td>{{ exam.amniotic_fluid|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>PLACENTA:</th>
+                                    <td>{{ exam.placenta|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>FETAL SEX:</th>
+                                    <td>{{ exam.fetal_sex|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>EDD:</th>
+                                    <td>{{ exam.edd|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>EFW:</th>
+                                    <td>{{ exam.efw|default:"-" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Impression -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="border-bottom pb-2">IMPRESSION:</h5>
+                            <div class="impression-content mt-3">
+                                {{ exam.impression|linebreaks }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Signatures -->
+                    <div class="row mt-5">
+                        <div class="col-md-6">
+                            <p class="text-center">
+                                <strong>{{ exam.technologist }}</strong><br>
+                                Ultrasound Technologist
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-center">
+                                <strong>{{ exam.radiologist }}</strong><br>
+                                Radiologist
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Findings and Impression -->
-        <div class="col-md-12 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Findings and Impression</h5>
-                </div>
-                <div class="card-body">
-                    <div class="mb-4">
-                        <h6>Findings:</h6>
-                        <p class="border rounded p-3">{{ exam.findings|linebreaks }}</p>
-                    </div>
-                    <div>
-                        <h6>Impression:</h6>
-                        <p class="border rounded p-3">{{ exam.impression|linebreaks }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recommendations -->
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Recommendations</h5>
-                </div>
-                <div class="card-body">
-                    <table class="table">
-                        <tr>
-                            <th>Recommendation:</th>
-                            <td>{{ exam.get_recommendations_display }}</td>
-                        </tr>
-                        {% if exam.followup_duration %}
-                        <tr>
-                            <th>Follow-up Duration:</th>
-                            <td>{{ exam.followup_duration }}</td>
-                        </tr>
-                        {% endif %}
-                        {% if exam.specialist_referral %}
-                        <tr>
-                            <th>Specialist Referral:</th>
-                            <td>{{ exam.specialist_referral }}</td>
-                        </tr>
-                        {% endif %}
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Staff Information -->
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Staff Information</h5>
-                </div>
-                <div class="card-body">
-                    <table class="table">
-                        <tr>
-                            <th>Technologist:</th>
-                            <td>{{ exam.technologist }}</td>
-                        </tr>
-                        <tr>
-                            <th>Radiologist:</th>
-                            <td>{{ exam.radiologist }}</td>
-                        </tr>
-                        <tr>
-                            <th>Technologist Signature:</th>
-                            <td>{{ exam.technologist_signature }}</td>
-                        </tr>
-                        <tr>
-                            <th>Radiologist Signature:</th>
-                            <td>{{ exam.radiologist_signature }}</td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        {% if exam.technologist_notes %}
-        <!-- Technologist Notes -->
-        <div class="col-md-12 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Technologist Notes</h5>
-                </div>
-                <div class="card-body">
-                    <p class="border rounded p-3">{{ exam.technologist_notes|linebreaks }}</p>
-                </div>
-            </div>
-        </div>
-        {% endif %}
     </div>
 </div>
+
+<style>
+    .findings-content, .impression-content {
+        min-height: 150px;
+        white-space: pre-line;
+    }
+    .table th {
+        font-weight: bold;
+        color: #333;
+    }
+    @media print {
+        .btn {
+            display: none;
+        }
+        .card {
+            border: none;
+            box-shadow: none;
+        }
+    }
+</style>
 {% endblock %} 

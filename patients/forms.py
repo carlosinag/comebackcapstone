@@ -24,7 +24,8 @@ class PatientForm(forms.ModelForm):
     class Meta:
         model = Patient
         fields = [
-            'first_name', 'last_name', 'age', 'sex', 'date_of_birth', 'patient_type', 'id_number',
+            'first_name', 'last_name', 'age', 'sex', 'date_of_birth', 'marital_status',
+            'patient_type', 'patient_status', 'id_number',
             'region', 'province', 'city', 'barangay', 'street_address',
             'contact_number', 'email', 'emergency_contact',
             'emergency_contact_number'
@@ -45,8 +46,13 @@ class PatientForm(forms.ModelForm):
             'age': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter age'}),
             'sex': forms.Select(attrs={'class': 'form-control'}),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'marital_status': forms.Select(attrs={'class': 'form-control'}),
             'patient_type': forms.Select(attrs={'class': 'form-control', 'id': 'id_patient_type'}),
-            'id_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter ID number'}),
+            'patient_status': forms.Select(attrs={'class': 'form-control', 'id': 'id_patient_status'}),
+            'id_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter Senior Citizen/PWD ID number'
+            }),
             'street_address': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,

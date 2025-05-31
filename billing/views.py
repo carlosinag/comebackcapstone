@@ -23,6 +23,7 @@ def bill_detail(request, bill_number):
         if payment_form.is_valid():
             payment = payment_form.save(commit=False)
             payment.bill = bill
+            payment.created_by = request.user.get_full_name()
             payment.save()
             messages.success(request, 'Payment recorded successfully.')
             return redirect('billing:bill_detail', bill_number=bill.bill_number)
@@ -44,7 +45,7 @@ def create_bill(request, exam_id):
     
     if hasattr(exam, 'bill'):
         messages.warning(request, 'A bill already exists for this examination.')
-        return redirect('bill_detail', bill_number=exam.bill.bill_number)
+        return redirect('billing:bill_detail', bill_number=exam.bill.bill_number)
     
     if request.method == 'POST':
         form = BillForm(request.POST)

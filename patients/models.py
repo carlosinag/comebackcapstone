@@ -16,13 +16,27 @@ class Patient(models.Model):
         ('SENIOR', 'Senior Citizen'),
         ('PWD', 'Person with Disability'),
     ]
+
+    PATIENT_STATUS_CHOICES = [
+        ('IN', 'Inpatient'),
+        ('OUT', 'Outpatient'),
+    ]
+
+    MARITAL_STATUS_CHOICES = [
+        ('S', 'Single'),
+        ('M', 'Married'),
+        ('W', 'Widowed'),
+        ('D', 'Divorced'),
+    ]
     
-    first_name = models.CharField(max_length=50, verbose_name="First Name")
-    last_name = models.CharField(max_length=50, verbose_name="Last Name")
+    first_name = models.CharField(max_length=50, verbose_name="First Name", default="")
+    last_name = models.CharField(max_length=50, verbose_name="Last Name", default="")
     age = models.IntegerField()
     sex = models.CharField(max_length=1, choices=GENDER_CHOICES)
     date_of_birth = models.DateField()
+    marital_status = models.CharField(max_length=1, choices=MARITAL_STATUS_CHOICES, null=True, blank=True)
     patient_type = models.CharField(max_length=10, choices=PATIENT_TYPE_CHOICES, default='REGULAR')
+    patient_status = models.CharField(max_length=3, choices=PATIENT_STATUS_CHOICES, default='OUT')
     id_number = models.CharField(max_length=50, blank=True, null=True, help_text="Senior Citizen/PWD ID number")
     
     # Address fields as simple text fields
@@ -87,6 +101,26 @@ class UltrasoundExam(models.Model):
         ('NF', 'No further workup needed'),
     ]
 
+    PLACENTA_GRADE_CHOICES = [
+        ('0', 'Grade 0'),
+        ('1', 'Grade I'),
+        ('2', 'Grade II'),
+        ('3', 'Grade III'),
+    ]
+
+    PLACENTA_LOCATION_CHOICES = [
+        ('ANT', 'Anterior'),
+        ('POS', 'Posterior'),
+        ('FUN', 'Fundal'),
+        ('LAT', 'Lateral'),
+    ]
+
+    FETAL_SEX_CHOICES = [
+        ('M', 'Male'),
+        ('F', 'Female'),
+        ('U', 'Undetermined'),
+    ]
+
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='ultrasound_exams')
     referring_physician = models.CharField(max_length=100)
     clinical_diagnosis = models.TextField()
@@ -115,6 +149,18 @@ class UltrasoundExam(models.Model):
     followup_duration = models.CharField(max_length=50, blank=True, null=True)
     specialist_referral = models.CharField(max_length=100, blank=True, null=True)
     
+    # Obstetric Ultrasound Specific Fields
+    fetal_heart_rate = models.CharField(max_length=50, blank=True, null=True)
+    amniotic_fluid = models.TextField(blank=True, null=True)
+    placenta_location = models.CharField(max_length=3, choices=PLACENTA_LOCATION_CHOICES, blank=True, null=True)
+    placenta_grade = models.CharField(max_length=1, choices=PLACENTA_GRADE_CHOICES, blank=True, null=True)
+    fetal_sex = models.CharField(max_length=1, choices=FETAL_SEX_CHOICES, blank=True, null=True)
+    edd = models.DateField(verbose_name="Estimated Date of Delivery", blank=True, null=True)
+    efw = models.CharField(max_length=50, verbose_name="Estimated Fetal Weight", blank=True, null=True)
+    
+    # Billing Information
+    or_number = models.CharField(max_length=50, blank=True, null=True)
+    
     technologist_notes = models.TextField(blank=True, null=True)
     technologist_signature = models.CharField(max_length=100)
     radiologist_signature = models.CharField(max_length=100)
@@ -123,7 +169,15 @@ class UltrasoundExam(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.patient.first_name} {self.patient.last_name} - {self.procedure_type} - {self.exam_date}"
+        return f"{self.patient.first_name} {self.patient.last_name} - {self.exam_date}"
+
+    @property
+    def placenta_description(self):
+        if self.placenta_location and self.placenta_grade:
+            location = dict(self.PLACENTA_LOCATION_CHOICES)[self.placenta_location]
+            grade = dict(self.PLACENTA_GRADE_CHOICES)[self.placenta_grade]
+            return f"{location} Placenta, {grade}"
+        return None
 
     class Meta:
         ordering = ['-exam_date', '-exam_time'] 

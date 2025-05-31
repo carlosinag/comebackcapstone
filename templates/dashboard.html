@@ -5,6 +5,11 @@
 <div class="container-fluid py-4">
     <h1 class="h3 mb-4">Analytics Dashboard</h1>
     
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+        {{ error }}
+    </div>
+    {% else %}
     <!-- Summary Cards Row -->
     <div class="row mb-4">
         <!-- Total Patients Card -->
@@ -112,12 +117,14 @@
             </div>
         </div>
     </div>
+    {% endif %}
 </div>
 
 {% block extra_js %}
 <!-- Load Plotly.js -->
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script>
+    {% if not error %}
     // Procedure Distribution Chart
     const procedureData = {
         values: {{ procedure_distribution_data|safe }},
@@ -182,6 +189,7 @@
         },
         showlegend: false
     });
+    {% endif %}
 </script>
 {% endblock %}
 {% endblock %} 

@@ -23,12 +23,12 @@
 
     <div class="row">
         <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Personal Information</h5>
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Personal Information</h5>
                 </div>
                 <div class="card-body">
-                    <table class="table">
+                    <table class="table table-borderless">
                         <tr>
                             <th>Name:</th>
                             <td>{{ patient.first_name }} {{ patient.last_name }}</td>
@@ -46,33 +46,29 @@
                             <td>{{ patient.date_of_birth }}</td>
                         </tr>
                         <tr>
-                            <th>Address:</th>
-                            <td>
-                                {{ patient.street_address }}<br>
-                                {% if patient.barangay_name %}{{ patient.barangay_name }}{% else %}{{ patient.barangay }}{% endif %}, 
-                                {% if patient.city_name %}{{ patient.city_name }}{% else %}{{ patient.city }}{% endif %}<br>
-                                {% if patient.province_name %}{{ patient.province_name }}{% else %}{{ patient.province }}{% endif %}, 
-                                {% if patient.region_name %}{{ patient.region_name }}{% else %}{{ patient.region }}{% endif %}
-                            </td>
-                        </tr>
-                        <tr>
                             <th>Contact Number:</th>
                             <td>{{ patient.contact_number }}</td>
                         </tr>
-                        {% if patient.email %}
                         <tr>
-                            <th>Email:</th>
-                            <td>{{ patient.email }}</td>
-                        </tr>
-                        {% endif %}
-                        {% if patient.emergency_contact %}
-                        <tr>
-                            <th>Emergency Contact:</th>
-                            <td>{{ patient.emergency_contact }}</td>
+                            <th>Address:</th>
+                            <td>
+                                {{ patient.address }}<br>
+                                {{ patient.barangay }}, {{ patient.city }}<br>
+                                {{ patient.province }}, {{ patient.region }}
+                            </td>
                         </tr>
                         <tr>
-                            <th>Emergency Contact Number:</th>
-                            <td>{{ patient.emergency_contact_number }}</td>
+                            <th>Patient Type:</th>
+                            <td>{{ patient.get_patient_type_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>Patient Status:</th>
+                            <td>{{ patient.get_patient_status_display }}</td>
+                        </tr>
+                        {% if patient.id_number %}
+                        <tr>
+                            <th>ID Number:</th>
+                            <td>{{ patient.id_number }}</td>
                         </tr>
                         {% endif %}
                     </table>
@@ -81,18 +77,18 @@
         </div>
 
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Examination History</h5>
-                </div>
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Ultrasound Examinations</h5>
+                </div>  
                 <div class="card-body">
+                    {% if exams %}
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
                                 <tr>
                                     <th>Date</th>
                                     <th>Procedure</th>
-                                    <th>Radiologist</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -101,24 +97,30 @@
                                 <tr>
                                     <td>{{ exam.exam_date }}</td>
                                     <td>{{ exam.get_procedure_type_display }}</td>
-                                    <td>{{ exam.radiologist }}</td>
                                     <td>
-                                        <a href="{% url 'exam-detail' exam.pk %}" class="btn btn-sm btn-info me-2" title="View Details">
-                                            <i class="fas fa-eye"></i>
+                                        <a href="{% url 'exam-detail' exam.pk %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> View
                                         </a>
-                                        <a href="{% url 'exam-update' exam.pk %}" class="btn btn-sm btn-warning" title="Edit Exam">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
+                                        {% if user.is_authenticated %}
+                                            {% if not exam.bill %}
+                                            <a href="{% url 'billing:create_bill' exam.pk %}" class="btn btn-sm btn-success">
+                                                <i class="fas fa-file-invoice-dollar"></i> Create Bill
+                                            </a>
+                                            {% else %}
+                                            <a href="{% url 'billing:bill_detail' exam.bill.bill_number %}" class="btn btn-sm btn-secondary">
+                                                <i class="fas fa-file-invoice"></i> View Bill
+                                            </a>
+                                            {% endif %}
+                                        {% endif %}
                                     </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center">No examinations found.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
+                    {% else %}
+                    <p class="text-muted">No examinations recorded yet.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>

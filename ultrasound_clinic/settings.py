@@ -97,6 +97,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
+# Authentication settings
+LOGIN_URL = 'admin_login'
+LOGIN_REDIRECT_URL = 'home-dashboard'
+
 # Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'  # Or your email provider's SMTP server

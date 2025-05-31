@@ -92,6 +92,19 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
+                                    <label for="{{ form.marital_status.id_for_label }}" class="form-label">Marital Status</label>
+                                    {{ form.marital_status }}
+                                    {% if form.marital_status.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.marital_status.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
                                     <label for="{{ form.patient_type.id_for_label }}" class="form-label">Patient Type</label>
                                     {{ form.patient_type }}
                                     {% if form.patient_type.errors %}
@@ -100,12 +113,8 @@
                                         </div>
                                     {% endif %}
                                 </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
                                 <div class="mb-3" id="id_number_container" style="display: none;">
-                                    <label for="{{ form.id_number.id_for_label }}" class="form-label">ID Number</label>
+                                    <label for="{{ form.id_number.id_for_label }}" class="form-label">Senior Citizen/PWD ID Number</label>
                                     {{ form.id_number }}
                                     {% if form.id_number.help_text %}
                                         <div class="form-text">{{ form.id_number.help_text }}</div>
@@ -113,6 +122,17 @@
                                     {% if form.id_number.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.id_number.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.patient_status.id_for_label }}" class="form-label">Patient Status</label>
+                                    {{ form.patient_status }}
+                                    {% if form.patient_status.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.patient_status.errors|join:", " }}
                                         </div>
                                     {% endif %}
                                 </div>
@@ -274,20 +294,32 @@ document.addEventListener('DOMContentLoaded', function() {
         idNumberContainer
     });
 
-    // Function to toggle ID number field visibility
+    // Function to toggle ID number field visibility with animation
     function toggleIdNumberField() {
         const selectedType = patientTypeSelect.value;
         if (selectedType === 'SENIOR' || selectedType === 'PWD') {
             idNumberContainer.style.display = 'block';
+            idNumberContainer.style.opacity = '0';
+            setTimeout(() => {
+                idNumberContainer.style.opacity = '1';
+                idNumberContainer.style.transition = 'opacity 0.3s ease-in';
+            }, 50);
+            idNumberContainer.querySelector('input').required = true;
         } else {
-            idNumberContainer.style.display = 'none';
+            idNumberContainer.style.opacity = '0';
+            idNumberContainer.style.transition = 'opacity 0.3s ease-out';
+            setTimeout(() => {
+                idNumberContainer.style.display = 'none';
+                idNumberContainer.querySelector('input').required = false;
+                idNumberContainer.querySelector('input').value = '';
+            }, 300);
         }
     }
 
     // Add event listener for patient type changes
     patientTypeSelect.addEventListener('change', toggleIdNumberField);
 
-    // Call the function on page load to set initial state
+    // Call the function initially to set the correct state
     toggleIdNumberField();
 
     // Function to update select options
