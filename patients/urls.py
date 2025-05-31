@@ -24,4 +24,5 @@ urlpatterns = [
     path('custom-admin/dashboard/', admin_views.admin_dashboard, name='admin_dashboard'),
     path('custom-admin/billing-report/', admin_views.admin_billing_report, name='admin_billing_report'),
     path('custom-admin/billing-export/', admin_views.admin_billing_export, name='admin_billing_export'),
+    path('ultrasound-image/<int:image_id>/delete/', views.delete_ultrasound_image, name='delete-ultrasound-image'),
 ] 

@@ -74,23 +74,41 @@ class Patient(models.Model):
     @property
     def province_name(self):
         provinces = self._load_json_data('province.json')
-        province = next((p for p in provinces if p['province_code'] == self.province), None)
+        # Ensure province code is padded to 4 digits
+        province_code = self.province.zfill(4) if self.province else None
+        province = next((p for p in provinces if p['province_code'] == province_code), None)
         return province['province_name'] if province else self.province
 
     @property
     def city_name(self):
         cities = self._load_json_data('city.json')
-        city = next((c for c in cities if c['city_code'] == self.city), None)
+        # Ensure city code is padded to 6 digits
+        city_code = self.city.zfill(6) if self.city else None
+        city = next((c for c in cities if c['city_code'] == city_code), None)
         return city['city_name'] if city else self.city
 
     @property
     def barangay_name(self):
         barangays = self._load_json_data('barangay.json')
-        barangay = next((b for b in barangays if b['brgy_code'] == self.barangay), None)
+        # Ensure barangay code is padded to 9 digits
+        barangay_code = self.barangay.zfill(9) if self.barangay else None
+        barangay = next((b for b in barangays if b['brgy_code'] == barangay_code), None)
         return barangay['brgy_name'] if barangay else self.barangay
 
     class Meta:
         ordering = ['-created_at']
+
+class UltrasoundImage(models.Model):
+    exam = models.ForeignKey('UltrasoundExam', on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='ultrasound_images/')
+    caption = models.CharField(max_length=200, blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"Image for {self.exam} - {self.uploaded_at}"
 
 class UltrasoundExam(models.Model):
     RECOMMENDATION_CHOICES = [
@@ -126,8 +144,7 @@ class UltrasoundExam(models.Model):
     clinical_diagnosis = models.TextField()
     medical_history = models.TextField()
     
-    # Image and Annotations
-    image = models.ImageField(upload_to='ultrasound_images/', null=True, blank=True)
+    # Remove the old image field
     annotations = models.TextField(null=True, blank=True)
     
     # Procedure Details

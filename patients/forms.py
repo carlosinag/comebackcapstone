@@ -99,25 +99,39 @@ class UltrasoundExamForm(forms.ModelForm):
     class Meta:
         model = UltrasoundExam
         fields = [
-            'patient', 'referring_physician', 'clinical_diagnosis', 'medical_history',
-            'procedure_type', 'doppler_site', 'other_procedure',
-            'exam_date', 'exam_time', 'technologist', 'radiologist',
-            'findings', 'impression', 'recommendations', 'followup_duration',
-            'specialist_referral', 'technologist_notes',
-            'technologist_signature', 'radiologist_signature',
-            'image'
+            'patient',
+            'referring_physician',
+            'clinical_diagnosis',
+            'medical_history',
+            'procedure_type',
+            'doppler_site',
+            'other_procedure',
+            'exam_date',
+            'exam_time',
+            'technologist',
+            'radiologist',
+            'findings',
+            'impression',
+            'recommendations',
+            'followup_duration',
+            'specialist_referral',
+            'fetal_heart_rate',
+            'amniotic_fluid',
+            'placenta_location',
+            'placenta_grade',
+            'fetal_sex',
+            'edd',
+            'efw',
+            'or_number',
+            'technologist_notes',
+            'technologist_signature',
+            'radiologist_signature',
+            'annotations'
         ]
         widgets = {
             'exam_date': forms.DateInput(attrs={'type': 'date'}),
             'exam_time': forms.TimeInput(attrs={'type': 'time'}),
-            'clinical_diagnosis': forms.Textarea(attrs={'rows': 4}),
-            'medical_history': forms.Textarea(attrs={'rows': 4}),
-            'findings': forms.Textarea(attrs={'rows': 6}),
-            'impression': forms.Textarea(attrs={'rows': 4}),
-            'technologist_notes': forms.Textarea(attrs={'rows': 4}),
-            'image': forms.FileInput(attrs={'accept': 'image/*', 'class': 'form-control'}),
-            'procedure_type': forms.Select(attrs={'class': 'form-control'}),
-            'recommendations': forms.Select(attrs={'class': 'form-control'})
+            'edd': forms.DateInput(attrs={'type': 'date'}),
         }
 
     def __init__(self, *args, **kwargs):

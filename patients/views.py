@@ -3,11 +3,10 @@ from django.contrib import messages
 from django.views.generic import ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView
 from django.urls import reverse_lazy
-from django.http import JsonResponse
-from django.http import HttpResponseRedirect
+from django.http import JsonResponse, HttpResponseRedirect
 from django.views.decorators.http import require_http_methods
-from django.db import models
-from .models import Patient, UltrasoundExam
+from django.db import models, transaction
+from .models import Patient, UltrasoundExam, UltrasoundImage
 from .forms import PatientForm, UltrasoundExamForm
 from django.db.models import Count, Sum
 from django.db.models.functions import ExtractWeek
@@ -100,28 +99,56 @@ class UltrasoundExamCreateView(CreateView):
             initial['patient'] = get_object_or_404(Patient, pk=self.kwargs['patient_id'])
         return initial
 
+    def form_valid(self, form):
+        try:
+            with transaction.atomic():
+                # Save the exam first
+                self.object = form.save()
+                
+                # Handle multiple image uploads
+                files = self.request.FILES.getlist('images[]')
+                for file in files:
+                    UltrasoundImage.objects.create(
+                        exam=self.object,
+                        image=file
+                    )
+                
+                messages.success(self.request, 'Ultrasound examination record created successfully.')
+                return super().form_valid(form)
+        except Exception as e:
+            messages.error(self.request, f'Error saving examination: {str(e)}')
+            return self.form_invalid(form)
+
     def get_success_url(self):
         return reverse_lazy('patient-detail', kwargs={'pk': self.object.patient.pk})
-
-    def form_valid(self, form):
-        messages.success(self.request, 'Ultrasound examination record created successfully.')
-        return super().form_valid(form)
 
 class UltrasoundExamUpdateView(UpdateView):
     model = UltrasoundExam
     form_class = UltrasoundExamForm
     template_name = 'patients/ultrasound_form.html'
 
+    def form_valid(self, form):
+        try:
+            with transaction.atomic():
+                # Save the exam first
+                self.object = form.save()
+                
+                # Handle multiple image uploads
+                files = self.request.FILES.getlist('images[]')
+                for file in files:
+                    UltrasoundImage.objects.create(
+                        exam=self.object,
+                        image=file
+                    )
+                
+                messages.success(self.request, 'Ultrasound examination record updated successfully.')
+                return super().form_valid(form)
+        except Exception as e:
+            messages.error(self.request, f'Error updating examination: {str(e)}')
+            return self.form_invalid(form)
+
     def get_success_url(self):
         return reverse_lazy('patient-detail', kwargs={'pk': self.object.patient.pk})
-
-    def form_valid(self, form):
-        # If a new image is uploaded, delete the old one
-        if 'image' in form.changed_data and self.object.image:
-            self.object.image.delete(save=False)
-        
-        messages.success(self.request, 'Ultrasound examination record updated successfully.')
-        return super().form_valid(form)
 
 class UltrasoundExamDetailView(DetailView):
     model = UltrasoundExam
@@ -165,6 +192,15 @@ def exam_image_upload(request, patient_id):
         messages.error(request, f'Error uploading image: {str(e)}')
     
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
+@require_http_methods(["POST"])
+def delete_ultrasound_image(request, image_id):
+    image = get_object_or_404(UltrasoundImage, pk=image_id)
+    exam = image.exam
+    if request.user.is_authenticated:
+        image.delete()
+        messages.success(request, 'Image deleted successfully.')
+    return HttpResponseRedirect(reverse_lazy('exam-update', kwargs={'pk': exam.pk}))
 
 def dashboard(request):
     try:
@@ -241,6 +277,10 @@ def home_dashboard(request):
     return render(request, 'home_dashboard.html', context)
 
 def admin_login(request):
+    # Clear all messages
+    storage = messages.get_messages(request)
+    storage.used = True
+    
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
