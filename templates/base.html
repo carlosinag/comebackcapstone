@@ -114,12 +114,12 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{% url 'patient-list' %}" class="{% if request.resolver_match.url_name == 'patient-list' %}active{% endif %}">
+                    <a href="{% url 'patient-list' %}" class="{% if request.resolver_match.url_name == 'patient-list' and not request.GET.view %}active{% endif %}">
                         <i class="fas fa-users"></i> Patient List
                     </a>
                 </li>
                 <li>
-                    <a href="#" class="{% if request.resolver_match.url_name == 'annotation' %}active{% endif %}">
+                    <a href="{% url 'patient-list' %}?view=annotation" class="{% if request.resolver_match.url_name == 'patient-list' and request.GET.view == 'annotation' %}active{% endif %}">
                         <i class="fas fa-draw-polygon"></i> Image Annotation
                     </a>
                 </li>

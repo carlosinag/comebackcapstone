@@ -178,12 +178,11 @@ def exam_image_upload(request, patient_id):
     try:
         exam = UltrasoundExam.objects.get(id=exam_id, patient=patient)
         
-        # Delete old image if it exists
-        if exam.image:
-            exam.image.delete(save=False)
-        
-        exam.image = image_file
-        exam.save()
+        # Create a new UltrasoundImage instance
+        ultrasound_image = UltrasoundImage.objects.create(
+            exam=exam,
+            image=image_file
+        )
         
         messages.success(request, 'Image uploaded successfully.')
     except UltrasoundExam.DoesNotExist:

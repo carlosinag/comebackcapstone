@@ -31,9 +31,6 @@ class Bill(models.Model):
     ]
 
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='bills')
-    exam = models.OneToOneField(UltrasoundExam, on_delete=models.CASCADE, related_name='bill')
-    service = models.ForeignKey(ServiceType, on_delete=models.PROTECT)
-    
     bill_number = models.CharField(max_length=20, unique=True)
     bill_date = models.DateField(default=timezone.now)
     due_date = models.DateField()
@@ -80,6 +77,12 @@ class Bill(models.Model):
             return (timezone.now().date() - self.due_date).days
         return 0
 
+    def calculate_totals(self):
+        """Calculate totals based on bill items"""
+        self.subtotal = sum(item.amount for item in self.items.all())
+        self.total_amount = self.subtotal - self.discount + self.tax
+        self.save()
+
     def send_payment_reminder(self):
         if not self.is_overdue():
             return False
@@ -116,6 +119,22 @@ class Bill(models.Model):
         except Exception as e:
             print(f"Failed to send payment reminder: {str(e)}")
             return False
+
+class BillItem(models.Model):
+    bill = models.ForeignKey(Bill, on_delete=models.CASCADE, related_name='items')
+    exam = models.OneToOneField(UltrasoundExam, on_delete=models.CASCADE, related_name='bill_item')
+    service = models.ForeignKey(ServiceType, on_delete=models.PROTECT)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    notes = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.service.name} - {self.exam.exam_date}"
+
+    def save(self, *args, **kwargs):
+        if not self.amount:
+            self.amount = self.service.base_price
+        super().save(*args, **kwargs)
+        self.bill.calculate_totals()
 
 class Payment(models.Model):
     bill = models.ForeignKey(Bill, on_delete=models.CASCADE, related_name='payments')

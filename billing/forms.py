@@ -4,15 +4,11 @@ from .models import Bill, Payment, ServiceType
 class BillForm(forms.ModelForm):
     class Meta:
         model = Bill
-        fields = ['service', 'subtotal', 'discount', 'tax', 'notes', 'due_date']
+        fields = ['discount', 'tax', 'notes', 'due_date']
         widgets = {
             'due_date': forms.DateInput(attrs={'type': 'date'}),
             'notes': forms.Textarea(attrs={'rows': 3}),
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['service'].queryset = ServiceType.objects.filter(is_active=True)
 
 class PaymentForm(forms.ModelForm):
     class Meta:

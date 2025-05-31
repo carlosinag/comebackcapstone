@@ -16,8 +16,8 @@
                     <thead class="thead-light">
                         <tr>
                             <th>Bill Number</th>
-                            <th>Patient</th>
-                            <th>Service</th>
+                            <th>Patient Name</th>
+                            <th>Procedures</th>
                             <th>Date</th>
                             <th>Total Amount</th>
                             <th>Status</th>
@@ -28,8 +28,18 @@
                         {% for bill in bills %}
                         <tr>
                             <td>{{ bill.bill_number }}</td>
-                            <td>{{ bill.patient.name }}</td>
-                            <td>{{ bill.service.name }}</td>
+                            <td>{{ bill.patient.first_name }} {{ bill.patient.last_name }}</td>
+                            <td>
+                                <div class="procedures-list">
+                                    {% for item in bill.items.all %}
+                                    <div class="procedure-item">
+                                        <span class="procedure-name">{{ item.service.name }}</span>
+                                        <small class="text-muted d-block">{{ item.exam.exam_time|time:"g:i A" }}</small>
+                                    </div>
+                                    {% if not forloop.last %}<hr class="my-1">{% endif %}
+                                    {% endfor %}
+                                </div>
+                            </td>
                             <td>{{ bill.bill_date }}</td>
                             <td>₱{{ bill.total_amount }}</td>
                             <td>
@@ -40,7 +50,7 @@
                                 {% elif bill.status == 'PENDING' %}
                                     <span class="badge bg-danger">Pending</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">{{ bill.status }}</span>
+                                    <span class="badge bg-secondary">{{ bill.get_status_display }}</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -61,4 +71,27 @@
         </div>
     </div>
 </div>
+
+<style>
+.procedures-list {
+    max-height: 150px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+}
+.procedure-item {
+    padding: 4px 0;
+}
+.procedure-item:first-child {
+    padding-top: 0;
+}
+.procedure-item:last-child {
+    padding-bottom: 0;
+}
+.procedure-item hr {
+    margin: 2px 0;
+}
+.procedure-name {
+    font-weight: 500;
+}
+</style>
 {% endblock %} 
