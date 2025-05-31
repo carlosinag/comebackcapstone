@@ -23,6 +23,40 @@ class PatientListView(ListView):
     context_object_name = 'patients'
     ordering = ['-created_at']
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Handle search
+        search_query = self.request.GET.get('search')
+        if search_query:
+            queryset = queryset.filter(
+                models.Q(first_name__icontains=search_query) |
+                models.Q(last_name__icontains=search_query)
+            )
+        
+        # Handle sex filtering
+        sex_filter = self.request.GET.get('sex_filter')
+        if sex_filter in ['M', 'F']:
+            queryset = queryset.filter(sex=sex_filter)
+        
+        # Handle sorting
+        sort = self.request.GET.get('sort')
+        if sort:
+            if sort == 'age_asc':
+                queryset = queryset.order_by('age')
+            elif sort == 'age_desc':
+                queryset = queryset.order_by('-age')
+            elif sort == 'visit_asc':
+                queryset = queryset.annotate(
+                    last_visit=models.Max('ultrasound_exams__exam_date')
+                ).order_by('last_visit')
+            elif sort == 'visit_desc':
+                queryset = queryset.annotate(
+                    last_visit=models.Max('ultrasound_exams__exam_date')
+                ).order_by('-last_visit')
+        
+        return queryset
+
 class PatientDetailView(DetailView):
     model = Patient
     template_name = 'patients/patient_detail.html'
@@ -155,14 +189,15 @@ def dashboard(request):
             try:
                 # Create test patient
                 test_patient = Patient.objects.create(
-                    name="Test Patient",
+                    first_name="Test",
+                    last_name="Patient",
                     age=30,
                     sex='M',
                     date_of_birth="1993-01-01",
                     address="Test Address",
                     contact_number="1234567890"
                 )
-                print(f"Created test patient: {test_patient.name}")
+                print(f"Created test patient: {test_patient.first_name} {test_patient.last_name}")
 
                 # Create test ultrasound exam
                 today = timezone.now().date()
@@ -199,7 +234,7 @@ def dashboard(request):
         print("Fetching all patients...")
         patients = Patient.objects.all()
         for patient in patients:
-            print(f"Found patient: {patient.name} (ID: {patient.id})")
+            print(f"Found patient: {patient.first_name} {patient.last_name} (ID: {patient.id})")
         
         # Basic counts with debug info
         total_patients = Patient.objects.count()

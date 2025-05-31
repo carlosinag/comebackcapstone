@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ patient.name }} - Image Annotation{% endblock %}
+{% block title %}{{ patient.first_name }} {{ patient.last_name }} - Image Annotation{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -45,7 +45,7 @@
 <div class="container">
     <div class="row mb-4">
         <div class="col">
-            <h2>Image Annotation - {{ patient.name }}</h2>
+            <h2>Image Annotation - {{ patient.first_name }} {{ patient.last_name }}</h2>
         </div>
         <div class="col text-end">
             <a href="{% url 'patient-detail' patient.pk %}" class="btn btn-secondary">

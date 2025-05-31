@@ -4,11 +4,47 @@
 
 {% block content %}
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Patient List</h2>
-        <a href="{% url 'patient-create' %}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>New Patient
-        </a>
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Patient List</h2>
+            <div class="d-flex gap-2">
+                <form class="d-flex" method="GET" id="filterForm">
+                    <input type="text" 
+                           name="search" 
+                           class="form-control me-2" 
+                           placeholder="Search patients..." 
+                           value="{{ request.GET.search }}"
+                           id="searchInput"
+                           autocomplete="off">
+                    <input type="hidden" name="sex_filter" id="sexFilter" value="{{ request.GET.sex_filter }}">
+                    <input type="hidden" name="sort" value="{{ request.GET.sort }}">
+                    <button type="submit" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+                <a href="{% url 'patient-create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>New Patient
+                </a>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-3">
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    Sort By
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+                    <li><a class="dropdown-item" href="#" onclick="updateSort('age_asc')">Age (Low to High)</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="updateSort('age_desc')">Age (High to Low)</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="updateSort('visit_asc')">Last Visit (Oldest)</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="updateSort('visit_desc')">Last Visit (Newest)</a></li>
+                </ul>
+            </div>
+            <div class="btn-group" role="group" aria-label="Sex filter">
+                <button type="button" class="btn btn-outline-secondary {% if request.GET.sex_filter == 'M' %}active{% endif %}" onclick="updateSexFilter('M')">Male Only</button>
+                <button type="button" class="btn btn-outline-secondary {% if request.GET.sex_filter == 'F' %}active{% endif %}" onclick="updateSexFilter('F')">Female Only</button>
+                <button type="button" class="btn btn-outline-secondary {% if not request.GET.sex_filter %}active{% endif %}" onclick="updateSexFilter('')">All</button>
+            </div>
+        </div>
     </div>
 
     <div class="card">
@@ -28,7 +64,7 @@
                     <tbody>
                         {% for patient in patients %}
                         <tr>
-                            <td>{{ patient.name }}</td>
+                            <td>{{ patient.first_name }} {{ patient.last_name }}</td>
                             <td>{{ patient.age }}</td>
                             <td>{{ patient.get_sex_display }}</td>
                             <td>{{ patient.contact_number }}</td>
@@ -64,4 +100,47 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let searchTimeout;
+
+function updateSexFilter(value) {
+    document.getElementById('sexFilter').value = value;
+    document.getElementById('filterForm').submit();
+}
+
+function updateSort(value) {
+    const form = document.getElementById('filterForm');
+    const sortInput = form.querySelector('input[name="sort"]');
+    sortInput.value = value;
+    form.submit();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const form = document.getElementById('filterForm');
+
+    searchInput.addEventListener('input', function() {
+        // Clear the previous timeout
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+
+        // Set a new timeout to delay the search
+        searchTimeout = setTimeout(function() {
+            form.submit();
+        }, 300); // Wait 300ms after the user stops typing before submitting
+    });
+
+    // Prevent form submission on enter key to avoid double submission
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            form.submit();
+        }
+    });
+});
+</script>
 {% endblock %} 

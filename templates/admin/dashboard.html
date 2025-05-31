@@ -91,7 +91,7 @@
                             <tbody>
                                 {% for patient in recent_patients %}
                                 <tr>
-                                    <td>{{ patient.name }}</td>
+                                    <td>{{ patient.first_name }} {{ patient.last_name }}</td>
                                     <td>{{ patient.created_at|date:"M d, Y" }}</td>
                                     <td>
                                         <a href="{% url 'admin:patients_patient_change' patient.id %}" class="btn btn-sm btn-primary">
@@ -126,7 +126,7 @@
                             <tbody>
                                 {% for bill in recent_bills %}
                                 <tr>
-                                    <td>{{ bill.patient.name }}</td>
+                                    <td>{{ bill.patient.first_name }} {{ bill.patient.last_name }}</td>
                                     <td>₱{{ bill.total_amount }}</td>
                                     <td>
                                         <span class="badge {% if bill.status == 'PAID' %}bg-success{% elif bill.status == 'PENDING' %}bg-warning{% else %}bg-danger{% endif %}">

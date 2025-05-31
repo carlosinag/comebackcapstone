@@ -71,7 +71,7 @@
                         {% for bill in bills %}
                         <tr>
                             <td>{{ bill.id }}</td>
-                            <td>{{ bill.patient.name }}</td>
+                            <td>{{ bill.patient.first_name }} {{ bill.patient.last_name }}</td>
                             <td>{{ bill.bill_date|date:"M d, Y" }}</td>
                             <td>₱{{ bill.total_amount|floatformat:2 }}</td>
                             <td>

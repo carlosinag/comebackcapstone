@@ -51,7 +51,7 @@ class Bill(models.Model):
     last_reminder_sent = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"Bill #{self.bill_number} - {self.patient.name}"
+        return f"Bill #{self.bill_number} - {self.patient.first_name} {self.patient.last_name}"
 
     def save(self, *args, **kwargs):
         if not self.bill_number:

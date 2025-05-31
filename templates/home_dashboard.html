@@ -84,7 +84,7 @@
                             <tbody>
                                 {% for patient in recent_patients %}
                                 <tr>
-                                    <td>{{ patient.name }}</td>
+                                    <td>{{ patient.first_name }} {{ patient.last_name }}</td>
                                     <td>{{ patient.created_at|date:"M d, Y" }}</td>
                                     <td>
                                         <a href="{% url 'patient-detail' patient.pk %}" class="btn btn-sm btn-info">
@@ -124,7 +124,7 @@
                             <tbody>
                                 {% for exam in recent_exams %}
                                 <tr>
-                                    <td>{{ exam.patient.name }}</td>
+                                    <td>{{ exam.patient.first_name }} {{ exam.patient.last_name }}</td>
                                     <td>{{ exam.get_procedure_type_display }}</td>
                                     <td>{{ exam.exam_date|date:"M d, Y" }}</td>
                                     <td>

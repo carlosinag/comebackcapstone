@@ -11,10 +11,19 @@ class Patient(models.Model):
         ('O', 'Other'),
     ]
     
-    name = models.CharField(max_length=100)
+    PATIENT_TYPE_CHOICES = [
+        ('REGULAR', 'Regular'),
+        ('SENIOR', 'Senior Citizen'),
+        ('PWD', 'Person with Disability'),
+    ]
+    
+    first_name = models.CharField(max_length=50, verbose_name="First Name")
+    last_name = models.CharField(max_length=50, verbose_name="Last Name")
     age = models.IntegerField()
     sex = models.CharField(max_length=1, choices=GENDER_CHOICES)
     date_of_birth = models.DateField()
+    patient_type = models.CharField(max_length=10, choices=PATIENT_TYPE_CHOICES, default='REGULAR')
+    id_number = models.CharField(max_length=50, blank=True, null=True, help_text="Senior Citizen/PWD ID number")
     
     # Address fields as simple text fields
     region = models.CharField("Region", max_length=100)
@@ -31,10 +40,10 @@ class Patient(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.name} - {self.contact_number}"
+        return f"{self.first_name} {self.last_name} - {self.contact_number}"
 
     def _load_json_data(self, filename):
-        file_path = os.path.join(settings.BASE_DIR, 'patients', 'static', 'philippine-addresses', filename)
+        file_path = os.path.join(settings.BASE_DIR, 'static', 'philippine-addresses', filename)
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 return json.load(file)
@@ -70,18 +79,6 @@ class Patient(models.Model):
         ordering = ['-created_at']
 
 class UltrasoundExam(models.Model):
-    PROCEDURE_CHOICES = [
-        ('ABD', 'Abdominal'),
-        ('PEL', 'Pelvic'),
-        ('OBS', 'Obstetric'),
-        ('TVS', 'Transvaginal'),
-        ('BRE', 'Breast'),
-        ('THY', 'Thyroid'),
-        ('SCR', 'Scrotal'),
-        ('DOP', 'Doppler'),
-        ('OTH', 'Other'),
-    ]
-
     RECOMMENDATION_CHOICES = [
         ('FI', 'Further imaging'),
         ('FU', 'Follow-up ultrasound'),
@@ -100,7 +97,7 @@ class UltrasoundExam(models.Model):
     annotations = models.TextField(null=True, blank=True)
     
     # Procedure Details
-    procedure_type = models.CharField(max_length=3, choices=PROCEDURE_CHOICES)
+    procedure_type = models.ForeignKey('billing.ServiceType', on_delete=models.PROTECT, related_name='ultrasound_exams')
     doppler_site = models.CharField(max_length=100, blank=True, null=True)
     other_procedure = models.CharField(max_length=100, blank=True, null=True)
     
@@ -126,7 +123,7 @@ class UltrasoundExam(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.patient.name} - {self.procedure_type} - {self.exam_date}"
+        return f"{self.patient.first_name} {self.patient.last_name} - {self.procedure_type} - {self.exam_date}"
 
     class Meta:
         ordering = ['-exam_date', '-exam_time'] 

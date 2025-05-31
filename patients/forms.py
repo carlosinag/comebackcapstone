@@ -1,36 +1,52 @@
 from django import forms
 from .models import Patient, UltrasoundExam
+from billing.models import ServiceType
 
 class PatientForm(forms.ModelForm):
+    # Add help text for address fields
+    region = forms.CharField(widget=forms.Select(attrs={
+        'class': 'form-control',
+        'id': 'id_region'
+    }))
+    province = forms.CharField(widget=forms.Select(attrs={
+        'class': 'form-control',
+        'id': 'id_province'
+    }))
+    city = forms.CharField(widget=forms.Select(attrs={
+        'class': 'form-control',
+        'id': 'id_city'
+    }))
+    barangay = forms.CharField(widget=forms.Select(attrs={
+        'class': 'form-control',
+        'id': 'id_barangay'
+    }))
+
     class Meta:
         model = Patient
         fields = [
-            'name', 'age', 'sex', 'date_of_birth',
+            'first_name', 'last_name', 'age', 'sex', 'date_of_birth', 'patient_type', 'id_number',
             'region', 'province', 'city', 'barangay', 'street_address',
             'contact_number', 'email', 'emergency_contact',
             'emergency_contact_number'
         ]
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter full name'}),
+            'first_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter first name',
+                'pattern': '[A-Za-z ]+',
+                'title': 'Only letters and spaces are allowed'
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter last name',
+                'pattern': '[A-Za-z ]+',
+                'title': 'Only letters and spaces are allowed'
+            }),
             'age': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter age'}),
             'sex': forms.Select(attrs={'class': 'form-control'}),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'region': forms.Select(attrs={
-                'class': 'form-control',
-                'id': 'id_region'
-            }),
-            'province': forms.Select(attrs={
-                'class': 'form-control',
-                'id': 'id_province'
-            }),
-            'city': forms.Select(attrs={
-                'class': 'form-control',
-                'id': 'id_city'
-            }),
-            'barangay': forms.Select(attrs={
-                'class': 'form-control',
-                'id': 'id_barangay'
-            }),
+            'patient_type': forms.Select(attrs={'class': 'form-control', 'id': 'id_patient_type'}),
+            'id_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter ID number'}),
             'street_address': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
@@ -66,6 +82,12 @@ class PatientForm(forms.ModelForm):
         self.fields['province'].widget.attrs['disabled'] = True
         self.fields['city'].widget.attrs['disabled'] = True
         self.fields['barangay'].widget.attrs['disabled'] = True
+        
+        # Add help text
+        self.fields['region'].help_text = 'Select your region'
+        self.fields['province'].help_text = 'Select your province'
+        self.fields['city'].help_text = 'Select your city/municipality'
+        self.fields['barangay'].help_text = 'Select your barangay'
 
 class UltrasoundExamForm(forms.ModelForm):
     class Meta:
@@ -87,5 +109,13 @@ class UltrasoundExamForm(forms.ModelForm):
             'findings': forms.Textarea(attrs={'rows': 6}),
             'impression': forms.Textarea(attrs={'rows': 4}),
             'technologist_notes': forms.Textarea(attrs={'rows': 4}),
-            'image': forms.FileInput(attrs={'accept': 'image/*', 'class': 'form-control'})
-        } 
+            'image': forms.FileInput(attrs={'accept': 'image/*', 'class': 'form-control'}),
+            'procedure_type': forms.Select(attrs={'class': 'form-control'}),
+            'recommendations': forms.Select(attrs={'class': 'form-control'})
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter only active service types
+        self.fields['procedure_type'].queryset = ServiceType.objects.filter(is_active=True)
+        self.fields['procedure_type'].empty_label = "Select a procedure type..." 
