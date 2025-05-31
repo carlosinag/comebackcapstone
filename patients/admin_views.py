@@ -86,5 +86,69 @@ def admin_billing_report(request):
 
 @staff_member_required
 def admin_billing_export(request):
-    # TODO: Implement Excel export functionality
-    pass 
+    from django.http import HttpResponse
+    import xlsxwriter
+    from io import BytesIO
+
+    # Create an in-memory output file for the Excel workbook
+    output = BytesIO()
+    workbook = xlsxwriter.Workbook(output)
+    worksheet = workbook.add_worksheet()
+
+    # Add headers
+    headers = ['Bill ID', 'Patient Name', 'Date', 'Amount', 'Status', 'Payment Method']
+    for col, header in enumerate(headers):
+        worksheet.write(0, col, header)
+
+    # Get filtered bills (reuse logic from admin_billing_report)
+    date_range = request.GET.get('date_range', '')
+    status = request.GET.get('status', '')
+    min_amount = request.GET.get('min_amount', '')
+    max_amount = request.GET.get('max_amount', '')
+
+    bills = Bill.objects.select_related('patient').all()
+
+    # Apply filters (same as in admin_billing_report)
+    if date_range:
+        try:
+            start_date, end_date = date_range.split(' - ')
+            start_date = datetime.strptime(start_date, '%m/%d/%Y')
+            end_date = datetime.strptime(end_date, '%m/%d/%Y')
+            bills = bills.filter(bill_date__range=[start_date, end_date])
+        except ValueError:
+            pass
+
+    if status:
+        bills = bills.filter(status=status)
+
+    if min_amount:
+        try:
+            bills = bills.filter(total_amount__gte=float(min_amount))
+        except ValueError:
+            pass
+
+    if max_amount:
+        try:
+            bills = bills.filter(total_amount__lte=float(max_amount))
+        except ValueError:
+            pass
+
+    # Write data rows
+    for row, bill in enumerate(bills, start=1):
+        worksheet.write(row, 0, bill.id)
+        worksheet.write(row, 1, bill.patient.name)
+        worksheet.write(row, 2, bill.bill_date.strftime('%Y-%m-%d'))
+        worksheet.write(row, 3, float(bill.total_amount))
+        worksheet.write(row, 4, bill.status)
+        worksheet.write(row, 5, bill.payment_method or 'N/A')
+
+    workbook.close()
+
+    # Create the HttpResponse with Excel content type
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=billing_report.xlsx'
+
+    return response
