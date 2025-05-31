@@ -1,8 +1,9 @@
 from django.urls import path
-from . import views
-from . import api
+from . import views, api
+from . import admin_views
 
 urlpatterns = [
+    # Main site URLs
     path('', views.home_dashboard, name='home-dashboard'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('patients/', views.PatientListView.as_view(), name='patient-list'),
@@ -17,4 +18,10 @@ urlpatterns = [
     # API endpoints
     path('api/exams/<int:exam_id>/annotations/', api.exam_annotations, name='exam-annotations'),
     path('patient/<int:patient_id>/upload-image/', views.exam_image_upload, name='exam-image-upload'),
+    
+    # Custom admin interface
+    path('custom-admin/login/', views.admin_login, name='admin_login'),
+    path('custom-admin/dashboard/', admin_views.admin_dashboard, name='admin_dashboard'),
+    path('custom-admin/billing-report/', admin_views.admin_billing_report, name='admin_billing_report'),
+    path('custom-admin/billing-export/', admin_views.admin_billing_export, name='admin_billing_export'),
 ] 

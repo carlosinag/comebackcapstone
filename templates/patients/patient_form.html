@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load widget_tweaks %}
+{% load static %}
 
 {% block title %}{% if form.instance.pk %}Edit Patient{% else %}New Patient{% endif %}{% endblock %}
 
@@ -21,30 +22,175 @@
                     <form method="post" novalidate>
                         {% csrf_token %}
                         
-                        {% for field in form %}
-                            <div class="mb-3">
-                                <label for="{{ field.id_for_label }}" class="form-label">
-                                    {{ field.label }}
-                                </label>
-                                {% if field.field.widget.input_type == 'checkbox' %}
-                                    {{ field|add_class:'form-check-input' }}
-                                {% else %}
-                                    {{ field|add_class:'form-control' }}
-                                {% endif %}
-                                {% if field.help_text %}
-                                    <div class="form-text">{{ field.help_text }}</div>
-                                {% endif %}
-                                {% if field.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in field.errors %}
-                                            {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
+                        <!-- Personal Information -->
+                        <h4 class="mb-3">Personal Information</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }}</label>
+                                    {{ form.name }}
+                                    {% if form.name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.name.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
                             </div>
-                        {% endfor %}
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.age.id_for_label }}" class="form-label">{{ form.age.label }}</label>
+                                    {{ form.age }}
+                                    {% if form.age.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.age.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.sex.id_for_label }}" class="form-label">{{ form.sex.label }}</label>
+                                    {{ form.sex }}
+                                    {% if form.sex.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.sex.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.date_of_birth.id_for_label }}" class="form-label">{{ form.date_of_birth.label }}</label>
+                                    {{ form.date_of_birth }}
+                                    {% if form.date_of_birth.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.date_of_birth.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
 
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <!-- Address Information -->
+                        <h4 class="mb-3 mt-4">Address Information</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.region.id_for_label }}" class="form-label">Region</label>
+                                    {{ form.region }}
+                                    {% if form.region.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.region.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.province.id_for_label }}" class="form-label">Province</label>
+                                    {{ form.province }}
+                                    {% if form.province.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.province.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.city.id_for_label }}" class="form-label">City/Municipality</label>
+                                    {{ form.city }}
+                                    {% if form.city.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.city.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.barangay.id_for_label }}" class="form-label">Barangay</label>
+                                    {{ form.barangay }}
+                                    {% if form.barangay.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.barangay.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="{{ form.street_address.id_for_label }}" class="form-label">Street Address</label>
+                            {{ form.street_address }}
+                            {% if form.street_address.help_text %}
+                                <div class="form-text">{{ form.street_address.help_text }}</div>
+                            {% endif %}
+                            {% if form.street_address.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.street_address.errors|join:", " }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Contact Information -->
+                        <h4 class="mb-3 mt-4">Contact Information</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.contact_number.id_for_label }}" class="form-label">{{ form.contact_number.label }}</label>
+                                    {{ form.contact_number }}
+                                    {% if form.contact_number.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.contact_number.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
+                                    {{ form.email }}
+                                    {% if form.email.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.email.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Emergency Contact -->
+                        <h4 class="mb-3 mt-4">Emergency Contact</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.emergency_contact.id_for_label }}" class="form-label">{{ form.emergency_contact.label }}</label>
+                                    {{ form.emergency_contact }}
+                                    {% if form.emergency_contact.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.emergency_contact.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.emergency_contact_number.id_for_label }}" class="form-label">{{ form.emergency_contact_number.label }}</label>
+                                    {{ form.emergency_contact_number }}
+                                    {% if form.emergency_contact_number.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.emergency_contact_number.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                             <a href="{% url 'patient-list' %}" class="btn btn-secondary me-md-2">Cancel</a>
                             <button type="submit" class="btn btn-primary">
                                 {% if form.instance.pk %}
@@ -60,4 +206,212 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const regionSelect = document.getElementById('id_region');
+    const provinceSelect = document.getElementById('id_province');
+    const citySelect = document.getElementById('id_city');
+    const barangaySelect = document.getElementById('id_barangay');
+
+    // Function to update select options
+    function updateSelect(selectElement, data, defaultOption = 'Select...') {
+        selectElement.innerHTML = `<option value="">${defaultOption}</option>`;
+        data.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.code || item.province_code || item.city_code || item.brgy_code;
+            option.textContent = item.name || item.province_name || item.city_name || item.brgy_name;
+            selectElement.appendChild(option);
+        });
+        selectElement.disabled = false;
+    }
+
+    // Function to pad the code with leading zeros
+    function padWithZeros(code) {
+        // Ensure the code is a string and pad it to 4 digits
+        return code.toString().padStart(4, '0');
+    }
+
+    // Function to fetch JSON data
+    async function fetchJsonData(path) {
+        try {
+            const response = await fetch(path);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error:', error);
+            throw error;
+        }
+    }
+
+    // Function to handle loading state
+    function setLoadingState(selectElement) {
+        selectElement.disabled = true;
+        selectElement.innerHTML = '<option value="">Loading...</option>';
+    }
+
+    // Function to handle error state
+    function setErrorState(selectElement, error) {
+        selectElement.disabled = true;
+        selectElement.innerHTML = `<option value="">Error: ${error}</option>`;
+    }
+
+    // Function to reset dependent fields
+    function resetDependentFields(startFrom) {
+        if (startFrom === 'province' || startFrom === 'all') {
+            provinceSelect.innerHTML = '<option value="">Select Province...</option>';
+            provinceSelect.disabled = true;
+        }
+        if (startFrom === 'city' || startFrom === 'all') {
+            citySelect.innerHTML = '<option value="">Select City/Municipality...</option>';
+            citySelect.disabled = true;
+        }
+        if (startFrom === 'barangay' || startFrom === 'all') {
+            barangaySelect.innerHTML = '<option value="">Select Barangay...</option>';
+            barangaySelect.disabled = true;
+        }
+    }
+
+    // Load initial regions
+    async function loadInitialRegions() {
+        setLoadingState(regionSelect);
+        try {
+            const regions = await fetchJsonData("{% static 'philippine-addresses/region.json' %}");
+            if (regions && regions.length > 0) {
+                updateSelect(regionSelect, regions.map(region => ({
+                    code: region.region_code,
+                    name: region.region_name
+                })), 'Select Region...');
+            } else {
+                setErrorState(regionSelect, 'No regions found');
+            }
+        } catch (error) {
+            setErrorState(regionSelect, 'Failed to load regions');
+            console.error('Error loading regions:', error);
+        }
+    }
+
+    // Load regions when page loads
+    loadInitialRegions();
+
+    // Region change handler
+    regionSelect.addEventListener('change', async function() {
+        resetDependentFields('all');
+        
+        if (!this.value) {
+            return;
+        }
+
+        setLoadingState(provinceSelect);
+        try {
+            const provinces = await fetchJsonData("{% static 'philippine-addresses/province.json' %}");
+            const filteredProvinces = provinces.filter(province => 
+                province.region_code === this.value
+            );
+            if (filteredProvinces.length > 0) {
+                updateSelect(provinceSelect, filteredProvinces.map(province => ({
+                    code: province.province_code,
+                    name: province.province_name
+                })), 'Select Province...');
+            } else {
+                setErrorState(provinceSelect, 'No provinces found');
+            }
+        } catch (error) {
+            setErrorState(provinceSelect, 'Failed to load provinces');
+        }
+    });
+
+    // Province change handler
+    provinceSelect.addEventListener('change', async function() {
+        resetDependentFields('city');
+        
+        if (!this.value) {
+            return;
+        }
+
+        setLoadingState(citySelect);
+        try {
+            const cities = await fetchJsonData("{% static 'philippine-addresses/city.json' %}");
+            const selectedProvinceCode = this.value;
+            console.log('Selected province code:', selectedProvinceCode);
+            const filteredCities = cities.filter(city => 
+                city.province_code === selectedProvinceCode
+            );
+            console.log('Filtered cities:', filteredCities);
+            if (filteredCities.length > 0) {
+                updateSelect(citySelect, filteredCities.map(city => ({
+                    code: city.city_code,
+                    name: city.city_name
+                })), 'Select City/Municipality...');
+            } else {
+                setErrorState(citySelect, 'No cities found');
+            }
+        } catch (error) {
+            setErrorState(citySelect, 'Failed to load cities');
+            console.error('Error:', error);
+        }
+    });
+
+    // City change handler
+    citySelect.addEventListener('change', async function() {
+        resetDependentFields('barangay');
+        
+        if (!this.value) {
+            return;
+        }
+
+        setLoadingState(barangaySelect);
+        try {
+            const barangays = await fetchJsonData("{% static 'philippine-addresses/barangay.json' %}");
+            const filteredBarangays = barangays.filter(barangay => 
+                barangay.city_code === this.value
+            );
+            if (filteredBarangays.length > 0) {
+                updateSelect(barangaySelect, filteredBarangays.map(barangay => ({
+                    code: barangay.brgy_code,
+                    name: barangay.brgy_name
+                })), 'Select Barangay...');
+            } else {
+                setErrorState(barangaySelect, 'No barangays found');
+            }
+        } catch (error) {
+            setErrorState(barangaySelect, 'Failed to load barangays');
+        }
+    });
+
+    // If editing, populate the address fields
+    if (regionSelect.value) {
+        regionSelect.dispatchEvent(new Event('change'));
+        
+        // Store the current values
+        const currentProvince = provinceSelect.value;
+        const currentCity = citySelect.value;
+        const currentBarangay = barangaySelect.value;
+
+        // Set up one-time listeners to restore the values after data is loaded
+        if (currentProvince) {
+            provinceSelect.addEventListener('change', function restoreCity() {
+                if (currentCity) {
+                    citySelect.value = currentCity;
+                    citySelect.dispatchEvent(new Event('change'));
+                }
+                provinceSelect.removeEventListener('change', restoreCity);
+            }, { once: true });
+        }
+
+        if (currentCity) {
+            citySelect.addEventListener('change', function restoreBarangay() {
+                if (currentBarangay) {
+                    barangaySelect.value = currentBarangay;
+                }
+                citySelect.removeEventListener('change', restoreBarangay);
+            }, { once: true });
+        }
+    }
+});
+</script>
 {% endblock %} 

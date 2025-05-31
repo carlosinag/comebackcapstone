@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.views.generic import ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView
 from django.urls import reverse_lazy
+from django.http import JsonResponse
 from django.http import HttpResponseRedirect
 from django.views.decorators.http import require_http_methods
 from django.db import models
@@ -13,6 +14,8 @@ from django.db.models.functions import ExtractWeek
 from django.utils import timezone
 from datetime import timedelta
 from billing.models import Bill
+from django.contrib.auth import authenticate, login
+from django.contrib.admin.views.decorators import staff_member_required
 
 class PatientListView(ListView):
     model = Patient
@@ -287,4 +290,19 @@ def home_dashboard(request):
         'recent_exams': recent_exams,
     }
     
-    return render(request, 'home_dashboard.html', context) 
+    return render(request, 'home_dashboard.html', context)
+
+def admin_login(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None and user.is_staff:
+            login(request, user)
+            return redirect('admin_dashboard')
+        else:
+            messages.error(request, 'Invalid credentials or insufficient permissions.')
+            return redirect('admin_login')
+    
+    return render(request, 'admin_login.html') 

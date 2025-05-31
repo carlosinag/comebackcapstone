@@ -1,0 +1,90 @@
+from django.contrib.admin.views.decorators import staff_member_required
+from django.shortcuts import render
+from django.db.models import Sum, Count
+from django.utils import timezone
+from datetime import datetime, timedelta
+from .models import Patient, UltrasoundExam
+from billing.models import Bill
+
+@staff_member_required
+def admin_dashboard(request):
+    # Get counts and recent data
+    total_patients = Patient.objects.count()
+    total_exams = UltrasoundExam.objects.count()
+    total_revenue = Bill.objects.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    pending_bills = Bill.objects.filter(status='PENDING').count()
+
+    # Get recent patients
+    recent_patients = Patient.objects.all().order_by('-created_at')[:5]
+    
+    # Get recent bills
+    recent_bills = Bill.objects.select_related('patient').order_by('-bill_date')[:5]
+
+    context = {
+        'total_patients': total_patients,
+        'total_exams': total_exams,
+        'total_revenue': total_revenue,
+        'pending_bills': pending_bills,
+        'recent_patients': recent_patients,
+        'recent_bills': recent_bills,
+    }
+
+    return render(request, 'admin/dashboard.html', context)
+
+@staff_member_required
+def admin_billing_report(request):
+    # Get filter parameters
+    date_range = request.GET.get('date_range', '')
+    status = request.GET.get('status', '')
+    min_amount = request.GET.get('min_amount', '')
+    max_amount = request.GET.get('max_amount', '')
+
+    # Base queryset
+    bills = Bill.objects.select_related('patient').all()
+
+    # Apply filters
+    if date_range:
+        try:
+            start_date, end_date = date_range.split(' - ')
+            start_date = datetime.strptime(start_date, '%m/%d/%Y')
+            end_date = datetime.strptime(end_date, '%m/%d/%Y')
+            bills = bills.filter(bill_date__range=[start_date, end_date])
+        except ValueError:
+            pass
+
+    if status:
+        bills = bills.filter(status=status)
+
+    if min_amount:
+        try:
+            bills = bills.filter(total_amount__gte=float(min_amount))
+        except ValueError:
+            pass
+
+    if max_amount:
+        try:
+            bills = bills.filter(total_amount__lte=float(max_amount))
+        except ValueError:
+            pass
+
+    # Calculate totals
+    total_revenue = bills.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    pending_amount = bills.filter(status='PENDING').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    total_bills = bills.count()
+
+    context = {
+        'bills': bills.order_by('-bill_date'),
+        'total_revenue': total_revenue,
+        'pending_amount': pending_amount,
+        'total_bills': total_bills,
+        'status': status,
+        'min_amount': min_amount,
+        'max_amount': max_amount,
+    }
+
+    return render(request, 'admin/billing_report.html', context)
+
+@staff_member_required
+def admin_billing_export(request):
+    # TODO: Implement Excel export functionality
+    pass 

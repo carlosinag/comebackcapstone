@@ -1,0 +1,159 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Billing Report{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Billing Report</h1>
+        <button class="btn btn-success" onclick="exportToExcel()">
+            <i class="fas fa-file-excel"></i> Export to Excel
+        </button>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Filters</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Date Range</label>
+                    <input type="text" name="date_range" class="form-control" id="date_range">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All</option>
+                        <option value="PAID" {% if status == 'PAID' %}selected{% endif %}>Paid</option>
+                        <option value="PENDING" {% if status == 'PENDING' %}selected{% endif %}>Pending</option>
+                        <option value="CANCELLED" {% if status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Amount Range</label>
+                    <div class="input-group">
+                        <input type="number" name="min_amount" class="form-control" placeholder="Min" value="{{ min_amount }}">
+                        <input type="number" name="max_amount" class="form-control" placeholder="Max" value="{{ max_amount }}">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary d-block w-100">Apply Filters</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Billing Records</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="billingTable">
+                    <thead>
+                        <tr>
+                            <th>Bill ID</th>
+                            <th>Patient Name</th>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Payment Method</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bill in bills %}
+                        <tr>
+                            <td>{{ bill.id }}</td>
+                            <td>{{ bill.patient.name }}</td>
+                            <td>{{ bill.bill_date|date:"M d, Y" }}</td>
+                            <td>₱{{ bill.total_amount|floatformat:2 }}</td>
+                            <td>
+                                <span class="badge {% if bill.status == 'PAID' %}bg-success{% elif bill.status == 'PENDING' %}bg-warning{% else %}bg-danger{% endif %}">
+                                    {{ bill.status }}
+                                </span>
+                            </td>
+                            <td>{{ bill.payment_method|default:"N/A" }}</td>
+                            <td>
+                                <a href="{% url 'admin:billing_bill_change' bill.id %}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-sm btn-info" onclick="viewDetails({{ bill.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-3">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card border-success">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Revenue</h5>
+                                <h3 class="text-success">₱{{ total_revenue|floatformat:2 }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-warning">
+                            <div class="card-body">
+                                <h5 class="card-title">Pending Amount</h5>
+                                <h3 class="text-warning">₱{{ pending_amount|floatformat:2 }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-info">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Bills</h5>
+                                <h3 class="text-info">{{ total_bills }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#date_range').daterangepicker({
+        startDate: moment().subtract(29, 'days'),
+        endDate: moment(),
+        ranges: {
+           'Today': [moment(), moment()],
+           'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+           'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+           'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+           'This Month': [moment().startOf('month'), moment().endOf('month')],
+           'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+        }
+    });
+});
+
+function exportToExcel() {
+    // Add Excel export functionality
+    window.location.href = "{% url 'admin_billing_export' %}?" + new URLSearchParams(window.location.search);
+}
+
+function viewDetails(billId) {
+    // Add bill details view functionality
+    window.location.href = "{% url 'admin:billing_bill_change' 0 %}".replace('0', billId);
+}
+</script>
+{% endblock %} 
