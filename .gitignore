@@ -7,3 +7,4 @@ db.sqlite3
 billing/__pycache__/*.pyc
 patients/__pycache__/*.pyc
 ultrasound/__pycache__/*.pyc
+media/
