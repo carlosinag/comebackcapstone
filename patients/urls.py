@@ -16,6 +16,7 @@ urlpatterns = [
     path('family/<int:family_group_id>/medical-history/', views.family_medical_history, name='family-medical-history'),
     path('exam/<int:pk>/', views.UltrasoundExamDetailView.as_view(), name='exam-detail'),
     path('exam/<int:pk>/update/', views.UltrasoundExamUpdateView.as_view(), name='exam-update'),
+    path('image/<int:image_id>/annotate/', views.ImageAnnotationView.as_view(), name='image-specific-annotation'),
     
     # API endpoints
     path('api/exams/<int:exam_id>/annotations/', api.exam_annotations, name='exam-annotations'),

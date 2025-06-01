@@ -12,7 +12,7 @@ from django.db.models import Count, Sum
 from django.db.models.functions import ExtractWeek
 from django.utils import timezone
 from datetime import timedelta
-from billing.models import Bill
+from billing.models import Bill, ServiceType
 from django.contrib.auth import authenticate, login
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -196,35 +196,53 @@ class ImageAnnotationView(DetailView):
     template_name = 'patients/image_annotation.html'
     context_object_name = 'patient'
 
+    def get_object(self, queryset=None):
+        if 'image_id' in self.kwargs:
+            # If image_id is provided, get the patient through the image
+            image = get_object_or_404(UltrasoundImage, id=self.kwargs['image_id'])
+            self.specific_image = image
+            return image.exam.patient
+        return super().get_object(queryset)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['exams'] = self.object.ultrasound_exams.all().order_by('-exam_date', '-exam_time')
-        return context 
+        if hasattr(self, 'specific_image'):
+            # If we're annotating a specific image, only show that exam
+            context['exams'] = [self.specific_image.exam]
+            context['specific_image_id'] = self.specific_image.id
+        else:
+            # Otherwise show all exams
+            context['exams'] = self.object.ultrasound_exams.all().order_by('-exam_date', '-exam_time')
+        
+        # Add active procedure types to context
+        context['procedure_types'] = ServiceType.objects.filter(is_active=True)
+        return context
 
 @require_http_methods(["POST"])
 def exam_image_upload(request, patient_id):
     patient = get_object_or_404(Patient, pk=patient_id)
     exam_id = request.POST.get('exam_id')
-    image_file = request.FILES.get('image')
+    image_files = request.FILES.getlist('images[]')
     
-    if not exam_id or not image_file:
-        messages.error(request, 'Both examination and image are required.')
+    if not exam_id or not image_files:
+        messages.error(request, 'Both examination and images are required.')
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
     
     try:
         exam = UltrasoundExam.objects.get(id=exam_id, patient=patient)
         
-        # Create a new UltrasoundImage instance
-        ultrasound_image = UltrasoundImage.objects.create(
-            exam=exam,
-            image=image_file
-        )
+        # Create UltrasoundImage instances for each uploaded file
+        for image_file in image_files:
+            UltrasoundImage.objects.create(
+                exam=exam,
+                image=image_file
+            )
         
-        messages.success(request, 'Image uploaded successfully.')
+        messages.success(request, f'{len(image_files)} image(s) uploaded successfully.')
     except UltrasoundExam.DoesNotExist:
         messages.error(request, 'Invalid examination selected.')
     except Exception as e:
-        messages.error(request, f'Error uploading image: {str(e)}')
+        messages.error(request, f'Error uploading images: {str(e)}')
     
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 

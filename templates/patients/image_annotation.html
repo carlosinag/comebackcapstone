@@ -22,39 +22,6 @@
         border: none;
         margin-right: 10px;
     }
-    .upload-section {
-        background: #f8f9fa;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-    }
-    .drag-drop-zone {
-        border: 2px dashed #ccc;
-        padding: 20px;
-        text-align: center;
-        background: white;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-    .drag-drop-zone:hover {
-        border-color: #0d6efd;
-    }
-    .canvas-container {
-        max-width: 100%;
-        overflow: auto;
-    }
-    #loading-indicator {
-        display: none;
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 1000;
-        background: rgba(255, 255, 255, 0.9);
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
     .measurement-field {
         margin-bottom: 10px;
     }
@@ -83,6 +50,18 @@
         margin-bottom: 15px;
         color: #0d6efd;
     }
+    #loading-indicator {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1000;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
 </style>
 {% endblock %}
 
@@ -109,122 +88,87 @@
         </div>
     </div>
 
-    <!-- Image Upload Section -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Upload New Ultrasound Image</h5>
-                </div>
-                <div class="card-body">
-                    <form method="post" enctype="multipart/form-data" action="{% url 'exam-image-upload' patient.pk %}" id="uploadForm">
-                        {% csrf_token %}
-                        <div class="upload-section">
-                            <div class="drag-drop-zone" id="dragDropZone">
-                                <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
-                                <h5>Drag and drop your ultrasound image here</h5>
-                                <p class="text-muted">or</p>
-                                <input type="file" name="image" id="imageInput" class="d-none" accept="image/*">
-                                <button type="button" class="btn btn-primary" onclick="document.getElementById('imageInput').click()">
-                                    <i class="fas fa-file-upload me-2"></i>Choose File
-                                </button>
-                                <p class="mt-2 selected-file-name"></p>
-                            </div>
-                            <div class="mt-3">
-                                <label for="examSelect" class="form-label">Select Examination:</label>
-                                <select name="exam_id" id="examSelect" class="form-select" required>
-                                    <option value="">Select an examination</option>
-                                    {% for exam in exams %}
-                                        <option value="{{ exam.id }}">{{ exam.exam_date }} - {{ exam.get_procedure_type_display }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="text-end mt-3">
-                                <button type="submit" class="btn btn-success">
-                                    <i class="fas fa-save me-2"></i>Upload Image
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="row">
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">Available Ultrasound Images</h5>
+                    <h5 class="card-title mb-0">
+                        {% if specific_image_id %}
+                            Annotate Selected Image
+                        {% else %}
+                            Available Ultrasound Images
+                        {% endif %}
+                    </h5>
                 </div>
                 <div class="card-body">
                     {% if exams %}
                         {% for exam in exams %}
                             {% if exam.images.exists %}
                             <div class="mb-4">
-                                <h6>Exam Date: {{ exam.exam_date }} - {{ exam.get_procedure_type_display }}</h6>
+                                <h6>Exam Date: {{ exam.exam_date }} - {{ exam.procedure_type.name }}</h6>
                                 {% for image in exam.images.all %}
-                                <div class="annotation-container border p-3">
-                                    <div class="text-center">
-                                        <canvas id="canvas-{{ image.id }}" width="800" height="600"></canvas>
-                                    </div>
-                                    <div class="annotation-tools mt-3">
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <div class="card">
-                                                    <div class="card-header">
-                                                        <h5 class="card-title mb-0">Procedure Measurements</h5>
-                                                    </div>
-                                                    <div class="card-body">
-                                                        <div class="mb-3">
-                                                            <label class="form-label">Select Procedure Type:</label>
-                                                            <select class="form-select" id="procedure-type-{{ image.id }}" onchange="loadProcedureFields('{{ image.id }}')">
-                                                                <option value="">Select Procedure</option>
-                                                                <option value="pelvic">Pelvic Ultrasound</option>
-                                                                <option value="abdominal">Abdominal Ultrasound</option>
-                                                                <option value="breast">Breast Ultrasound</option>
-                                                                <option value="thyroid">Thyroid Ultrasound</option>
-                                                            </select>
+                                    {% if not specific_image_id or image.id == specific_image_id %}
+                                    <div class="annotation-container border p-3">
+                                        <div class="text-center">
+                                            <canvas id="canvas-{{ image.id }}" width="800" height="600"></canvas>
+                                        </div>
+                                        <div class="annotation-tools mt-3">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="card">
+                                                        <div class="card-header">
+                                                            <h5 class="card-title mb-0">Procedure Measurements</h5>
                                                         </div>
-                                                        <div id="procedure-fields-{{ image.id }}">
-                                                            <!-- Dynamic fields will be loaded here -->
+                                                        <div class="card-body">
+                                                            <div class="mb-3">
+                                                                <label class="form-label">Select Procedure Type:</label>
+                                                                <select class="form-select" id="procedure-type-{{ image.id }}" onchange="loadProcedureFields('{{ image.id }}')">
+                                                                    <option value="">Select Procedure</option>
+                                                                    {% for procedure_type in procedure_types %}
+                                                                    <option value="{{ procedure_type.name|lower }}" {% if exam.procedure_type.id == procedure_type.id %}selected{% endif %}>{{ procedure_type.name }}</option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                            </div>
+                                                            <div id="procedure-fields-{{ image.id }}">
+                                                                <!-- Dynamic fields will be loaded here -->
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div class="col-md-8">
-                                                <div class="card">
-                                                    <div class="card-header">
-                                                        <h5 class="card-title mb-0">Annotation Tools</h5>
-                                                    </div>
-                                                    <div class="card-body">
-                                                        <div class="btn-group mb-3">
-                                                            <button class="btn btn-primary btn-sm" onclick="enableDrawing('{{ image.id }}')">
-                                                                <i class="fas fa-pencil-alt"></i> Draw
-                                                            </button>
-                                                            <button class="btn btn-info btn-sm" onclick="enableMeasurement('{{ image.id }}')">
-                                                                <i class="fas fa-ruler"></i> Measure
-                                                            </button>
-                                                            <button class="btn btn-success btn-sm" onclick="saveAnnotations('{{ image.id }}')">
-                                                                <i class="fas fa-save"></i> Save
-                                                            </button>
-                                                            <button class="btn btn-warning btn-sm" onclick="clearAnnotations('{{ image.id }}')">
-                                                                <i class="fas fa-eraser"></i> Clear
-                                                            </button>
-                                                            <button class="btn btn-secondary btn-sm" onclick="undoLastAnnotation('{{ image.id }}')">
-                                                                <i class="fas fa-undo"></i> Undo
-                                                            </button>
+                                                <div class="col-md-8">
+                                                    <div class="card">
+                                                        <div class="card-header">
+                                                            <h5 class="card-title mb-0">Annotation Tools</h5>
                                                         </div>
-                                                        <div id="measurement-summary-{{ image.id }}" class="measurement-summary">
-                                                            <!-- Measurement summary will be displayed here -->
+                                                        <div class="card-body">
+                                                            <div class="btn-group mb-3">
+                                                                <button class="btn btn-primary btn-sm" onclick="enableDrawing('{{ image.id }}')">
+                                                                    <i class="fas fa-pencil-alt"></i> Draw
+                                                                </button>
+                                                                <button class="btn btn-info btn-sm" onclick="enableMeasurement('{{ image.id }}')">
+                                                                    <i class="fas fa-ruler"></i> Measure
+                                                                </button>
+                                                                <button class="btn btn-success btn-sm" onclick="saveAnnotations('{{ image.id }}')">
+                                                                    <i class="fas fa-save"></i> Save
+                                                                </button>
+                                                                <button class="btn btn-warning btn-sm" onclick="clearAnnotations('{{ image.id }}')">
+                                                                    <i class="fas fa-eraser"></i> Clear
+                                                                </button>
+                                                                <button class="btn btn-secondary btn-sm" onclick="undoLastAnnotation('{{ image.id }}')">
+                                                                    <i class="fas fa-undo"></i> Undo
+                                                                </button>
+                                                            </div>
+                                                            <div id="measurement-summary-{{ image.id }}" class="measurement-summary">
+                                                                <!-- Measurement summary will be displayed here -->
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
+                                        <input type="hidden" id="image-url-{{ image.id }}" value="{{ image.image.url }}">
                                     </div>
-                                    <input type="hidden" id="image-url-{{ image.id }}" value="{{ image.image.url }}">
-                                </div>
+                                    {% endif %}
                                 {% endfor %}
                             </div>
                             {% endif %}
@@ -370,11 +314,25 @@
 
     // Initialize all existing canvases
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize loading indicator
+        const loadingIndicator = document.getElementById('loading-indicator');
+        if (!loadingIndicator) {
+            console.error('Loading indicator not found');
+            return;
+        }
+
+        // Initialize all canvases
         {% for exam in exams %}
             {% if exam.images.exists %}
                 {% for image in exam.images.all %}
-                    initCanvas('{{ image.id }}');
-                    loadSavedAnnotations('{{ image.id }}');
+                    try {
+                        console.log('Initializing canvas for image {{ image.id }}');
+                        initCanvas('{{ image.id }}');
+                        loadSavedAnnotations('{{ image.id }}');
+                    } catch (error) {
+                        console.error('Error initializing canvas for image {{ image.id }}:', error);
+                        loadingIndicator.style.display = 'none';
+                    }
                 {% endfor %}
             {% endif %}
         {% endfor %}
@@ -466,7 +424,19 @@
 
     function initCanvas(imageId) {
         const loadingIndicator = document.getElementById('loading-indicator');
+        const canvasContainer = document.getElementById(`canvas-${imageId}`);
+        
+        if (!canvasContainer) {
+            console.error(`Canvas container not found for image ${imageId}`);
+            return;
+        }
+
         loadingIndicator.style.display = 'block';
+
+        // Dispose of existing canvas if it exists
+        if (canvases[imageId]) {
+            canvases[imageId].dispose();
+        }
 
         const canvas = new fabric.Canvas(`canvas-${imageId}`, {
             selection: true,
@@ -480,21 +450,31 @@
         
         // Load the ultrasound image
         const imageUrl = document.getElementById(`image-url-${imageId}`).value;
+        
         fabric.Image.fromURL(imageUrl, function(img) {
+            if (!img) {
+                console.error(`Failed to load image for ${imageId}`);
+                loadingIndicator.style.display = 'none';
+                return;
+            }
+
             const scale = Math.min(
                 canvas.width / img.width,
                 canvas.height / img.height
             );
             
             img.scale(scale);
-            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+            canvas.setBackgroundImage(img, function() {
+                canvas.renderAll();
+                loadingIndicator.style.display = 'none';
+            }, {
                 originX: 'center',
                 originY: 'center',
                 left: canvas.width / 2,
                 top: canvas.height / 2
             });
-
-            loadingIndicator.style.display = 'none';
+        }, null, {
+            crossOrigin: 'anonymous'
         });
 
         // Set up drawing brush

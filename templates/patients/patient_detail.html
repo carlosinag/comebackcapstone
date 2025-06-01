@@ -12,9 +12,9 @@
             <a href="{% url 'patient-update' patient.pk %}" class="btn btn-warning me-2">
                 <i class="fas fa-edit me-2"></i>Edit Patient
             </a>
-            <a href="{% url 'image-annotation' patient.pk %}" class="btn btn-success me-2">
-                <i class="fas fa-draw-polygon me-2"></i>Annotate Images
-            </a>
+            <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#uploadImagesModal">
+                <i class="fas fa-upload me-2"></i>Upload Images
+            </button>
             <a href="{% url 'exam-create' patient.pk %}" class="btn btn-primary me-2">
                 <i class="fas fa-plus me-2"></i>New Exam
             </a>
@@ -23,6 +23,41 @@
                 <i class="fas fa-trash-alt me-2"></i>Delete Patient
             </a>
             {% endif %}
+        </div>
+    </div>
+
+    <!-- Upload Images Modal -->
+    <div class="modal fade" id="uploadImagesModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Upload Ultrasound Images</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="imageUploadForm" method="post" enctype="multipart/form-data" action="{% url 'exam-image-upload' patient.pk %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="examSelect" class="form-label">Select Examination:</label>
+                            <select name="exam_id" id="examSelect" class="form-select" required>
+                                <option value="">Select an examination</option>
+                                {% for exam in exams %}
+                                    <option value="{{ exam.id }}">{{ exam.exam_date }} - {{ exam.procedure_type }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="images" class="form-label">Select Images:</label>
+                            <input type="file" class="form-control" id="images" name="images[]" multiple accept="image/*" required>
+                            <div id="selectedFiles" class="mt-2"></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" form="imageUploadForm" class="btn btn-primary">Upload Images</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -231,10 +266,11 @@
                                                                             <i class="fas fa-info-circle me-1"></i>View Exam Details
                                                                         </a>
                                                                         {% if user.is_authenticated %}
-                                                                            <a href="{% url 'image-annotation' patient.pk %}" class="btn btn-success">
-                                                                                <i class="fas fa-draw-polygon me-1"></i>Annotate Image
+                                                                            <a href="{% url 'image-specific-annotation' image.pk %}" class="btn btn-success">
+                                                                                <i class="fas fa-draw-polygon me-1"></i>Annotate This Image
                                                                             </a>
                                                                         {% endif %}
+                                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -271,4 +307,27 @@
         </div>
     </div>
 </div>
+
+{% block extra_js %}
+<script>
+document.getElementById('images').addEventListener('change', function(e) {
+    const selectedFiles = document.getElementById('selectedFiles');
+    selectedFiles.innerHTML = '';
+    
+    if (this.files.length > 0) {
+        const fileList = document.createElement('div');
+        fileList.className = 'alert alert-info mt-2';
+        fileList.innerHTML = `<strong>Selected files (${this.files.length}):</strong><ul class="mb-0"></ul>`;
+        
+        Array.from(this.files).forEach(file => {
+            const li = document.createElement('li');
+            li.textContent = file.name;
+            fileList.querySelector('ul').appendChild(li);
+        });
+        
+        selectedFiles.appendChild(fileList);
+    }
+});
+</script>
+{% endblock %}
 {% endblock %} 
