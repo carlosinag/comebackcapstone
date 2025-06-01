@@ -64,6 +64,7 @@ class PatientDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # Get all ultrasound exams for this patient
         context['exams'] = self.object.ultrasound_exams.all().order_by('-exam_date', '-exam_time')
         return context
 

@@ -168,6 +168,10 @@
                                                                 </h6>
                                                                 <div class="card">
                                                                     <div class="card-body">
+                                                                        <div class="mb-3">
+                                                                            <label for="notes-{{ image.id }}" class="form-label">Notes:</label>
+                                                                            <textarea class="form-control" id="notes-{{ image.id }}" rows="3" placeholder="Add any additional notes here..."></textarea>
+                                                                        </div>
                                                                         <div id="annotation-preview-{{ image.id }}">
                                                                             <!-- Annotation preview will be displayed here -->
                                                                         </div>
@@ -353,6 +357,15 @@
                                 measurements[imageId][obj.measurementId] = obj.text;
                             }
                         });
+                        
+                        // Restore notes if they exist
+                        if (data.notes) {
+                            const notesTextarea = document.getElementById(`notes-${imageId}`);
+                            if (notesTextarea) {
+                                notesTextarea.value = data.notes;
+                            }
+                        }
+                        
                         updateMeasurementSummary(imageId);
                     });
                 }
@@ -665,8 +678,14 @@
                 previewHtml += '</ul></div>';
             }
 
-            if (!measurements.length && !locations.length) {
-                previewHtml += '<p class="text-muted">No measurements or locations marked yet.</p>';
+            // Add notes to preview if they exist
+            const notes = document.getElementById(`notes-${examId}`).value.trim();
+            if (notes) {
+                previewHtml += '<div class="mt-3"><strong>Notes:</strong><p class="mb-0">' + notes.replace(/\n/g, '<br>') + '</p></div>';
+            }
+
+            if (!measurements.length && !locations.length && !notes) {
+                previewHtml += '<p class="text-muted">No measurements, locations, or notes marked yet.</p>';
             }
         } else {
             previewHtml = '<p class="text-muted">Please select a procedure type to start annotation.</p>';
@@ -774,11 +793,15 @@
                 measurementData[field.id] = input.value;
             }
         });
+
+        // Get notes
+        const notes = document.getElementById(`notes-${imageId}`).value.trim();
         
         const data = {
             annotations: canvas.toJSON(['measurementId']),
             measurements: measurementData,
-            procedure_type: procedureType
+            procedure_type: procedureType,
+            notes: notes
         };
         
         // Show loading indicator
@@ -810,7 +833,7 @@
                 const successMessage = document.createElement('div');
                 successMessage.className = 'alert alert-success alert-dismissible fade show';
                 successMessage.innerHTML = `
-                    <strong>Success!</strong> Annotations and measurements saved successfully.
+                    <strong>Success!</strong> Annotations, measurements, and notes saved successfully.
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 `;
                 const container = document.querySelector('.annotation-container');
@@ -959,27 +982,38 @@
             loadingIndicator.style.display = 'block';
         }
 
-        // Get the annotation preview content
-        const previewContent = document.getElementById(`annotation-preview-${imageId}`).innerHTML;
+        // Get the notes
+        const notes = document.getElementById(`notes-${imageId}`).value.trim();
+
+        // Calculate required height for notes
+        const lineHeight = 20;
+        const noteLines = notes ? notes.split('\n').length : 0;
+        const extraHeight = Math.max(150, (noteLines * lineHeight) + 100); // Minimum 150px or more based on notes
 
         // Create a temporary canvas to combine the image and annotations
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = canvas.width;
-        tempCanvas.height = canvas.height;
+        tempCanvas.height = canvas.height + extraHeight;
         const ctx = tempCanvas.getContext('2d');
 
-        // First draw the main canvas content
+        // Clear the entire canvas with white background
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+        // Draw the main canvas content
         ctx.drawImage(canvas.getElement(), 0, 0);
 
-        // Add the annotation notes at the bottom
+        // Add white background for text area
         ctx.fillStyle = 'white';
-        ctx.fillRect(0, canvas.height - 150, canvas.width, 150);
+        ctx.fillRect(0, canvas.height, canvas.width, extraHeight);
+
+        // Set text properties
         ctx.fillStyle = 'black';
         ctx.font = '14px Arial';
         
         // Get all measurements and locations
         const fields = procedureFields[procedureType] || [];
-        let yPos = canvas.height - 130;
+        let yPos = canvas.height + 30; // Start a bit lower from the image
         
         // Add title
         ctx.font = 'bold 16px Arial';
@@ -1004,6 +1038,7 @@
         // Add locations
         const locations = fields.filter(f => f.type === 'location' && document.getElementById(`${f.id}-${imageId}`).value);
         if (locations.length > 0) {
+            yPos += 10;
             ctx.fillText('Marked Locations:', 10, yPos);
             yPos += 20;
             locations.forEach(field => {
@@ -1011,6 +1046,41 @@
                 if (value) {
                     ctx.fillText(`${field.label}: ${value}`, 20, yPos);
                     yPos += 20;
+                }
+            });
+        }
+
+        // Add notes if they exist
+        if (notes) {
+            yPos += 20;
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText('Notes:', 10, yPos);
+            ctx.font = '14px Arial';
+            yPos += 20;
+            
+            // Split notes into lines and render each line
+            const noteLines = notes.split('\n');
+            noteLines.forEach(line => {
+                // Handle long lines by wrapping text
+                const words = line.split(' ');
+                let currentLine = '';
+                const maxWidth = canvas.width - 40; // Leave some margin
+
+                words.forEach(word => {
+                    const testLine = currentLine + word + ' ';
+                    const metrics = ctx.measureText(testLine);
+                    if (metrics.width > maxWidth && currentLine !== '') {
+                        ctx.fillText(currentLine, 20, yPos);
+                        currentLine = word + ' ';
+                        yPos += lineHeight;
+                    } else {
+                        currentLine = testLine;
+                    }
+                });
+                
+                if (currentLine) {
+                    ctx.fillText(currentLine.trim(), 20, yPos);
+                    yPos += lineHeight;
                 }
             });
         }
@@ -1029,7 +1099,8 @@
                 image_data: dataUrl,
                 procedure_type: procedureType,
                 annotations: canvas.toJSON(['measurementId']),
-                preview_html: previewContent
+                preview_html: document.getElementById(`annotation-preview-${imageId}`).innerHTML,
+                notes: notes
             })
         })
         .then(response => {
@@ -1043,31 +1114,20 @@
                 loadingIndicator.style.display = 'none';
             }
             
-            // Create success message
-            const successMessage = document.createElement('div');
-            successMessage.className = 'alert alert-success alert-dismissible fade show';
-            successMessage.innerHTML = `
-                <strong>Success!</strong> Annotation preview has been saved.
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
-            
-            // Add download link if provided by server
-            if (data.download_url) {
-                const downloadLink = document.createElement('a');
-                downloadLink.href = data.download_url;
-                downloadLink.className = 'btn btn-sm btn-primary ms-3';
-                downloadLink.innerHTML = '<i class="fas fa-download"></i> Download';
-                downloadLink.download = `annotation_${imageId}.png`;
-                successMessage.appendChild(downloadLink);
+            if (data.status === 'success') {
+                // Show brief success message
+                const successMessage = document.createElement('div');
+                successMessage.className = 'alert alert-success';
+                successMessage.textContent = 'Annotation preview saved successfully. Redirecting...';
+                document.body.insertBefore(successMessage, document.body.firstChild);
+                
+                // Redirect to patient detail page after a brief delay
+                setTimeout(() => {
+                    window.location.href = `/patient/${data.patient_id}/`;
+                }, 1500);
+            } else {
+                throw new Error(data.message || 'Error saving preview');
             }
-
-            const container = document.querySelector('.annotation-container');
-            container.insertBefore(successMessage, container.firstChild);
-
-            // Auto dismiss after 5 seconds
-            setTimeout(() => {
-                successMessage.remove();
-            }, 5000);
         })
         .catch(error => {
             console.error('Error:', error);

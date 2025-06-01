@@ -3,6 +3,8 @@ from django.views.decorators.http import require_http_methods
 from django.shortcuts import get_object_or_404
 from django.db import transaction, models
 from django.core.exceptions import ValidationError
+from django.contrib import messages
+from django.contrib.messages import add_message, INFO
 from .models import (
     UltrasoundImage, 
     PelvicUltrasoundMeasurements,
@@ -47,9 +49,15 @@ def exam_annotations(request, exam_id):
                         and getattr(measurement_obj, field.name) is not None
                     }
         
+        # Get notes from annotations if they exist
+        notes = None
+        if image.annotations and isinstance(image.annotations, dict):
+            notes = image.annotations.get('notes')
+        
         return JsonResponse({
             'annotations': image.annotations if image.annotations else None,
-            'measurements': measurements
+            'measurements': measurements,
+            'notes': notes
         })
     
     elif request.method == "POST":
@@ -67,11 +75,22 @@ def exam_annotations(request, exam_id):
                 }, status=400)
             
             with transaction.atomic():
-                # Save annotations
+                # Save annotations and notes
                 annotations = data.get('annotations')
-                if annotations:
-                    image.annotations = annotations
-                    image.save()
+                notes = data.get('notes')
+                
+                # If annotations is a dict, update it with notes
+                if isinstance(annotations, dict):
+                    annotations['notes'] = notes
+                # If annotations is not a dict, create a new dict
+                else:
+                    annotations = {
+                        'canvas': annotations,
+                        'notes': notes
+                    }
+                
+                image.annotations = annotations
+                image.save()
                 
                 # Save measurements based on procedure type
                 if data.get('measurements'):
@@ -122,7 +141,7 @@ def exam_annotations(request, exam_id):
             
             return JsonResponse({
                 'status': 'success',
-                'message': 'Annotations and measurements saved successfully'
+                'message': 'Annotations, measurements, and notes saved successfully'
             })
             
         except json.JSONDecodeError as e:
@@ -170,10 +189,14 @@ def save_annotation_preview(request, exam_id):
         image.annotations = annotations
         image.save()
         
+        # Get patient ID for redirect
+        patient_id = image.exam.patient.id
+        
         return JsonResponse({
             'status': 'success',
             'message': 'Annotation preview saved successfully',
-            'download_url': image.annotated_image.url if image.annotated_image else None
+            'download_url': image.annotated_image.url if image.annotated_image else None,
+            'patient_id': patient_id
         })
         
     except json.JSONDecodeError:
