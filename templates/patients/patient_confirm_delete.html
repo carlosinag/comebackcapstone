@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Patient - {{ patient.first_name }} {{ patient.last_name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h3 class="card-title mb-0">Confirm Patient Deletion</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> This action cannot be undone.
+                    </div>
+
+                    <p class="mb-4">
+                        Are you sure you want to delete the patient record for 
+                        <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>?
+                    </p>
+
+                    <p>This will delete:</p>
+                    <ul>
+                        <li>All patient information</li>
+                        <li>All ultrasound examinations</li>
+                        <li>All ultrasound images</li>
+                        <li>All billing records associated with this patient</li>
+                        {% if patient.family_group and patient.family_group.family_members.count == 1 %}
+                        <li>The family group (as this is the last member)</li>
+                        {% endif %}
+                    </ul>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{% url 'patient-detail' patient.pk %}" class="btn btn-secondary me-md-2">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash-alt me-2"></i>Delete Patient
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

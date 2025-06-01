@@ -96,7 +96,7 @@
 
             <div class="mt-3">
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card border-success">
                             <div class="card-body">
                                 <h5 class="card-title">Total Revenue</h5>
@@ -104,7 +104,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card border-warning">
                             <div class="card-body">
                                 <h5 class="card-title">Pending Amount</h5>
@@ -112,11 +112,23 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <div class="card border-danger">
+                            <div class="card-body">
+                                <h5 class="card-title">Other Expenses</h5>
+                                <div class="input-group">
+                                    <span class="input-group-text">₱</span>
+                                    <input type="number" id="otherExpenses" class="form-control" value="{{ other_expenses|default:0 }}" step="0.01" min="0">
+                                    <button class="btn btn-outline-primary" onclick="updateExpenses()">Update</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
                         <div class="card border-info">
                             <div class="card-body">
-                                <h5 class="card-title">Total Bills</h5>
-                                <h3 class="text-info">{{ total_bills }}</h3>
+                                <h5 class="card-title">Net Revenue</h5>
+                                <h3 class="text-info" id="netRevenue">₱{{ net_revenue|floatformat:2 }}</h3>
                             </div>
                         </div>
                     </div>
@@ -147,13 +159,34 @@ $(document).ready(function() {
 });
 
 function exportToExcel() {
-    // Add Excel export functionality
     window.location.href = "{% url 'admin_billing_export' %}?" + new URLSearchParams(window.location.search);
 }
 
 function viewDetails(billId) {
-    // Add bill details view functionality
     window.location.href = "{% url 'admin:billing_bill_change' 0 %}".replace('0', billId);
+}
+
+function updateExpenses() {
+    const expenses = parseFloat($('#otherExpenses').val()) || 0;
+    const totalRevenue = {{ total_revenue }};
+    const netRevenue = totalRevenue - expenses;
+    
+    // Update the net revenue display
+    $('#netRevenue').text('₱' + netRevenue.toFixed(2));
+    
+    // Save the expenses value
+    $.post("{% url 'update_expenses' %}", {
+        'expenses': expenses,
+        'csrfmiddlewaretoken': '{{ csrf_token }}'
+    }).done(function(response) {
+        if (response.success) {
+            toastr.success('Expenses updated successfully');
+        } else {
+            toastr.error('Error updating expenses');
+        }
+    }).fail(function() {
+        toastr.error('Error updating expenses');
+    });
 }
 </script>
 {% endblock %} 

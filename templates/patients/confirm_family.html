@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirm Family Relationship{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">Potential Family Members Found</h3>
+                </div>
+                <div class="card-body">
+                    <p class="mb-4">
+                        We found existing patients with the last name "{{ last_name }}". 
+                        Are any of these people related to the new patient?
+                    </p>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <div class="list-group">
+                                {% for member in potential_family_members %}
+                                <div class="list-group-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" 
+                                               name="family_member_id" value="{{ member.id }}" 
+                                               id="member_{{ member.id }}">
+                                        <label class="form-check-label" for="member_{{ member.id }}">
+                                            {{ member.first_name }} {{ member.last_name }}
+                                            <small class="text-muted d-block">
+                                                Age: {{ member.age }} | Contact: {{ member.contact_number }}
+                                            </small>
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="is_family" 
+                                       value="yes" id="is_family_yes">
+                                <label class="form-check-label" for="is_family_yes">
+                                    Yes, they are family members
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="is_family" 
+                                       value="no" id="is_family_no">
+                                <label class="form-check-label" for="is_family_no">
+                                    No, they are not related
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'patient-create' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Continue Registration</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const familyMemberInputs = document.querySelectorAll('input[name="family_member_id"]');
+    const isFamilyInputs = document.querySelectorAll('input[name="is_family"]');
+    
+    // When selecting a family member, automatically select "Yes" for is_family
+    familyMemberInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            if (this.checked) {
+                document.getElementById('is_family_yes').checked = true;
+            }
+        });
+    });
+    
+    // When selecting "No", uncheck any selected family members
+    document.getElementById('is_family_no').addEventListener('change', function() {
+        if (this.checked) {
+            familyMemberInputs.forEach(input => input.checked = false);
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 

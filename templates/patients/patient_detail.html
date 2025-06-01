@@ -15,9 +15,14 @@
             <a href="{% url 'image-annotation' patient.pk %}" class="btn btn-success me-2">
                 <i class="fas fa-draw-polygon me-2"></i>Annotate Images
             </a>
-            <a href="{% url 'exam-create' patient.pk %}" class="btn btn-primary">
+            <a href="{% url 'exam-create' patient.pk %}" class="btn btn-primary me-2">
                 <i class="fas fa-plus me-2"></i>New Exam
             </a>
+            {% if user.is_authenticated %}
+            <a href="{% url 'patient-delete' patient.pk %}" class="btn btn-danger">
+                <i class="fas fa-trash-alt me-2"></i>Delete Patient
+            </a>
+            {% endif %}
         </div>
     </div>
 
@@ -70,6 +75,32 @@
                         <tr>
                             <th>ID Number:</th>
                             <td>{{ patient.id_number }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if patient.family_group %}
+                        <tr>
+                            <th>Family Members:</th>
+                            <td>
+                                <div class="mb-3">
+                                    <a href="{% url 'family-medical-history' patient.family_group.id %}" 
+                                       class="btn btn-primary">
+                                        <i class="fas fa-users me-2"></i>View Family Medical History
+                                    </a>
+                                </div>
+                                <div class="list-group">
+                                    {% for member in patient.family_group.family_members.all %}
+                                        {% if member != patient %}
+                                        <a href="{% url 'patient-detail' member.pk %}" 
+                                           class="list-group-item list-group-item-action">
+                                            {{ member.first_name }} {{ member.last_name }}
+                                            <small class="text-muted d-block">
+                                                Age: {{ member.age }} | Contact: {{ member.contact_number }}
+                                            </small>
+                                        </a>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </td>
                         </tr>
                         {% endif %}
                     </table>

@@ -5,6 +5,8 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from .models import Patient, UltrasoundExam
 from billing.models import Bill
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 
 @staff_member_required
 def admin_dashboard(request):
@@ -70,19 +72,35 @@ def admin_billing_report(request):
     # Calculate totals
     total_revenue = bills.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
     pending_amount = bills.filter(status='PENDING').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    total_bills = bills.count()
+    
+    # Get other expenses from session or default to 0
+    other_expenses = request.session.get('other_expenses', 0)
+    
+    # Calculate net revenue
+    net_revenue = total_revenue - float(other_expenses)
 
     context = {
         'bills': bills.order_by('-bill_date'),
         'total_revenue': total_revenue,
         'pending_amount': pending_amount,
-        'total_bills': total_bills,
+        'other_expenses': other_expenses,
+        'net_revenue': net_revenue,
         'status': status,
         'min_amount': min_amount,
         'max_amount': max_amount,
     }
 
     return render(request, 'admin/billing_report.html', context)
+
+@staff_member_required
+@require_POST
+def update_expenses(request):
+    try:
+        expenses = float(request.POST.get('expenses', 0))
+        request.session['other_expenses'] = expenses
+        return JsonResponse({'success': True})
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'Invalid expense value'})
 
 @staff_member_required
 def admin_billing_export(request):
@@ -141,6 +159,22 @@ def admin_billing_export(request):
         worksheet.write(row, 3, float(bill.total_amount))
         worksheet.write(row, 4, bill.status)
         worksheet.write(row, 5, bill.payment_method or 'N/A')
+
+    # Add summary at the bottom
+    summary_row = len(bills) + 3
+    total_revenue = bills.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    other_expenses = float(request.session.get('other_expenses', 0))
+    net_revenue = total_revenue - other_expenses
+
+    # Add summary with bold format
+    bold_format = workbook.add_format({'bold': True})
+    worksheet.write(summary_row, 0, 'Summary', bold_format)
+    worksheet.write(summary_row + 1, 0, 'Total Revenue:', bold_format)
+    worksheet.write(summary_row + 1, 1, float(total_revenue))
+    worksheet.write(summary_row + 2, 0, 'Other Expenses:', bold_format)
+    worksheet.write(summary_row + 2, 1, float(other_expenses))
+    worksheet.write(summary_row + 3, 0, 'Net Revenue:', bold_format)
+    worksheet.write(summary_row + 3, 1, float(net_revenue))
 
     workbook.close()
 

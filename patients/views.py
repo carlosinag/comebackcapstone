@@ -1,12 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.views.generic import ListView, DetailView
-from django.views.generic.edit import CreateView, UpdateView
+from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.http import JsonResponse, HttpResponseRedirect
 from django.views.decorators.http import require_http_methods
 from django.db import models, transaction
-from .models import Patient, UltrasoundExam, UltrasoundImage
+from .models import Patient, UltrasoundExam, UltrasoundImage, FamilyGroup
 from .forms import PatientForm, UltrasoundExamForm
 from django.db.models import Count, Sum
 from django.db.models.functions import ExtractWeek
@@ -15,6 +15,7 @@ from datetime import timedelta
 from billing.models import Bill
 from django.contrib.auth import authenticate, login
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 class PatientListView(ListView):
     model = Patient
@@ -73,6 +74,19 @@ class PatientCreateView(CreateView):
     success_url = reverse_lazy('patient-list')
 
     def form_valid(self, form):
+        # Check for potential family members with the same last name
+        last_name = form.cleaned_data['last_name']
+        potential_family_members = Patient.objects.filter(last_name=last_name)
+        
+        if potential_family_members.exists():
+            # Store form data in session
+            form_data = form.cleaned_data
+            # Convert date objects to string for session storage
+            form_data['date_of_birth'] = form_data['date_of_birth'].strftime('%Y-%m-%d')
+            self.request.session['pending_patient_data'] = form_data
+            # Redirect to family confirmation page
+            return redirect('confirm-family', last_name=last_name)
+        
         messages.success(self.request, 'Patient record created successfully.')
         return super().form_valid(form)
 
@@ -87,6 +101,28 @@ class PatientUpdateView(UpdateView):
     def form_valid(self, form):
         messages.success(self.request, 'Patient record updated successfully.')
         return super().form_valid(form)
+
+class PatientDeleteView(LoginRequiredMixin, DeleteView):
+    model = Patient
+    template_name = 'patients/patient_confirm_delete.html'
+    success_url = reverse_lazy('patient-list')
+    
+    def delete(self, request, *args, **kwargs):
+        try:
+            # Get the patient
+            patient = self.get_object()
+            
+            # If patient is part of a family group and is the last member
+            if patient.family_group and patient.family_group.family_members.count() == 1:
+                patient.family_group.delete()
+            
+            # Delete the patient
+            patient.delete()
+            messages.success(request, 'Patient record deleted successfully.')
+            return HttpResponseRedirect(self.success_url)
+        except Exception as e:
+            messages.error(request, f'Error deleting patient: {str(e)}')
+            return HttpResponseRedirect(self.get_success_url())
 
 class UltrasoundExamCreateView(CreateView):
     model = UltrasoundExam
@@ -295,4 +331,127 @@ def admin_login(request):
             messages.error(request, 'Invalid credentials or insufficient permissions.')
             return redirect('admin_login')
     
-    return render(request, 'admin_login.html') 
+    return render(request, 'admin_login.html')
+
+def confirm_family_relationship(request, last_name):
+    if request.method == 'POST':
+        is_family = request.POST.get('is_family') == 'yes'
+        family_member_id = request.POST.get('family_member_id')
+        
+        # Get the pending patient data from session
+        patient_data = request.session.get('pending_patient_data')
+        if not patient_data:
+            messages.error(request, 'Patient data not found. Please try registering again.')
+            return redirect('patient-create')
+        
+        try:
+            # Convert string date back to date object
+            patient_data['date_of_birth'] = timezone.datetime.strptime(
+                patient_data['date_of_birth'], 
+                '%Y-%m-%d'
+            ).date()
+            
+            # Create the new patient
+            new_patient = Patient.objects.create(**patient_data)
+            
+            if is_family and family_member_id:
+                # Get or create family group
+                existing_patient = Patient.objects.get(id=family_member_id)
+                if existing_patient.family_group:
+                    new_patient.family_group = existing_patient.family_group
+                else:
+                    family_group = FamilyGroup.objects.create(
+                        name=f"{last_name} Family"
+                    )
+                    existing_patient.family_group = family_group
+                    existing_patient.save()
+                    new_patient.family_group = family_group
+                new_patient.save()
+            
+            # Clear session data
+            if 'pending_patient_data' in request.session:
+                del request.session['pending_patient_data']
+            
+            messages.success(request, 'Patient record created successfully.')
+            return redirect('patient-detail', pk=new_patient.pk)
+            
+        except Exception as e:
+            messages.error(request, f'Error creating patient: {str(e)}')
+            return redirect('patient-create')
+    
+    # GET request - show confirmation page
+    potential_family_members = Patient.objects.filter(last_name=last_name)
+    return render(request, 'patients/confirm_family.html', {
+        'potential_family_members': potential_family_members,
+        'last_name': last_name
+    })
+
+def family_medical_history(request, family_group_id):
+    family_group = get_object_or_404(FamilyGroup, id=family_group_id)
+    family_members = family_group.family_members.all()
+    
+    # Get all exams for all family members
+    all_exams = UltrasoundExam.objects.filter(
+        patient__in=family_members
+    ).select_related('patient', 'procedure_type').order_by('-exam_date')
+    
+    # Group exams by procedure type
+    exams_by_procedure = {}
+    for exam in all_exams:
+        procedure_name = exam.procedure_type.name
+        if procedure_name not in exams_by_procedure:
+            exams_by_procedure[procedure_name] = []
+        exams_by_procedure[procedure_name].append(exam)
+    
+    # Calculate statistics and patterns
+    procedure_stats = {}
+    for procedure_name, exams in exams_by_procedure.items():
+        stats = {
+            'total_exams': len(exams),
+            'members_affected': len(set(exam.patient.id for exam in exams)),
+            'common_findings': get_common_findings(exams),
+            'latest_exam': {
+                'exam_date': exams[0].exam_date.strftime('%Y-%m-%d') if exams else None
+            },
+            'recommendations': get_recommendation_stats(exams)
+        }
+        procedure_stats[procedure_name] = stats
+    
+    context = {
+        'family_group': family_group,
+        'family_members': family_members,
+        'exams_by_procedure': exams_by_procedure,
+        'procedure_stats': procedure_stats,
+        'total_exams': all_exams.count(),
+    }
+    
+    return render(request, 'patients/family_medical_history.html', context)
+
+def get_common_findings(exams):
+    # Extract common words/phrases from findings and impressions
+    all_findings = ' '.join([
+        f"{exam.findings} {exam.impression}" for exam in exams
+    ]).lower()
+    
+    # You could implement more sophisticated text analysis here
+    # For now, we'll just count common medical terms
+    common_terms = [
+        'mass', 'cyst', 'nodule', 'lesion', 'normal', 'abnormal',
+        'inflammation', 'enlarged', 'reduced', 'calcification'
+    ]
+    
+    findings_count = {}
+    for term in common_terms:
+        count = all_findings.count(term)
+        if count > 0:
+            findings_count[term] = count
+    
+    # Sort by frequency
+    return dict(sorted(findings_count.items(), key=lambda x: x[1], reverse=True))
+
+def get_recommendation_stats(exams):
+    recommendations = {}
+    for exam in exams:
+        rec = exam.get_recommendations_display()
+        recommendations[rec] = recommendations.get(rec, 0) + 1
+    return recommendations 

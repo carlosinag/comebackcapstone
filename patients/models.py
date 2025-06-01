@@ -4,6 +4,14 @@ import json
 import os
 from django.conf import settings
 
+class FamilyGroup(models.Model):
+    name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
 class Patient(models.Model):
     GENDER_CHOICES = [
         ('M', 'Male'),
@@ -38,6 +46,7 @@ class Patient(models.Model):
     patient_type = models.CharField(max_length=10, choices=PATIENT_TYPE_CHOICES, default='REGULAR')
     patient_status = models.CharField(max_length=3, choices=PATIENT_STATUS_CHOICES, default='OUT')
     id_number = models.CharField(max_length=50, blank=True, null=True, help_text="Senior Citizen/PWD ID number")
+    family_group = models.ForeignKey(FamilyGroup, on_delete=models.SET_NULL, null=True, blank=True, related_name='family_members')
     
     # Address fields as simple text fields
     region = models.CharField("Region", max_length=100)
