@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.views.generic import ListView, DetailView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
-from django.http import JsonResponse, HttpResponseRedirect
+from django.http import JsonResponse, HttpResponseRedirect, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.db import models, transaction
 from .models import Patient, UltrasoundExam, UltrasoundImage, FamilyGroup
@@ -16,6 +16,9 @@ from billing.models import Bill, ServiceType
 from django.contrib.auth import authenticate, login
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from docx import Document
+from docx.shared import Inches, Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 class PatientListView(ListView):
     model = Patient
@@ -476,4 +479,65 @@ def get_recommendation_stats(exams):
     for exam in exams:
         rec = exam.get_recommendations_display()
         recommendations[rec] = recommendations.get(rec, 0) + 1
-    return recommendations 
+    return recommendations
+
+def download_ultrasound_docx(request, pk):
+    exam = get_object_or_404(UltrasoundExam, pk=pk)
+    
+    # Create a new Document
+    doc = Document()
+    
+    # Add title
+    title = doc.add_heading('Ultrasound Examination Report', 0)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    # Add patient information
+    doc.add_paragraph(f'CASE NUMBER: {exam.id}')
+    doc.add_paragraph(f'DATE: {exam.exam_date}')
+    doc.add_paragraph(f'NAME OF PATIENT: {exam.patient.first_name} {exam.patient.last_name}')
+    doc.add_paragraph(f'AGE: {exam.patient.age}')
+    doc.add_paragraph(f'GENDER: {exam.patient.get_sex_display()}')
+    doc.add_paragraph(f'MARITAL STATUS: {exam.patient.marital_status or "N/A"}')
+    
+    # Add examination details
+    doc.add_heading('EXAMINATION DETAILS', level=1)
+    doc.add_paragraph(f'EXAMINATION PERFORMED: {exam.procedure_type.name} ULTRASOUND')
+    doc.add_paragraph(f'O.R.: {exam.or_number or ""}')
+    doc.add_paragraph(f'REQUESTING PHYSICIAN: {exam.referring_physician}')
+    doc.add_paragraph(f'WARD: {exam.patient.get_patient_status_display()}')
+    
+    # Add findings
+    doc.add_heading('RADIOLOGICAL FINDINGS:', level=1)
+    doc.add_paragraph(exam.findings)
+    
+    # Add OB specific measurements if applicable
+    if exam.procedure_type.name == 'OB':
+        doc.add_heading('MEASUREMENTS:', level=1)
+        doc.add_paragraph(f'FETAL HEART RATE: {exam.fetal_heart_rate or "-"}')
+        doc.add_paragraph(f'AMNIOTIC FLUID: {exam.amniotic_fluid or "-"}')
+        doc.add_paragraph(f'PLACENTA: {exam.placenta or "-"}')
+        doc.add_paragraph(f'FETAL SEX: {exam.fetal_sex or "-"}')
+        doc.add_paragraph(f'EDD: {exam.edd or "-"}')
+        doc.add_paragraph(f'EFW: {exam.efw or "-"}')
+    
+    # Add impression
+    doc.add_heading('IMPRESSION:', level=1)
+    doc.add_paragraph(exam.impression)
+    
+    # Add signatures
+    doc.add_paragraph('\n\n')
+    signatures = doc.add_paragraph()
+    signatures.add_run(f'{exam.technologist}\n').bold = True
+    signatures.add_run('Ultrasound Technologist').bold = False
+    signatures.add_run('\n\n\n')
+    signatures.add_run(f'{exam.radiologist}\n').bold = True
+    signatures.add_run('Radiologist').bold = False
+    
+    # Prepare the response
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    response['Content-Disposition'] = f'attachment; filename=ultrasound_report_{exam.id}.docx'
+    
+    # Save the document
+    doc.save(response)
+    
+    return response 

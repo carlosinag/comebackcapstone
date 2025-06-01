@@ -17,6 +17,7 @@ urlpatterns = [
     path('exam/<int:pk>/', views.UltrasoundExamDetailView.as_view(), name='exam-detail'),
     path('exam/<int:pk>/update/', views.UltrasoundExamUpdateView.as_view(), name='exam-update'),
     path('image/<int:image_id>/annotate/', views.ImageAnnotationView.as_view(), name='image-specific-annotation'),
+    path('exam/<int:pk>/download-docx/', views.download_ultrasound_docx, name='download-ultrasound-docx'),
     
     # API endpoints
     path('api/exams/<int:exam_id>/annotations/', api.exam_annotations, name='exam-annotations'),
