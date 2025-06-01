@@ -226,38 +226,67 @@
                                             <div class="accordion-body">
                                                 <div class="row g-3">
                                                     {% for image in exam.images.all %}
-                                                        <div class="col-md-3 col-sm-6">
+                                                        <div class="col-md-6">
                                                             <div class="card h-100 shadow-sm">
-                                                                <img src="{{ image.image.url }}" 
-                                                                     class="card-img-top img-fluid" 
-                                                                     alt="Ultrasound Image"
-                                                                     style="height: 200px; object-fit: cover; cursor: pointer;"
-                                                                     data-bs-toggle="modal" 
-                                                                     data-bs-target="#imageModal{{ image.pk }}">
+                                                                <div class="row g-0">
+                                                                    <!-- Original Image -->
+                                                                    <div class="col-md-6">
+                                                                        <div class="position-relative">
+                                                                            <img src="{{ image.image.url }}" 
+                                                                                 class="card-img-top img-fluid" 
+                                                                                 alt="Original Ultrasound Image"
+                                                                                 style="height: 200px; object-fit: cover; cursor: pointer;"
+                                                                                 data-bs-toggle="modal" 
+                                                                                 data-bs-target="#imageModal{{ image.pk }}">
+                                                                            <span class="badge bg-primary position-absolute top-0 start-0 m-2">Original</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <!-- Annotated Image -->
+                                                                    <div class="col-md-6">
+                                                                        <div class="position-relative">
+                                                                            {% if image.annotated_image %}
+                                                                                <img src="{{ image.annotated_image.url }}" 
+                                                                                     class="card-img-top img-fluid" 
+                                                                                     alt="Annotated Ultrasound Image"
+                                                                                     style="height: 200px; object-fit: cover; cursor: pointer;"
+                                                                                     data-bs-toggle="modal" 
+                                                                                     data-bs-target="#annotatedModal{{ image.pk }}">
+                                                                                <span class="badge bg-success position-absolute top-0 start-0 m-2">Annotated</span>
+                                                                            {% else %}
+                                                                                <div class="d-flex align-items-center justify-content-center h-100 bg-light">
+                                                                                    <a href="{% url 'image-specific-annotation' image.pk %}" class="btn btn-outline-primary">
+                                                                                        <i class="fas fa-draw-polygon me-1"></i>Add Annotation
+                                                                                    </a>
+                                                                                </div>
+                                                                            {% endif %}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                                 <div class="card-body">
                                                                     {% if image.caption %}
                                                                         <p class="card-text small text-muted">{{ image.caption }}</p>
                                                                     {% endif %}
-                                                                    {% if user.is_authenticated %}
-                                                                        <button 
-                                                                            type="button"
-                                                                            class="btn btn-danger btn-sm delete-image" 
-                                                                            data-image-id="{{ image.pk }}"
-                                                                        >
-                                                                            <i class="fas fa-trash-alt"></i> Delete
-                                                                        </button>
-                                                                    {% endif %}
+                                                                    <div class="btn-group w-100">
+                                                                        <a href="{% url 'image-specific-annotation' image.pk %}" class="btn btn-success btn-sm">
+                                                                            <i class="fas fa-draw-polygon me-1"></i>Annotate
+                                                                        </a>
+                                                                        {% if user.is_authenticated %}
+                                                                            <button type="button" class="btn btn-danger btn-sm delete-image" data-image-id="{{ image.pk }}">
+                                                                                <i class="fas fa-trash-alt"></i> Delete
+                                                                            </button>
+                                                                        {% endif %}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
 
-                                                        <!-- Modal for full-size image -->
+                                                        <!-- Modal for full-size original image -->
                                                         <div class="modal fade" id="imageModal{{ image.pk }}" tabindex="-1" aria-hidden="true">
                                                             <div class="modal-dialog modal-xl modal-dialog-centered">
                                                                 <div class="modal-content">
                                                                     <div class="modal-header">
                                                                         <h5 class="modal-title">
-                                                                            {{ exam.exam_date }} - {{ exam.procedure_type }}
+                                                                            Original Image - {{ exam.exam_date }} - {{ exam.procedure_type }}
                                                                         </h5>
                                                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                                     </div>
@@ -274,16 +303,45 @@
                                                                         <a href="{% url 'exam-detail' exam.pk %}" class="btn btn-primary">
                                                                             <i class="fas fa-info-circle me-1"></i>View Exam Details
                                                                         </a>
-                                                                        {% if user.is_authenticated %}
-                                                                            <a href="{% url 'image-specific-annotation' image.pk %}" class="btn btn-success">
-                                                                                <i class="fas fa-draw-polygon me-1"></i>Annotate This Image
-                                                                            </a>
-                                                                        {% endif %}
                                                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         </div>
+
+                                                        <!-- Modal for full-size annotated image -->
+                                                        {% if image.annotated_image %}
+                                                        <div class="modal fade" id="annotatedModal{{ image.pk }}" tabindex="-1" aria-hidden="true">
+                                                            <div class="modal-dialog modal-xl modal-dialog-centered">
+                                                                <div class="modal-content">
+                                                                    <div class="modal-header">
+                                                                        <h5 class="modal-title">
+                                                                            Annotated Image - {{ exam.exam_date }} - {{ exam.procedure_type }}
+                                                                        </h5>
+                                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                    </div>
+                                                                    <div class="modal-body text-center bg-black">
+                                                                        <img src="{{ image.annotated_image.url }}" 
+                                                                             class="img-fluid" 
+                                                                             alt="Full-size Annotated Image"
+                                                                             style="max-height: 80vh;">
+                                                                        {% if image.caption %}
+                                                                            <p class="mt-2 text-light">{{ image.caption }}</p>
+                                                                        {% endif %}
+                                                                    </div>
+                                                                    <div class="modal-footer">
+                                                                        <a href="{% url 'exam-detail' exam.pk %}" class="btn btn-primary">
+                                                                            <i class="fas fa-info-circle me-1"></i>View Exam Details
+                                                                        </a>
+                                                                        <a href="{{ image.annotated_image.url }}" class="btn btn-success" download>
+                                                                            <i class="fas fa-download me-1"></i>Download Annotated Image
+                                                                        </a>
+                                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        {% endif %}
                                                     {% endfor %}
                                                 </div>
                                             </div>
@@ -375,7 +433,7 @@ document.addEventListener('click', function(e) {
             .then(data => {
                 if (data.success) {
                     // Remove the image card from the DOM
-                    const imageCard = button.closest('.col-md-3');
+                    const imageCard = button.closest('.col-md-6');
                     const imageModal = document.getElementById(`imageModal${imageId}`);
                     
                     imageCard.remove();
