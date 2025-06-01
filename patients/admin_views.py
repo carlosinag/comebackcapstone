@@ -7,6 +7,7 @@ from .models import Patient, UltrasoundExam
 from billing.models import Bill
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from decimal import Decimal
 
 @staff_member_required
 def admin_dashboard(request):
@@ -59,25 +60,25 @@ def admin_billing_report(request):
 
     if min_amount:
         try:
-            bills = bills.filter(total_amount__gte=float(min_amount))
+            bills = bills.filter(total_amount__gte=Decimal(min_amount))
         except ValueError:
             pass
 
     if max_amount:
         try:
-            bills = bills.filter(total_amount__lte=float(max_amount))
+            bills = bills.filter(total_amount__lte=Decimal(max_amount))
         except ValueError:
             pass
 
     # Calculate totals
-    total_revenue = bills.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    pending_amount = bills.filter(status='PENDING').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    total_revenue = bills.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
+    pending_amount = bills.filter(status='PENDING').aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
     
     # Get other expenses from session or default to 0
-    other_expenses = request.session.get('other_expenses', 0)
+    other_expenses = Decimal(str(request.session.get('other_expenses', '0')))
     
     # Calculate net revenue
-    net_revenue = total_revenue - float(other_expenses)
+    net_revenue = total_revenue - other_expenses
 
     context = {
         'bills': bills.order_by('-bill_date'),
@@ -96,8 +97,8 @@ def admin_billing_report(request):
 @require_POST
 def update_expenses(request):
     try:
-        expenses = float(request.POST.get('expenses', 0))
-        request.session['other_expenses'] = expenses
+        expenses = Decimal(str(request.POST.get('expenses', '0')))
+        request.session['other_expenses'] = str(expenses)  # Store as string in session
         return JsonResponse({'success': True})
     except (ValueError, TypeError):
         return JsonResponse({'success': False, 'error': 'Invalid expense value'})
@@ -141,13 +142,13 @@ def admin_billing_export(request):
 
     if min_amount:
         try:
-            bills = bills.filter(total_amount__gte=float(min_amount))
+            bills = bills.filter(total_amount__gte=Decimal(min_amount))
         except ValueError:
             pass
 
     if max_amount:
         try:
-            bills = bills.filter(total_amount__lte=float(max_amount))
+            bills = bills.filter(total_amount__lte=Decimal(max_amount))
         except ValueError:
             pass
 
@@ -162,8 +163,8 @@ def admin_billing_export(request):
 
     # Add summary at the bottom
     summary_row = len(bills) + 3
-    total_revenue = bills.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    other_expenses = float(request.session.get('other_expenses', 0))
+    total_revenue = bills.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
+    other_expenses = Decimal(str(request.session.get('other_expenses', '0')))
     net_revenue = total_revenue - other_expenses
 
     # Add summary with bold format

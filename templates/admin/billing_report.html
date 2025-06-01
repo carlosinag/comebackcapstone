@@ -4,6 +4,19 @@
 
 {% block extra_css %}
 <link href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+<style>
+    .currency-input {
+        text-align: right;
+        font-family: monospace;
+    }
+    .net-revenue-positive {
+        color: #28a745;
+    }
+    .net-revenue-negative {
+        color: #dc3545;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -100,7 +113,8 @@
                         <div class="card border-success">
                             <div class="card-body">
                                 <h5 class="card-title">Total Revenue</h5>
-                                <h3 class="text-success">₱{{ total_revenue|floatformat:2 }}</h3>
+                                <h3 class="text-success" id="totalRevenueDisplay">₱{{ total_revenue|floatformat:2 }}</h3>
+                                <input type="hidden" id="rawTotalRevenue" value="{{ total_revenue }}">
                             </div>
                         </div>
                     </div>
@@ -118,8 +132,15 @@
                                 <h5 class="card-title">Other Expenses</h5>
                                 <div class="input-group">
                                     <span class="input-group-text">₱</span>
-                                    <input type="number" id="otherExpenses" class="form-control" value="{{ other_expenses|default:0 }}" step="0.01" min="0">
-                                    <button class="btn btn-outline-primary" onclick="updateExpenses()">Update</button>
+                                    <input type="number" 
+                                           id="expensesInput" 
+                                           class="form-control" 
+                                           value="{{ other_expenses|default:0 }}" 
+                                           step="0.01" 
+                                           min="0">
+                                    <button class="btn btn-outline-primary" id="saveExpensesBtn">
+                                        <i class="fas fa-save"></i> Save
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -128,7 +149,7 @@
                         <div class="card border-info">
                             <div class="card-body">
                                 <h5 class="card-title">Net Revenue</h5>
-                                <h3 class="text-info" id="netRevenue">₱{{ net_revenue|floatformat:2 }}</h3>
+                                <h3 class="text-info" id="netRevenueDisplay">₱{{ net_revenue|floatformat:2 }}</h3>
                             </div>
                         </div>
                     </div>
@@ -142,8 +163,112 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script>
-$(document).ready(function() {
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded - initializing billing report JS');
+
+    // Initialize toastr
+    toastr.options = {
+        "closeButton": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "timeOut": "3000"
+    };
+
+    // Get DOM elements
+    const expensesInput = document.getElementById('expensesInput');
+    const saveButton = document.getElementById('saveExpensesBtn');
+    const rawTotalRevenue = document.getElementById('rawTotalRevenue');
+    const netRevenueDisplay = document.getElementById('netRevenueDisplay');
+    const totalRevenueDisplay = document.getElementById('totalRevenueDisplay');
+
+    console.log('Initial values:', {
+        rawTotalRevenue: rawTotalRevenue ? rawTotalRevenue.value : 'not found',
+        expenses: expensesInput ? expensesInput.value : 'not found'
+    });
+
+    // Add input event listener
+    if (expensesInput) {
+        expensesInput.addEventListener('input', updateNetRevenue);
+    } else {
+        console.error('Expenses input element not found!');
+    }
+
+    // Add click event listener to save button
+    if (saveButton) {
+        saveButton.addEventListener('click', saveExpenses);
+    } else {
+        console.error('Save button not found!');
+    }
+
+    function updateNetRevenue() {
+        try {
+            console.log('Updating net revenue...');
+            
+            // Get and validate total revenue
+            const totalRevenue = parseFloat(rawTotalRevenue.value);
+            if (isNaN(totalRevenue)) {
+                throw new Error('Invalid total revenue value: ' + rawTotalRevenue.value);
+            }
+            
+            // Get and validate expenses
+            const expenses = parseFloat(expensesInput.value) || 0;
+            if (isNaN(expenses)) {
+                throw new Error('Invalid expenses value: ' + expensesInput.value);
+            }
+
+            console.log('Calculation values:', { totalRevenue, expenses });
+            
+            // Calculate net revenue
+            const netRevenue = totalRevenue - expenses;
+            
+            // Update display
+            netRevenueDisplay.textContent = '₱' + netRevenue.toFixed(2);
+            
+            // Update styling
+            netRevenueDisplay.className = netRevenue >= 0 ? 'net-revenue-positive' : 'net-revenue-negative';
+
+            console.log('Net revenue updated:', netRevenue);
+        } catch (error) {
+            console.error('Error in updateNetRevenue:', error);
+            toastr.error('Error calculating net revenue: ' + error.message);
+        }
+    }
+
+    function saveExpenses() {
+        try {
+            console.log('Saving expenses...');
+            const expenses = parseFloat(expensesInput.value) || 0;
+
+            fetch("{% url 'update_expenses' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: 'expenses=' + expenses
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    toastr.success('Expenses updated successfully');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving expenses:', error);
+                toastr.error('Error saving expenses: ' + error.message);
+            });
+        } catch (error) {
+            console.error('Error in saveExpenses:', error);
+            toastr.error('Error processing expenses: ' + error.message);
+        }
+    }
+
+    // Initialize daterangepicker
     $('#date_range').daterangepicker({
         startDate: moment().subtract(29, 'days'),
         endDate: moment(),
@@ -164,29 +289,6 @@ function exportToExcel() {
 
 function viewDetails(billId) {
     window.location.href = "{% url 'admin:billing_bill_change' 0 %}".replace('0', billId);
-}
-
-function updateExpenses() {
-    const expenses = parseFloat($('#otherExpenses').val()) || 0;
-    const totalRevenue = {{ total_revenue }};
-    const netRevenue = totalRevenue - expenses;
-    
-    // Update the net revenue display
-    $('#netRevenue').text('₱' + netRevenue.toFixed(2));
-    
-    // Save the expenses value
-    $.post("{% url 'update_expenses' %}", {
-        'expenses': expenses,
-        'csrfmiddlewaretoken': '{{ csrf_token }}'
-    }).done(function(response) {
-        if (response.success) {
-            toastr.success('Expenses updated successfully');
-        } else {
-            toastr.error('Error updating expenses');
-        }
-    }).fail(function() {
-        toastr.error('Error updating expenses');
-    });
 }
 </script>
 {% endblock %} 
