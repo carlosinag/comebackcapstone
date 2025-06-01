@@ -248,12 +248,15 @@ def exam_image_upload(request, patient_id):
 
 @require_http_methods(["POST"])
 def delete_ultrasound_image(request, image_id):
-    image = get_object_or_404(UltrasoundImage, pk=image_id)
-    exam = image.exam
-    if request.user.is_authenticated:
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'message': 'Authentication required'}, status=403)
+    
+    try:
+        image = get_object_or_404(UltrasoundImage, pk=image_id)
         image.delete()
-        messages.success(request, 'Image deleted successfully.')
-    return HttpResponseRedirect(reverse_lazy('exam-update', kwargs={'pk': exam.pk}))
+        return JsonResponse({'success': True, 'message': 'Image deleted successfully'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
 def dashboard(request):
     try:
