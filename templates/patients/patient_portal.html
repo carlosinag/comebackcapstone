@@ -1,0 +1,124 @@
+{% extends 'patients/patient_base.html' %}
+{% load static %}
+
+{% block title %}Patient Portal - {{ patient.last_name }}, {{ patient.first_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-user-circle fa-4x text-primary"></i>
+                        <h3 class="mt-3">{{ patient.last_name }}, {{ patient.first_name }}</h3>
+                        <p class="text-muted">Patient ID: {{ patient.id }}</p>
+                    </div>
+                    
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item">
+                            <small class="text-muted d-block">Last Name</small>
+                            <strong>{{ patient.last_name }}</strong>
+                        </div>
+                        <div class="list-group-item">
+                            <small class="text-muted d-block">First Name</small>
+                            <strong>{{ patient.first_name }}</strong>
+                        </div>
+                        <div class="list-group-item">
+                            <small class="text-muted d-block">Date of Birth</small>
+                            <strong>{{ patient.date_of_birth }}</strong>
+                        </div>
+                        <div class="list-group-item">
+                            <small class="text-muted d-block">Age</small>
+                            <strong>{{ patient.age }} years old</strong>
+                        </div>
+                        <div class="list-group-item">
+                            <small class="text-muted d-block">Sex</small>
+                            <strong>{{ patient.get_sex_display }}</strong>
+                        </div>
+                        <div class="list-group-item">
+                            <small class="text-muted d-block">Contact Number</small>
+                            <strong>{{ patient.contact_number }}</strong>
+                        </div>
+                        <div class="list-group-item">
+                            <small class="text-muted d-block">Address</small>
+                            <strong>{{ patient.street_address }}, {{ patient.barangay_name }}, {{ patient.city_name }}, {{ patient.province_name }}, {{ patient.region_name }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <a href="{% url 'patient_logout' %}" class="btn btn-outline-danger w-100">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <!-- Recent Ultrasound Exams -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-file-medical me-2"></i>Your Ultrasound Examinations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_exams %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Procedure</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for exam in recent_exams %}
+                                    <tr>
+                                        <td>{{ exam.exam_date }}</td>
+                                        <td>{{ exam.procedure_type.name }}</td>
+                                        <td>{{ exam.procedure_type.description }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ exam.status|lower }}-subtle text-{{ exam.status|lower }}">
+                                                {{ exam.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'patient_view_exam' exam.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye me-1"></i>View Details
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center my-4">You don't have any ultrasound examinations yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bg-pending-subtle { background-color: #fff3cd; }
+    .text-pending { color: #856404; }
+    
+    .bg-completed-subtle { background-color: #d4edda; }
+    .text-completed { color: #155724; }
+    
+    .bg-cancelled-subtle { background-color: #f8d7da; }
+    .text-cancelled { color: #721c24; }
+    
+    .bg-primary-subtle { background-color: #cfe2ff; }
+    .text-primary { color: #0d6efd; }
+</style>
+{% endblock %} 

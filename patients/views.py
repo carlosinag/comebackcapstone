@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView, DetailView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.http import JsonResponse, HttpResponseRedirect, HttpResponse
@@ -13,9 +13,10 @@ from django.db.models.functions import ExtractWeek
 from django.utils import timezone
 from datetime import timedelta
 from billing.models import Bill, ServiceType
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
 from docx import Document
 from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -540,4 +541,81 @@ def download_ultrasound_docx(request, pk):
     # Save the document
     doc.save(response)
     
-    return response 
+    return response
+
+class LandingView(TemplateView):
+    template_name = 'landing.html'
+
+def patient_login(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None and hasattr(user, 'patient'):
+            login(request, user)
+            return redirect('patient-portal')
+        else:
+            messages.error(request, 'Invalid username or password.')
+            return render(request, 'patient_login.html')
+    
+    return render(request, 'patient_login.html')
+
+@login_required
+def patient_portal(request):
+    if not hasattr(request.user, 'patient'):
+        messages.error(request, 'Access denied. This portal is for patients only.')
+        return redirect('landing')
+    
+    patient = request.user.patient
+    context = {
+        'patient': patient,
+        'recent_exams': patient.ultrasound_exams.order_by('-exam_date', '-exam_time')[:5]
+    }
+    return render(request, 'patients/patient_portal.html', context)
+
+def patient_logout(request):
+    logout(request)
+    messages.success(request, 'You have been successfully logged out.')
+    return redirect('landing')
+
+def staff_login(request):
+    # Clear all messages
+    storage = messages.get_messages(request)
+    storage.used = True
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None and user.is_staff and not user.is_superuser:
+            login(request, user)
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            return redirect('home-dashboard')
+        else:
+            messages.error(request, 'Invalid credentials or insufficient permissions.')
+            return redirect('staff_login')
+    
+    return render(request, 'staff_login.html')
+
+@login_required
+def patient_view_exam(request, exam_id):
+    if not hasattr(request.user, 'patient'):
+        messages.error(request, 'Access denied. This portal is for patients only.')
+        return redirect('landing')
+    
+    exam = get_object_or_404(UltrasoundExam, id=exam_id)
+    
+    # Security check: ensure the patient can only view their own exams
+    if exam.patient != request.user.patient:
+        messages.error(request, 'Access denied. You can only view your own examinations.')
+        return redirect('patient-portal')
+    
+    context = {
+        'exam': exam,
+        'patient': request.user.patient
+    }
+    return render(request, 'patients/patient_exam_detail.html', context) 

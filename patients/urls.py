@@ -3,8 +3,16 @@ from . import views, api
 from . import admin_views
 
 urlpatterns = [
+    # Landing and authentication
+    path('', views.LandingView.as_view(), name='landing'),
+    path('staff-login/', views.staff_login, name='staff_login'),
+    path('patient-login/', views.patient_login, name='patient_login'),
+    path('patient-portal/', views.patient_portal, name='patient-portal'),
+    path('patient-logout/', views.patient_logout, name='patient_logout'),
+    path('patient-exam/<int:exam_id>/', views.patient_view_exam, name='patient_view_exam'),
+    
     # Main site URLs
-    path('', views.home_dashboard, name='home-dashboard'),
+    path('home/', views.home_dashboard, name='home-dashboard'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('patients/', views.PatientListView.as_view(), name='patient-list'),
     path('patient/new/', views.PatientCreateView.as_view(), name='patient-create'),

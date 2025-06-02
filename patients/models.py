@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User
 import json
 import os
 from django.conf import settings
@@ -13,6 +14,7 @@ class FamilyGroup(models.Model):
         return self.name
 
 class Patient(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name='patient')
     GENDER_CHOICES = [
         ('M', 'Male'),
         ('F', 'Female'),
@@ -168,6 +170,12 @@ class ThyroidUltrasoundMeasurements(BaseMeasurements):
         return f"Thyroid Measurements for {self.ultrasound_image}"
 
 class UltrasoundExam(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+
     RECOMMENDATION_CHOICES = [
         ('FI', 'Further imaging'),
         ('FU', 'Follow-up ultrasound'),
@@ -197,9 +205,10 @@ class UltrasoundExam(models.Model):
     ]
 
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='ultrasound_exams')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
     referring_physician = models.CharField(max_length=100)
-    clinical_diagnosis = models.TextField()
-    medical_history = models.TextField()
+    clinical_diagnosis = models.TextField(default='')
+    medical_history = models.TextField(default='')
     
     # Remove the old image field
     annotations = models.TextField(null=True, blank=True)
@@ -211,15 +220,15 @@ class UltrasoundExam(models.Model):
     
     exam_date = models.DateField()
     exam_time = models.TimeField()
-    technologist = models.CharField(max_length=100)
-    radiologist = models.CharField(max_length=100)
+    technologist = models.CharField(max_length=100, default='')
+    radiologist = models.CharField(max_length=100, default='')
     
     # Findings and Impressions
-    findings = models.TextField()
-    impression = models.TextField()
+    findings = models.TextField(default='')
+    impression = models.TextField(default='')
     
     # Recommendations
-    recommendations = models.CharField(max_length=2, choices=RECOMMENDATION_CHOICES)
+    recommendations = models.CharField(max_length=2, choices=RECOMMENDATION_CHOICES, default='NF')
     followup_duration = models.CharField(max_length=50, blank=True, null=True)
     specialist_referral = models.CharField(max_length=100, blank=True, null=True)
     

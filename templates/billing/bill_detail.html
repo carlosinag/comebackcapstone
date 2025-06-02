@@ -1,0 +1,521 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Bill Detail - #{{ bill.bill_number }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8">
+            <h2 class="mb-4">Bill #{{ bill.bill_number }}</h2>
+            
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="alert {% if 'Patient portal account created' in message.message %}alert-info{% else %}alert-{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                    {% if 'Patient portal account created' in message.message %}
+                    <h5 class="alert-heading">Patient Portal Credentials</h5>
+                    <hr>
+                    <pre class="mb-0">{{ message.message }}</pre>
+                    {% else %}
+                    {{ message }}
+                    {% endif %}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Bill Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Bill Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Patient:</strong> {{ bill.patient.first_name }} {{ bill.patient.last_name }}</p>
+                            <p><strong>Bill Date:</strong> {{ bill.bill_date }}</p>
+                            <p><strong>Due Date:</strong> {{ bill.due_date }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> <span class="badge bg-{{ bill.status|lower }}">{{ bill.get_status_display }}</span></p>
+                            <p><strong>Total Amount:</strong> ₱{{ bill.total_amount|floatformat:2 }}</p>
+                            <p><strong>Balance:</strong> ₱{{ remaining_balance|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bill Items -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Services</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Service</th>
+                                    <th>Exam Date</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in bill_items %}
+                                <tr>
+                                    <td>{{ item.service.name }}</td>
+                                    <td>{{ item.exam.exam_date }}</td>
+                                    <td class="text-end">₱{{ item.amount|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                                <tr class="table-light">
+                                    <td colspan="2" class="text-end"><strong>Subtotal:</strong></td>
+                                    <td class="text-end">₱{{ bill.subtotal|floatformat:2 }}</td>
+                                </tr>
+                                {% if bill.discount %}
+                                <tr class="table-light">
+                                    <td colspan="2" class="text-end"><strong>Discount:</strong></td>
+                                    <td class="text-end">-₱{{ bill.discount|floatformat:2 }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if bill.tax %}
+                                <tr class="table-light">
+                                    <td colspan="2" class="text-end"><strong>Tax:</strong></td>
+                                    <td class="text-end">₱{{ bill.tax|floatformat:2 }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr class="table-light">
+                                    <td colspan="2" class="text-end"><strong>Total:</strong></td>
+                                    <td class="text-end"><strong>₱{{ bill.total_amount|floatformat:2 }}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payments -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Payment History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Method</th>
+                                    <th>Reference</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                <tr>
+                                    <td>{{ payment.payment_date }}</td>
+                                    <td>{{ payment.get_payment_method_display }}</td>
+                                    <td>{{ payment.reference_number|default:"-" }}</td>
+                                    <td class="text-end">₱{{ payment.amount|floatformat:2 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No payments recorded yet.</td>
+                                </tr>
+                                {% endfor %}
+                                <tr class="table-light">
+                                    <td colspan="3" class="text-end"><strong>Total Paid:</strong></td>
+                                    <td class="text-end"><strong>₱{{ total_paid|floatformat:2 }}</strong></td>
+                                </tr>
+                                <tr class="table-light">
+                                    <td colspan="3" class="text-end"><strong>Remaining Balance:</strong></td>
+                                    <td class="text-end"><strong>₱{{ remaining_balance|floatformat:2 }}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Form -->
+        <div class="col-md-4">
+            {% if bill.status != 'PAID' and bill.status != 'CANCELLED' %}
+            <div class="card payment-card">
+                <div class="card-header payment-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-money-bill-wave me-2"></i>
+                        Record Payment
+                    </h5>
+                </div>
+                <div class="card-body payment-form-container">
+                    <form method="post" class="payment-form">
+                        {% csrf_token %}
+                        {% for field in payment_form %}
+                        <div class="form-group mb-4">
+                            <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                                {{ field.label }}
+                            </label>
+                            <div class="input-group">
+                                {{ field }}
+                            </div>
+                            {% if field.help_text %}
+                            <div class="form-text text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                {{ field.help_text }}
+                            </div>
+                            {% endif %}
+                            {% if field.errors %}
+                            <div class="invalid-feedback d-block">
+                                <i class="fas fa-exclamation-circle me-1"></i>
+                                {{ field.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-submit">
+                                <i class="fas fa-save me-2"></i>
+                                Record Payment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .badge.bg-pending { background-color: #ffc107; }
+    .badge.bg-partial { background-color: #17a2b8; }
+    .badge.bg-paid { background-color: #28a745; }
+    .badge.bg-cancelled { background-color: #dc3545; }
+    
+    pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    /* Enhanced Record Payment Styles */
+    .payment-card {
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        border: none;
+        background: #ffffff;
+        margin-top: 1rem;
+    }
+
+    .payment-header {
+        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+        color: white;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+        padding: 1.25rem;
+        border: none;
+    }
+
+    .payment-header h5 {
+        font-weight: 600;
+        font-size: 1.25rem;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .payment-form-container {
+        padding: 1.5rem;
+        background-color: #ffffff;
+    }
+
+    .payment-form .form-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Enhanced Input Styling */
+    .form-label {
+        font-weight: 600;
+        color: #344767;
+        margin-bottom: 0.75rem;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: block;
+    }
+
+    .input-group {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-control {
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+        padding: 0.875rem 1rem;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+        background-color: #f8f9fa;
+        width: 100%;
+        color: #344767;
+        height: auto;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .form-control::placeholder {
+        color: #a0aec0;
+        opacity: 0.7;
+    }
+
+    .form-control:hover {
+        border-color: #cbd5e0;
+        background-color: #ffffff;
+    }
+
+    .form-control:focus {
+        border-color: #0d6efd;
+        background-color: #ffffff;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+        outline: none;
+    }
+
+    /* Specific Input Types Styling */
+    input[type="number"].form-control {
+        -moz-appearance: textfield;
+    }
+
+    input[type="number"].form-control::-webkit-outer-spin-button,
+    input[type="number"].form-control::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    input[type="date"].form-control {
+        padding-right: 0.5rem;
+    }
+
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    select.form-control {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23344767' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        padding-right: 2.5rem;
+        cursor: pointer;
+    }
+
+    select.form-control:hover {
+        background-color: #ffffff;
+    }
+
+    /* Input States */
+    .form-control:disabled,
+    .form-control[readonly] {
+        background-color: #f1f5f9;
+        border-color: #e2e8f0;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    .form-control.is-invalid {
+        border-color: #dc3545;
+        padding-right: calc(1.5em + 0.75rem);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23dc3545' viewBox='0 0 16 16'%3E%3Cpath d='M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    }
+
+    .form-control.is-invalid:focus {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15);
+    }
+
+    /* Input Groups with Icons */
+    .input-group-text {
+        background-color: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-right: 0;
+        color: #6c757d;
+        padding: 0.875rem 1rem;
+        font-size: 1rem;
+        border-top-left-radius: 8px;
+        border-bottom-left-radius: 8px;
+    }
+
+    .input-group-text + .form-control {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+
+    /* Help Text and Error Messages */
+    .form-text {
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+        padding-left: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .invalid-feedback {
+        font-size: 0.75rem;
+        color: #dc3545;
+        margin-top: 0.5rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    /* Submit Button */
+    .btn-submit {
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+        border: none;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        color: white;
+        width: 100%;
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+        background: linear-gradient(135deg, #0b5ed7 0%, #084298 100%);
+    }
+
+    .btn-submit:active {
+        transform: translateY(0);
+    }
+
+    .btn-submit:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* Floating Labels Animation */
+    .form-floating {
+        position: relative;
+    }
+
+    .form-floating > .form-control {
+        padding-top: 1.625rem;
+        padding-bottom: 0.625rem;
+    }
+
+    .form-floating > label {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        padding: 1rem 0.75rem;
+        pointer-events: none;
+        border: 1px solid transparent;
+        transform-origin: 0 0;
+        transition: opacity .1s ease-in-out, transform .1s ease-in-out;
+    }
+
+    .form-floating > .form-control:focus ~ label,
+    .form-floating > .form-control:not(:placeholder-shown) ~ label {
+        opacity: .65;
+        transform: scale(.85) translateY(-0.5rem) translateX(0.15rem);
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .payment-card {
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    /* Loading State */
+    .btn-submit.loading {
+        position: relative;
+        color: transparent;
+    }
+
+    .btn-submit.loading::after {
+        content: '';
+        position: absolute;
+        width: 1rem;
+        height: 1rem;
+        top: 50%;
+        left: 50%;
+        margin: -0.5rem 0 0 -0.5rem;
+        border: 2px solid #ffffff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: button-loading-spinner 1s linear infinite;
+    }
+
+    @keyframes button-loading-spinner {
+        from { transform: rotate(0turn); }
+        to { transform: rotate(1turn); }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .payment-card {
+            margin: 1rem 0 2rem;
+        }
+
+        .payment-form-container {
+            padding: 1.25rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-control {
+            font-size: 16px; /* Prevent zoom on mobile */
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('.payment-form');
+        const submitBtn = form.querySelector('.btn-submit');
+        const inputs = form.querySelectorAll('.form-control');
+
+        // Add floating label behavior
+        inputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                input.parentElement.classList.add('focused');
+            });
+
+            input.addEventListener('blur', () => {
+                input.parentElement.classList.remove('focused');
+            });
+        });
+
+        // Form submission
+        form.addEventListener('submit', function() {
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+        });
+    });
+</script>
+{% endblock %} 

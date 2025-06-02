@@ -1,0 +1,87 @@
+{% extends 'patients/patient_base.html' %}
+{% load static %}
+
+{% block title %}Examination Details - {{ exam.exam_date }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-medical me-2"></i>Ultrasound Examination Details
+                        </h5>
+                        <a href="{% url 'patient-portal' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Portal
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Examination Information</h6>
+                            <dl class="row">
+                                <dt class="col-sm-4">Date</dt>
+                                <dd class="col-sm-8">{{ exam.exam_date }}</dd>
+                                
+                                <dt class="col-sm-4">Time</dt>
+                                <dd class="col-sm-8">{{ exam.exam_time }}</dd>
+                                
+                                <dt class="col-sm-4">Procedure</dt>
+                                <dd class="col-sm-8">{{ exam.procedure_type.name }}</dd>
+                                
+                                <dt class="col-sm-4">Radiologist</dt>
+                                <dd class="col-sm-8">{{ exam.radiologist }}</dd>
+                            </dl>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Clinical Information</h6>
+                            <dl class="row">
+                                <dt class="col-sm-4">Diagnosis</dt>
+                                <dd class="col-sm-8">{{ exam.clinical_diagnosis }}</dd>
+                                
+                                <dt class="col-sm-4">Findings</dt>
+                                <dd class="col-sm-8">{{ exam.findings }}</dd>
+                                
+                                <dt class="col-sm-4">Impression</dt>
+                                <dd class="col-sm-8">{{ exam.impression }}</dd>
+                                
+                                <dt class="col-sm-4">Recommendations</dt>
+                                <dd class="col-sm-8">{{ exam.get_recommendations_display }}</dd>
+                                
+                                {% if exam.followup_duration %}
+                                <dt class="col-sm-4">Follow-up</dt>
+                                <dd class="col-sm-8">{{ exam.followup_duration }}</dd>
+                                {% endif %}
+                            </dl>
+                        </div>
+                    </div>
+
+                    {% if exam.images.exists %}
+                    <div class="mt-4">
+                        <h6 class="text-muted mb-3">Ultrasound Images</h6>
+                        <div class="row">
+                            {% for image in exam.images.all %}
+                            <div class="col-md-4 mb-3">
+                                <div class="card">
+                                    <img src="{{ image.image.url }}" class="card-img-top" alt="Ultrasound Image">
+                                    {% if image.caption %}
+                                    <div class="card-body">
+                                        <p class="card-text small">{{ image.caption }}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
