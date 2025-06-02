@@ -69,23 +69,30 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Date</th>
-                                        <th>Type</th>
+                                        <th>Exam Date & Time</th>
                                         <th>Procedure</th>
-                                        <th>Status</th>
+                                        <th>Physician</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for exam in recent_exams %}
                                     <tr>
-                                        <td>{{ exam.exam_date }}</td>
-                                        <td>{{ exam.procedure_type.name }}</td>
-                                        <td>{{ exam.procedure_type.description }}</td>
                                         <td>
-                                            <span class="badge bg-{{ exam.status|lower }}-subtle text-{{ exam.status|lower }}">
-                                                {{ exam.get_status_display }}
-                                            </span>
+                                            {{ exam.exam_date }}<br>
+                                            <small class="text-muted">{{ exam.exam_time }}</small>
+                                        </td>
+                                        <td>
+                                            <strong>{{ exam.procedure_type.name }}</strong>
+                                            {% if exam.doppler_site %}
+                                            <br><small class="text-muted">Doppler Site: {{ exam.doppler_site }}</small>
+                                            {% endif %}
+                                            {% if exam.other_procedure %}
+                                            <br><small class="text-muted">Additional: {{ exam.other_procedure }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <strong>{{ exam.referring_physician }}</strong>
                                         </td>
                                         <td>
                                             <a href="{% url 'patient_view_exam' exam.id %}" class="btn btn-sm btn-outline-primary">
