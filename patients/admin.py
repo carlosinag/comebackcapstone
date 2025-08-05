@@ -9,7 +9,7 @@ class PatientAdmin(admin.ModelAdmin):
 
 @admin.register(UltrasoundExam)
 class UltrasoundExamAdmin(admin.ModelAdmin):
-    list_display = ('patient', 'procedure_type', 'exam_date', 'radiologist')
-    list_filter = ('procedure_type', 'exam_date', 'radiologist')
-    search_fields = ('patient__first_name', 'patient__last_name', 'radiologist', 'technologist')
+    list_display = ('patient', 'procedure_type', 'exam_date')
+    list_filter = ('procedure_type', 'exam_date')
+    search_fields = ('patient__first_name', 'patient__last_name')
     date_hierarchy = 'exam_date' 

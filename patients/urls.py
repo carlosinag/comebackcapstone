@@ -10,6 +10,25 @@ urlpatterns = [
     path('patient-portal/', views.patient_portal, name='patient-portal'),
     path('patient-logout/', views.patient_logout, name='patient_logout'),
     path('patient-exam/<int:exam_id>/', views.patient_view_exam, name='patient_view_exam'),
+    path('patient-exam/<int:exam_id>/download/', views.patient_download_exam, name='patient-download-exam'),
+    
+    # Patient settings
+    path('patient-settings/', views.patient_settings, name='patient-settings'),
+    path('patient-settings/password/', views.patient_change_password, name='patient-change-password'),
+    path('patient-settings/profile/', views.patient_update_profile, name='patient-update-profile'),
+    
+    # Patient appointments
+    path('patient-appointments/', views.patient_appointments, name='patient-appointments'),
+    path('patient-appointments/book/', views.patient_book_appointment, name='patient-book-appointment'),
+    path('patient-appointments/<int:appointment_id>/update/', views.patient_update_appointment, name='patient-update-appointment'),
+    path('patient-appointments/<int:appointment_id>/cancel/', views.patient_cancel_appointment, name='patient-cancel-appointment'),
+    
+    # Staff appointment management
+    path('staff/appointments/', views.staff_appointments, name='staff-appointments'),
+    path('staff/appointments/<int:appointment_id>/', views.staff_appointment_detail, name='staff-appointment-detail'),
+    path('staff/appointments/<int:appointment_id>/confirm/', views.staff_confirm_appointment, name='staff-confirm-appointment'),
+    path('staff/appointments/<int:appointment_id>/cancel/', views.staff_cancel_appointment, name='staff-cancel-appointment'),
+    path('staff/appointments/<int:appointment_id>/complete/', views.staff_complete_appointment, name='staff-complete-appointment'),
     
     # Main site URLs
     path('home/', views.home_dashboard, name='home-dashboard'),

@@ -9,6 +9,19 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link href="{% static 'css/style.css' %}" rel="stylesheet">
     <style>
+        /* Input Capitalization */
+        input[type="text"]:not([class*="search"]):not([class*="username"]):not([class*="email"]):not([class*="password"]),
+        textarea:not([class*="no-caps"]) {
+            text-transform: capitalize;
+        }
+        
+        /* Exclude email addresses from capitalization */
+        input[type="email"],
+        input[name*="email"],
+        input[id*="email"] {
+            text-transform: none !important;
+        }
+        
         :root {
             --sidebar-width: 250px;
         }

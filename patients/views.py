@@ -6,14 +6,14 @@ from django.urls import reverse_lazy
 from django.http import JsonResponse, HttpResponseRedirect, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.db import models, transaction
-from .models import Patient, UltrasoundExam, UltrasoundImage, FamilyGroup
-from .forms import PatientForm, UltrasoundExamForm
+from .models import Patient, UltrasoundExam, UltrasoundImage, FamilyGroup, Appointment
+from .forms import PatientForm, UltrasoundExamForm, PatientPasswordChangeForm, PatientProfileForm, PatientUserForm, AppointmentForm, AppointmentUpdateForm
 from django.db.models import Count, Sum
 from django.db.models.functions import ExtractWeek
 from django.utils import timezone
 from datetime import timedelta
 from billing.models import Bill, ServiceType
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
@@ -324,7 +324,19 @@ def dashboard(request):
         return render(request, 'dashboard.html', {'error': str(e)})
 
 def home_dashboard(request):
-    # Get recent patients
+    # Get search parameter
+    patient_search = request.GET.get('patient_search', '')
+    
+    # Query for patients based on search
+    if patient_search:
+        searched_patients = Patient.objects.filter(
+            models.Q(first_name__icontains=patient_search) |
+            models.Q(last_name__icontains=patient_search)
+        ).order_by('-created_at')[:5]
+    else:
+        searched_patients = None
+
+    # Get recent patients (when not searching)
     recent_patients = Patient.objects.all().order_by('-created_at')[:5]
     
     # Get recent procedures
@@ -332,7 +344,9 @@ def home_dashboard(request):
     
     context = {
         'recent_patients': recent_patients,
+        'searched_patients': searched_patients,
         'recent_exams': recent_exams,
+        'search_term': patient_search,
     }
     
     return render(request, 'home_dashboard.html', context)
@@ -482,63 +496,45 @@ def get_recommendation_stats(exams):
         recommendations[rec] = recommendations.get(rec, 0) + 1
     return recommendations
 
-def download_ultrasound_docx(request, pk):
-    exam = get_object_or_404(UltrasoundExam, pk=pk)
+def generate_report(request, exam_id):
+    exam = get_object_or_404(UltrasoundExam, id=exam_id)
     
-    # Create a new Document
+    # Create a new Word document
     doc = Document()
     
-    # Add title
-    title = doc.add_heading('Ultrasound Examination Report', 0)
-    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    # Add letterhead
+    doc.add_heading('ULTRASOUND EXAMINATION REPORT', 0)
     
     # Add patient information
-    doc.add_paragraph(f'CASE NUMBER: {exam.id}')
-    doc.add_paragraph(f'DATE: {exam.exam_date}')
-    doc.add_paragraph(f'NAME OF PATIENT: {exam.patient.first_name} {exam.patient.last_name}')
-    doc.add_paragraph(f'AGE: {exam.patient.age}')
-    doc.add_paragraph(f'GENDER: {exam.patient.get_sex_display()}')
-    doc.add_paragraph(f'MARITAL STATUS: {exam.patient.marital_status or "N/A"}')
+    doc.add_heading('Patient Information:', level=2)
+    doc.add_paragraph(f'Name: {exam.patient.first_name} {exam.patient.last_name}')
+    doc.add_paragraph(f'Age: {exam.patient.age}')
+    doc.add_paragraph(f'Sex: {exam.patient.get_sex_display()}')
     
     # Add examination details
-    doc.add_heading('EXAMINATION DETAILS', level=1)
-    doc.add_paragraph(f'EXAMINATION PERFORMED: {exam.procedure_type.name} ULTRASOUND')
-    doc.add_paragraph(f'O.R.: {exam.or_number or ""}')
+    doc.add_heading('Examination Details:', level=2)
+    doc.add_paragraph(f'Date: {exam.exam_date}')
+    doc.add_paragraph(f'Time: {exam.exam_time}')
+    doc.add_paragraph(f'Procedure: {exam.procedure_type.name} ULTRASOUND')
     doc.add_paragraph(f'REQUESTING PHYSICIAN: {exam.referring_physician}')
     doc.add_paragraph(f'WARD: {exam.patient.get_patient_status_display()}')
     
     # Add findings
-    doc.add_heading('RADIOLOGICAL FINDINGS:', level=1)
+    doc.add_heading('RADIOLOGICAL FINDINGS:', level=2)
     doc.add_paragraph(exam.findings)
     
-    # Add OB specific measurements if applicable
-    if exam.procedure_type.name == 'OB':
-        doc.add_heading('MEASUREMENTS:', level=1)
-        doc.add_paragraph(f'FETAL HEART RATE: {exam.fetal_heart_rate or "-"}')
-        doc.add_paragraph(f'AMNIOTIC FLUID: {exam.amniotic_fluid or "-"}')
-        doc.add_paragraph(f'PLACENTA: {exam.placenta or "-"}')
-        doc.add_paragraph(f'FETAL SEX: {exam.fetal_sex or "-"}')
-        doc.add_paragraph(f'EDD: {exam.edd or "-"}')
-        doc.add_paragraph(f'EFW: {exam.efw or "-"}')
-    
     # Add impression
-    doc.add_heading('IMPRESSION:', level=1)
+    doc.add_heading('IMPRESSION:', level=2)
     doc.add_paragraph(exam.impression)
     
-    # Add signatures
-    doc.add_paragraph('\n\n')
-    signatures = doc.add_paragraph()
-    signatures.add_run(f'{exam.technologist}\n').bold = True
-    signatures.add_run('Ultrasound Technologist').bold = False
-    signatures.add_run('\n\n\n')
-    signatures.add_run(f'{exam.radiologist}\n').bold = True
-    signatures.add_run('Radiologist').bold = False
-    
-    # Prepare the response
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-    response['Content-Disposition'] = f'attachment; filename=ultrasound_report_{exam.id}.docx'
+    # Add recommendations
+    doc.add_heading('RECOMMENDATIONS:', level=2)
+    doc.add_paragraph(f'Follow-up Duration: {exam.followup_duration or "-"}')
+    doc.add_paragraph(f'Specialist Referral: {exam.specialist_referral or "-"}')
     
     # Save the document
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    response['Content-Disposition'] = f'attachment; filename=ultrasound_report_{exam.id}.docx'
     doc.save(response)
     
     return response
@@ -618,4 +614,431 @@ def patient_view_exam(request, exam_id):
         'exam': exam,
         'patient': request.user.patient
     }
-    return render(request, 'patients/patient_exam_detail.html', context) 
+    return render(request, 'patients/patient_exam_detail.html', context)
+
+def download_ultrasound_docx(request, pk):
+    exam = get_object_or_404(UltrasoundExam, pk=pk)
+    
+    # Create a new document
+    doc = Document()
+    
+    # Set font to Courier New and remove any default paragraph spacing
+    style = doc.styles['Normal']
+    style.font.name = 'Courier New'
+    style.font.size = Pt(12)
+    style.paragraph_format.space_before = Pt(0)
+    style.paragraph_format.space_after = Pt(0)
+    style.paragraph_format.line_spacing = 1.0
+    
+    # Add content with exact spacing using tabs
+    doc.add_paragraph(f"CASE NUMBER\t:\t{str(exam.id).zfill(3)}\t\tDATE: {exam.exam_date.strftime('%B %d, %Y').upper()}")
+    doc.add_paragraph(f"NAME OF PATIENT\t:\t{exam.patient.last_name}, {exam.patient.first_name}")
+    doc.add_paragraph(f"AGE\t\t:\t{exam.patient.age}")
+    doc.add_paragraph(f"GENDER\t\t:\t{exam.patient.get_sex_display()}")
+    doc.add_paragraph(f"MARITAL STATUS\t:\t{exam.patient.get_marital_status_display() or ''}")
+    doc.add_paragraph(f"EXAMINATION PERFORMED:\t{exam.procedure_type.name} ULTRASOUND")
+    doc.add_paragraph(f"\t\tO.R.\t\t\tAMOUNT PAID:")
+    doc.add_paragraph(f"REQUESTING PHYSICIAN:\t\t\t\tWARD: {exam.patient.get_patient_status_display()}")
+    doc.add_paragraph()
+    doc.add_paragraph("RADIOLOGICAL FINDINGS:")
+    doc.add_paragraph()
+    doc.add_paragraph(exam.findings)
+    
+    if exam.procedure_type.name == 'OBSTETRIC':
+        doc.add_paragraph()
+        doc.add_paragraph(f"FETAL HEART RATE - {exam.fetal_heart_rate} bpm")
+        doc.add_paragraph("ADEQUATE AMNIOTIC FLUID")
+        doc.add_paragraph("ANTERIOR PLACENTA, GRADE I")
+        doc.add_paragraph(f"FETAL SEX --- {exam.fetal_sex or 'UNDETERMINED'}")
+        doc.add_paragraph(f"EDD ---- {exam.edd.strftime('%m/%d/%Y') if exam.edd else ''}")
+        doc.add_paragraph(f"EFW ---- {exam.estimated_fetal_weight or ''} gms")
+    
+    doc.add_paragraph()
+    doc.add_paragraph("IMPRESSION:")
+    doc.add_paragraph()
+    doc.add_paragraph(exam.impression)
+    
+    # Create the response
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    response['Content-Disposition'] = f'attachment; filename=ultrasound_report_{exam.exam_date.strftime("%Y%m%d")}_{exam.patient.last_name}.docx'
+    
+    # Save the document
+    doc.save(response)
+    
+    return response 
+
+@login_required
+def patient_settings(request):
+    """Patient settings page."""
+    if not hasattr(request.user, 'patient'):
+        messages.error(request, 'Access denied. This portal is for patients only.')
+        return redirect('landing')
+    
+    patient = request.user.patient
+    context = {
+        'patient': patient,
+    }
+    return render(request, 'patients/patient_settings.html', context)
+
+@login_required
+def patient_change_password(request):
+    """Allow patients to change their password."""
+    if not hasattr(request.user, 'patient'):
+        messages.error(request, 'Access denied. This portal is for patients only.')
+        return redirect('landing')
+    
+    if request.method == 'POST':
+        form = PatientPasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, 'Your password has been changed successfully.')
+            return redirect('patient-settings')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = PatientPasswordChangeForm(request.user)
+    
+    context = {
+        'form': form,
+        'patient': request.user.patient,
+    }
+    return render(request, 'patients/patient_change_password.html', context)
+
+@login_required
+def patient_update_profile(request):
+    """Allow patients to update their profile information."""
+    if not hasattr(request.user, 'patient'):
+        messages.error(request, 'Access denied. This portal is for patients only.')
+        return redirect('landing')
+    
+    patient = request.user.patient
+    user = request.user
+    
+    if request.method == 'POST':
+        profile_form = PatientProfileForm(request.POST, instance=patient)
+        user_form = PatientUserForm(request.POST, instance=user)
+        
+        if profile_form.is_valid() and user_form.is_valid():
+            profile_form.save()
+            user_form.save()
+            messages.success(request, 'Your profile has been updated successfully.')
+            return redirect('patient-settings')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        profile_form = PatientProfileForm(instance=patient)
+        user_form = PatientUserForm(instance=user)
+    
+    context = {
+        'profile_form': profile_form,
+        'user_form': user_form,
+        'patient': patient,
+    }
+    return render(request, 'patients/patient_update_profile.html', context)
+
+@login_required
+def patient_download_exam(request, exam_id):
+    """Allow patients to download their examination report."""
+    if not hasattr(request.user, 'patient'):
+        messages.error(request, 'Access denied. This portal is for patients only.')
+        return redirect('landing')
+    
+    exam = get_object_or_404(UltrasoundExam, id=exam_id)
+    
+    # Security check: ensure the patient can only download their own exams
+    if exam.patient != request.user.patient:
+        messages.error(request, 'Access denied. You can only download your own examinations.')
+        return redirect('patient-portal')
+    
+    # Create a new document
+    doc = Document()
+    
+    # Set font to Arial and formatting
+    style = doc.styles['Normal']
+    style.font.name = 'Arial'
+    style.font.size = Pt(11)
+    style.paragraph_format.space_before = Pt(0)
+    style.paragraph_format.space_after = Pt(0)
+    style.paragraph_format.line_spacing = 1.15
+    
+    # Add clinic header
+    doc.add_heading('ULTRASOUND EXAMINATION REPORT', 0)
+    doc.add_paragraph('MSRA Services')
+    doc.add_paragraph('Patient Portal Report')
+    doc.add_paragraph()
+    
+    # Add patient information
+    doc.add_heading('PATIENT INFORMATION', level=1)
+    doc.add_paragraph(f'Name: {exam.patient.last_name}, {exam.patient.first_name}')
+    doc.add_paragraph(f'Age: {exam.patient.age} years old')
+    doc.add_paragraph(f'Sex: {exam.patient.get_sex_display()}')
+    doc.add_paragraph(f'Contact Number: {exam.patient.contact_number}')
+    doc.add_paragraph()
+    
+    # Add examination details
+    doc.add_heading('EXAMINATION DETAILS', level=1)
+    doc.add_paragraph(f'Examination Date: {exam.exam_date.strftime("%B %d, %Y")}')
+    doc.add_paragraph(f'Examination Time: {exam.exam_time.strftime("%I:%M %p")}')
+    doc.add_paragraph(f'Procedure Type: {exam.procedure_type.name} ULTRASOUND')
+    doc.add_paragraph(f'Referring Physician: {exam.referring_physician}')
+    doc.add_paragraph()
+    
+    # Add clinical findings
+    if exam.findings:
+        doc.add_heading('RADIOLOGICAL FINDINGS', level=1)
+        doc.add_paragraph(exam.findings)
+        doc.add_paragraph()
+    
+    # Add impression
+    if exam.impression:
+        doc.add_heading('IMPRESSION', level=1)
+        doc.add_paragraph(exam.impression)
+        doc.add_paragraph()
+    
+    # Add recommendations
+    doc.add_heading('RECOMMENDATIONS', level=1)
+    doc.add_paragraph(f'Recommendation: {exam.get_recommendations_display()}')
+    if exam.followup_duration:
+        doc.add_paragraph(f'Follow-up Duration: {exam.followup_duration}')
+    if exam.specialist_referral:
+        doc.add_paragraph(f'Specialist Referral: {exam.specialist_referral}')
+    doc.add_paragraph()
+    
+    # Add images information
+    if exam.images.exists():
+        doc.add_heading('IMAGES', level=1)
+        doc.add_paragraph(f'Total Images: {exam.images.count()}')
+        annotated_count = exam.images.filter(annotated_image__isnull=False).count()
+        if annotated_count > 0:
+            doc.add_paragraph(f'Annotated Images: {annotated_count}')
+        doc.add_paragraph()
+    
+    # Add medical disclaimer
+    doc.add_heading('MEDICAL DISCLAIMER', level=1)
+    disclaimer_text = """
+    The information provided in this ultrasound examination report is intended for educational and informational purposes only. This report represents a preliminary analysis and should not be considered as a final medical diagnosis.
+
+    IMPORTANT NOTICE:
+    • The final diagnosis and treatment recommendations must be provided by your attending physician or qualified healthcare provider.
+    • This report should be reviewed in conjunction with your complete medical history and other diagnostic tests.
+    • Please consult with your healthcare provider for proper interpretation and medical decision-making.
+    • For medical emergencies, contact emergency services immediately or visit the nearest emergency department.
+
+    This report was generated from the patient portal and is for your personal medical records.
+    """
+    doc.add_paragraph(disclaimer_text)
+    
+    # Add footer
+    doc.add_paragraph()
+    doc.add_paragraph(f'Report Generated: {timezone.now().strftime("%B %d, %Y at %I:%M %p")}')
+    doc.add_paragraph('MSRA Services - Patient Portal')
+    
+    # Create the response
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    response['Content-Disposition'] = f'attachment; filename=ultrasound_report_{exam.patient.last_name}_{exam.exam_date.strftime("%Y%m%d")}.docx'
+    
+    # Save the document
+    doc.save(response)
+    
+    return response 
+
+@login_required
+def patient_appointments(request):
+    """Patient appointments page."""
+    if not hasattr(request.user, 'patient'):
+        messages.error(request, 'Access denied. This portal is for patients only.')
+        return redirect('landing')
+    
+    patient = request.user.patient
+    appointments = patient.appointments.all().order_by('appointment_date', 'appointment_time')
+    
+    context = {
+        'patient': patient,
+        'appointments': appointments,
+    }
+    return render(request, 'patients/patient_appointments.html', context)
+
+@login_required
+def patient_book_appointment(request):
+    """Allow patients to book new appointments."""
+    if not hasattr(request.user, 'patient'):
+        messages.error(request, 'Access denied. This portal is for patients only.')
+        return redirect('landing')
+    
+    if request.method == 'POST':
+        form = AppointmentForm(request.POST)
+        if form.is_valid():
+            appointment = form.save(commit=False)
+            appointment.patient = request.user.patient
+            appointment.save()
+            messages.success(request, 'Appointment booked successfully! We will contact you to confirm.')
+            return redirect('patient-appointments')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = AppointmentForm()
+    
+    context = {
+        'form': form,
+        'patient': request.user.patient,
+    }
+    return render(request, 'patients/patient_book_appointment.html', context)
+
+@login_required
+def patient_update_appointment(request, appointment_id):
+    """Allow patients to update their appointments."""
+    if not hasattr(request.user, 'patient'):
+        messages.error(request, 'Access denied. This portal is for patients only.')
+        return redirect('landing')
+    
+    appointment = get_object_or_404(Appointment, id=appointment_id)
+    
+    # Security check: ensure the patient can only update their own appointments
+    if appointment.patient != request.user.patient:
+        messages.error(request, 'Access denied. You can only update your own appointments.')
+        return redirect('patient-appointments')
+    
+    if request.method == 'POST':
+        form = AppointmentUpdateForm(request.POST, instance=appointment)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Appointment updated successfully!')
+            return redirect('patient-appointments')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = AppointmentUpdateForm(instance=appointment)
+    
+    context = {
+        'form': form,
+        'appointment': appointment,
+        'patient': request.user.patient,
+    }
+    return render(request, 'patients/patient_update_appointment.html', context)
+
+@login_required
+def patient_cancel_appointment(request, appointment_id):
+    """Allow patients to cancel their appointments."""
+    if not hasattr(request.user, 'patient'):
+        messages.error(request, 'Access denied. This portal is for patients only.')
+        return redirect('landing')
+    
+    appointment = get_object_or_404(Appointment, id=appointment_id)
+    
+    # Security check: ensure the patient can only cancel their own appointments
+    if appointment.patient != request.user.patient:
+        messages.error(request, 'Access denied. You can only cancel your own appointments.')
+        return redirect('patient-appointments')
+    
+    if request.method == 'POST':
+        appointment.status = 'CANCELLED'
+        appointment.save()
+        messages.success(request, 'Appointment cancelled successfully.')
+        return redirect('patient-appointments')
+    
+    context = {
+        'appointment': appointment,
+        'patient': request.user.patient,
+    }
+    return render(request, 'patients/patient_cancel_appointment.html', context) 
+
+@staff_member_required
+def staff_appointments(request):
+    """Staff view to manage all appointments."""
+    # Get filter parameters
+    status_filter = request.GET.get('status', '')
+    date_filter = request.GET.get('date', '')
+    
+    # Base queryset
+    appointments = Appointment.objects.select_related('patient').order_by('appointment_date', 'appointment_time')
+    
+    # Apply filters
+    if status_filter:
+        appointments = appointments.filter(status=status_filter)
+    
+    if date_filter:
+        appointments = appointments.filter(appointment_date=date_filter)
+    
+    # Get statistics
+    total_appointments = Appointment.objects.count()
+    pending_appointments = Appointment.objects.filter(status='PENDING').count()
+    confirmed_appointments = Appointment.objects.filter(status='CONFIRMED').count()
+    today_appointments = Appointment.objects.filter(appointment_date=timezone.now().date()).count()
+    
+    context = {
+        'appointments': appointments,
+        'total_appointments': total_appointments,
+        'pending_appointments': pending_appointments,
+        'confirmed_appointments': confirmed_appointments,
+        'today_appointments': today_appointments,
+        'status_filter': status_filter,
+        'date_filter': date_filter,
+    }
+    return render(request, 'patients/staff_appointments.html', context)
+
+@staff_member_required
+def staff_appointment_detail(request, appointment_id):
+    """Staff view to see appointment details and manage status."""
+    appointment = get_object_or_404(Appointment, id=appointment_id)
+    
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+        if new_status in ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED']:
+            appointment.status = new_status
+            appointment.save()
+            messages.success(request, f'Appointment status updated to {new_status}.')
+            return redirect('staff-appointments')
+    
+    context = {
+        'appointment': appointment,
+    }
+    return render(request, 'patients/staff_appointment_detail.html', context)
+
+@staff_member_required
+def staff_confirm_appointment(request, appointment_id):
+    """Staff view to confirm an appointment."""
+    appointment = get_object_or_404(Appointment, id=appointment_id)
+    
+    if request.method == 'POST':
+        appointment.status = 'CONFIRMED'
+        appointment.save()
+        messages.success(request, f'Appointment for {appointment.patient.first_name} {appointment.patient.last_name} has been confirmed.')
+        return redirect('staff-appointments')
+    
+    context = {
+        'appointment': appointment,
+    }
+    return render(request, 'patients/staff_confirm_appointment.html', context)
+
+@staff_member_required
+def staff_cancel_appointment(request, appointment_id):
+    """Staff view to cancel an appointment."""
+    appointment = get_object_or_404(Appointment, id=appointment_id)
+    
+    if request.method == 'POST':
+        appointment.status = 'CANCELLED'
+        appointment.save()
+        messages.success(request, f'Appointment for {appointment.patient.first_name} {appointment.patient.last_name} has been cancelled.')
+        return redirect('staff-appointments')
+    
+    context = {
+        'appointment': appointment,
+    }
+    return render(request, 'patients/staff_cancel_appointment.html', context)
+
+@staff_member_required
+def staff_complete_appointment(request, appointment_id):
+    """Staff view to mark an appointment as completed."""
+    appointment = get_object_or_404(Appointment, id=appointment_id)
+    
+    if request.method == 'POST':
+        appointment.status = 'COMPLETED'
+        appointment.save()
+        messages.success(request, f'Appointment for {appointment.patient.first_name} {appointment.patient.last_name} has been marked as completed.')
+        return redirect('staff-appointments')
+    
+    context = {
+        'appointment': appointment,
+    }
+    return render(request, 'patients/staff_complete_appointment.html', context) 
