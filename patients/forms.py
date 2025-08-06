@@ -27,7 +27,7 @@ class PatientForm(forms.ModelForm):
     class Meta:
         model = Patient
         fields = [
-            'first_name', 'last_name', 'age', 'sex', 'marital_status',
+            'first_name', 'last_name', 'birthday', 'sex', 'marital_status',
             'patient_type', 'patient_status', 'id_number',
             'region', 'province', 'city', 'barangay', 'street_address',
             'contact_number', 'email'
@@ -45,7 +45,7 @@ class PatientForm(forms.ModelForm):
                 'pattern': '[A-Za-z ]+',
                 'title': 'Only letters and spaces are allowed'
             }),
-            'age': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter age'}),
+            'birthday': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'placeholder': 'Select birthday'}),
             'sex': forms.Select(attrs={'class': 'form-control'}),
             'marital_status': forms.Select(attrs={'class': 'form-control'}),
             'patient_type': forms.Select(attrs={'class': 'form-control', 'id': 'id_patient_type'}),

@@ -57,15 +57,23 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="{{ form.age.id_for_label }}" class="form-label">{{ form.age.label }}</label>
-                                    {{ form.age }}
-                                    {% if form.age.errors %}
+                                    <label for="{{ form.birthday.id_for_label }}" class="form-label">Birthday</label>
+                                    {{ form.birthday }}
+                                    {% if form.birthday.errors %}
                                         <div class="invalid-feedback d-block">
-                                            {{ form.age.errors|join:", " }}
+                                            {{ form.birthday.errors|join:", " }}
                                         </div>
                                     {% endif %}
                                 </div>
                             </div>
+                            <!-- <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="calculated_age" class="form-label">Age</label>
+                                    <input type="text" id="calculated_age" class="form-control" readonly>
+                                </div>
+                            </div> -->
+                        </div>
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="{{ form.sex.id_for_label }}" class="form-label">{{ form.sex.label }}</label>
@@ -506,6 +514,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 citySelect.removeEventListener('change', restoreBarangay);
             }, { once: true });
         }
+    }
+
+    // Age calculation from birthday
+    const birthdayInput = document.getElementById('id_birthday');
+    const ageInput = document.getElementById('calculated_age');
+    function calculateAge(birthday) {
+        if (!birthday) return '';
+        const today = new Date();
+        const birthDate = new Date(birthday);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age >= 0 ? age : '';
+    }
+    if (birthdayInput) {
+        birthdayInput.addEventListener('change', function() {
+            ageInput.value = calculateAge(this.value);
+        });
+        // Set initial value if editing
+        ageInput.value = calculateAge(birthdayInput.value);
     }
 });
 </script>

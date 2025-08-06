@@ -42,7 +42,7 @@ class Patient(models.Model):
     
     first_name = models.CharField(max_length=50, verbose_name="First Name", default="")
     last_name = models.CharField(max_length=50, verbose_name="Last Name", default="")
-    age = models.IntegerField()
+    birthday = models.DateField(null=True, blank=True)
     sex = models.CharField(max_length=1, choices=GENDER_CHOICES)
     marital_status = models.CharField(max_length=1, choices=MARITAL_STATUS_CHOICES, null=True, blank=True)
     patient_type = models.CharField(max_length=10, choices=PATIENT_TYPE_CHOICES, default='REGULAR')
@@ -103,6 +103,15 @@ class Patient(models.Model):
         barangay_code = self.barangay.zfill(9) if self.barangay else None
         barangay = next((b for b in barangays if b['brgy_code'] == barangay_code), None)
         return barangay['brgy_name'] if barangay else self.barangay
+
+    @property
+    def age(self):
+        """Calculate age based on birthday field."""
+        from datetime import date
+        if self.birthday:
+            today = date.today()
+            return today.year - self.birthday.year - ((today.month, today.day) < (self.birthday.month, self.birthday.day))
+        return None
 
     class Meta:
         ordering = ['-created_at']

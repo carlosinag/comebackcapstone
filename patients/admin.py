@@ -3,7 +3,7 @@ from .models import Patient, UltrasoundExam
 
 @admin.register(Patient)
 class PatientAdmin(admin.ModelAdmin):
-    list_display = ('first_name', 'last_name', 'age', 'sex', 'contact_number', 'email')
+    list_display = ('first_name', 'last_name', 'birthday', 'sex', 'contact_number', 'email')
     search_fields = ('first_name', 'last_name', 'contact_number', 'email')
     list_filter = ('sex',)
 
