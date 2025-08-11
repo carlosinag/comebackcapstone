@@ -61,9 +61,26 @@ class Patient(models.Model):
     email = models.EmailField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_archived = models.BooleanField(default=False)
+    archived_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} - {self.contact_number}"
+
+    def delete(self, using=None, keep_parents=False):
+        """Soft-delete: archive instead of removing from the database.
+        If already archived, perform a hard delete via hard_delete().
+        """
+        if not self.is_archived:
+            self.is_archived = True
+            self.archived_at = timezone.now()
+            self.save(update_fields=['is_archived', 'archived_at'])
+            return
+        # If already archived, allow hard deletion explicitly
+        return self.hard_delete(using=using, keep_parents=keep_parents)
+
+    def hard_delete(self, using=None, keep_parents=False):
+        return super().delete(using=using, keep_parents=keep_parents)
 
     def _load_json_data(self, filename):
         file_path = os.path.join(settings.BASE_DIR, 'static', 'philippine-addresses', filename)

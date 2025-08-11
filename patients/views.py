@@ -15,6 +15,7 @@ from datetime import timedelta
 from billing.models import Bill, ServiceType
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.admin.views.decorators import staff_member_required
+from django.utils.decorators import method_decorator
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from docx import Document
@@ -28,7 +29,7 @@ class PatientListView(ListView):
     ordering = ['-created_at']
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().filter(is_archived=False)
         
         # Handle search
         search_query = self.request.GET.get('search')
@@ -79,19 +80,6 @@ class PatientCreateView(CreateView):
     success_url = reverse_lazy('patient-list')
 
     def form_valid(self, form):
-        # Check for potential family members with the same last name
-        last_name = form.cleaned_data['last_name']
-        potential_family_members = Patient.objects.filter(last_name=last_name)
-        
-        if potential_family_members.exists():
-            # Store form data in session
-            form_data = form.cleaned_data
-            # Convert date objects to string for session storage
-            form_data['date_of_birth'] = form_data['date_of_birth'].strftime('%Y-%m-%d')
-            self.request.session['pending_patient_data'] = form_data
-            # Redirect to family confirmation page
-            return redirect('confirm-family', last_name=last_name)
-        
         messages.success(self.request, 'Patient record created successfully.')
         return super().form_valid(form)
 
@@ -107,27 +95,65 @@ class PatientUpdateView(UpdateView):
         messages.success(self.request, 'Patient record updated successfully.')
         return super().form_valid(form)
 
+    def dispatch(self, request, *args, **kwargs):
+        patient = self.get_object()
+        if patient.is_archived:
+            messages.warning(request, 'Cannot edit an archived patient. Please unarchive first.')
+            return redirect('patient-detail', pk=patient.pk)
+        return super().dispatch(request, *args, **kwargs)
+
 class PatientDeleteView(LoginRequiredMixin, DeleteView):
     model = Patient
     template_name = 'patients/patient_confirm_delete.html'
     success_url = reverse_lazy('patient-list')
     
+    def get(self, request, *args, **kwargs):
+        patient = self.get_object()
+        if patient.is_archived:
+            messages.info(request, 'Patient is already archived.')
+            return redirect('patient-detail', pk=patient.pk)
+        return super().get(request, *args, **kwargs)
+
     def delete(self, request, *args, **kwargs):
         try:
             # Get the patient
             patient = self.get_object()
             
-            # If patient is part of a family group and is the last member
-            if patient.family_group and patient.family_group.family_members.count() == 1:
-                patient.family_group.delete()
-            
-            # Delete the patient
-            patient.delete()
-            messages.success(request, 'Patient record deleted successfully.')
+            # Archive the patient instead of deleting
+            patient.is_archived = True
+            patient.archived_at = timezone.now()
+            patient.save(update_fields=['is_archived', 'archived_at'])
+            messages.success(request, 'Patient moved to archive.')
             return HttpResponseRedirect(self.success_url)
         except Exception as e:
             messages.error(request, f'Error deleting patient: {str(e)}')
             return HttpResponseRedirect(self.get_success_url())
+
+@method_decorator(staff_member_required, name='dispatch')
+class ArchivedPatientListView(ListView):
+    model = Patient
+    template_name = 'patients/archived_patient_list.html'
+    context_object_name = 'patients'
+    ordering = ['-archived_at']
+
+    def get_queryset(self):
+        queryset = super().get_queryset().filter(is_archived=True)
+        search_query = self.request.GET.get('search')
+        if search_query:
+            queryset = queryset.filter(
+                models.Q(first_name__icontains=search_query) |
+                models.Q(last_name__icontains=search_query)
+            )
+        return queryset
+
+@staff_member_required
+def unarchive_patient(request, pk):
+    patient = get_object_or_404(Patient, pk=pk)
+    patient.is_archived = False
+    patient.archived_at = None
+    patient.save(update_fields=['is_archived', 'archived_at'])
+    messages.success(request, 'Patient restored from archive.')
+    return redirect('archived-patient-list')
 
 class UltrasoundExamCreateView(CreateView):
     model = UltrasoundExam
@@ -140,8 +166,21 @@ class UltrasoundExamCreateView(CreateView):
             initial['patient'] = get_object_or_404(Patient, pk=self.kwargs['patient_id'])
         return initial
 
+    def dispatch(self, request, *args, **kwargs):
+        if 'patient_id' in kwargs:
+            patient = get_object_or_404(Patient, pk=kwargs['patient_id'])
+            if patient.is_archived:
+                messages.warning(request, 'Cannot add an exam to an archived patient. Please unarchive first.')
+                return redirect('patient-detail', pk=patient.pk)
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
         try:
+            # Prevent creating exams for archived patients via form submission
+            selected_patient = form.cleaned_data.get('patient')
+            if selected_patient and selected_patient.is_archived:
+                messages.warning(self.request, 'Cannot add an exam to an archived patient. Please unarchive first.')
+                return self.form_invalid(form)
             with transaction.atomic():
                 # Save the exam first
                 self.object = form.save()
@@ -229,6 +268,10 @@ def exam_image_upload(request, patient_id):
     exam_id = request.POST.get('exam_id')
     image_files = request.FILES.getlist('images[]')
     
+    if patient.is_archived:
+        messages.error(request, 'Cannot upload images for an archived patient. Please unarchive first.')
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
     if not exam_id or not image_files:
         messages.error(request, 'Both examination and images are required.')
         return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
@@ -329,7 +372,7 @@ def home_dashboard(request):
     
     # Query for patients based on search
     if patient_search:
-        searched_patients = Patient.objects.filter(
+        searched_patients = Patient.objects.filter(is_archived=False).filter(
             models.Q(first_name__icontains=patient_search) |
             models.Q(last_name__icontains=patient_search)
         ).order_by('-created_at')[:5]
@@ -337,7 +380,7 @@ def home_dashboard(request):
         searched_patients = None
 
     # Get recent patients (when not searching)
-    recent_patients = Patient.objects.all().order_by('-created_at')[:5]
+    recent_patients = Patient.objects.filter(is_archived=False).order_by('-created_at')[:5]
     
     # Get recent procedures
     recent_exams = UltrasoundExam.objects.select_related('patient').order_by('-exam_date', '-exam_time')[:5]
@@ -374,57 +417,9 @@ def admin_login(request):
     return render(request, 'admin_login.html')
 
 def confirm_family_relationship(request, last_name):
-    if request.method == 'POST':
-        is_family = request.POST.get('is_family') == 'yes'
-        family_member_id = request.POST.get('family_member_id')
-        
-        # Get the pending patient data from session
-        patient_data = request.session.get('pending_patient_data')
-        if not patient_data:
-            messages.error(request, 'Patient data not found. Please try registering again.')
-            return redirect('patient-create')
-        
-        try:
-            # Convert string date back to date object
-            patient_data['date_of_birth'] = timezone.datetime.strptime(
-                patient_data['date_of_birth'], 
-                '%Y-%m-%d'
-            ).date()
-            
-            # Create the new patient
-            new_patient = Patient.objects.create(**patient_data)
-            
-            if is_family and family_member_id:
-                # Get or create family group
-                existing_patient = Patient.objects.get(id=family_member_id)
-                if existing_patient.family_group:
-                    new_patient.family_group = existing_patient.family_group
-                else:
-                    family_group = FamilyGroup.objects.create(
-                        name=f"{last_name} Family"
-                    )
-                    existing_patient.family_group = family_group
-                    existing_patient.save()
-                    new_patient.family_group = family_group
-                new_patient.save()
-            
-            # Clear session data
-            if 'pending_patient_data' in request.session:
-                del request.session['pending_patient_data']
-            
-            messages.success(request, 'Patient record created successfully.')
-            return redirect('patient-detail', pk=new_patient.pk)
-            
-        except Exception as e:
-            messages.error(request, f'Error creating patient: {str(e)}')
-            return redirect('patient-create')
-    
-    # GET request - show confirmation page
-    potential_family_members = Patient.objects.filter(last_name=last_name)
-    return render(request, 'patients/confirm_family.html', {
-        'potential_family_members': potential_family_members,
-        'last_name': last_name
-    })
+    # This feature has been removed. Redirect back to patient creation.
+    messages.info(request, 'Family confirmation step is no longer required.')
+    return redirect('patient-create')
 
 def family_medical_history(request, family_group_id):
     family_group = get_object_or_404(FamilyGroup, id=family_group_id)

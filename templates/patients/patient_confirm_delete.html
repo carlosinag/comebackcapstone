@@ -11,9 +11,9 @@
                     <h3 class="card-title mb-0">Confirm Patient Deletion</h3>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Warning:</strong> This action cannot be undone.
+                    <div class="alert alert-info">
+                        <i class="fas fa-archive me-2"></i>
+                        <strong>Note:</strong> Archiving will hide this patient from active lists. You can restore them later from the archive.
                     </div>
 
                     <p class="mb-4">
@@ -23,13 +23,9 @@
 
                     <p>This will delete:</p>
                     <ul>
-                        <li>All patient information</li>
-                        <li>All ultrasound examinations</li>
-                        <li>All ultrasound images</li>
-                        <li>All billing records associated with this patient</li>
-                        {% if patient.family_group and patient.family_group.family_members.count == 1 %}
-                        <li>The family group (as this is the last member)</li>
-                        {% endif %}
+                        <li>The patient will be moved to the archive</li>
+                        <li>They will no longer appear in active patient lists and dashboards</li>
+                        <li>You can restore them anytime from the archive page</li>
                     </ul>
 
                     <form method="post">
@@ -39,7 +35,7 @@
                                 <i class="fas fa-times me-2"></i>Cancel
                             </a>
                             <button type="submit" class="btn btn-danger">
-                                <i class="fas fa-trash-alt me-2"></i>Delete Patient
+                                <i class="fas fa-archive me-2"></i>Archive Patient
                             </button>
                         </div>
                     </form>
