@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load patient_extras %}
 
 {% block title %}{{ patient.first_name }} {{ patient.last_name }} - Image Annotation{% endblock %}
 
@@ -121,14 +122,9 @@
                                                         </div>
                                                         <div class="card-body">
                                                             <div class="mb-3">
-                                                                <label class="form-label">Select Procedure Type:</label>
-                                                                <select class="form-select" id="procedure-type-{{ image.id }}" onchange="loadProcedureFields('{{ image.id }}')">
-                                                                    <option value="">Select Procedure</option>
-                                                                    <option value="pelvic">Pelvic Ultrasound</option>
-                                                                    <option value="abdominal">Abdominal Ultrasound</option>
-                                                                    <option value="breast">Breast Ultrasound</option>
-                                                                    <option value="thyroid">Thyroid Ultrasound</option>
-                                                                </select>
+                                                                <label class="form-label">Procedure Type:</label>
+                                                                <input type="text" class="form-control" value="{{ exam.procedure_type.name }}" readonly>
+                                                                <input type="hidden" id="procedure-type-{{ image.id }}" value="{{ exam.procedure_type.name|clean_procedure_type }}">
                                                             </div>
                                                             <div id="procedure-fields-{{ image.id }}">
                                                                 <!-- Dynamic fields will be loaded here -->
@@ -237,6 +233,45 @@
             { id: 'left_lobe_size', label: 'Left Lobe Size (cm)', type: 'measurement' },
             { id: 'nodule_location', label: 'Nodule Location', type: 'location' },
             { id: 'nodule_size', label: 'Nodule Size (mm)', type: 'measurement' }
+        ],
+        prostate: [
+            { id: 'prostate_length', label: 'Prostate Length (cm)', type: 'measurement' },
+            { id: 'prostate_width', label: 'Prostate Width (cm)', type: 'measurement' },
+            { id: 'prostate_height', label: 'Prostate Height (cm)', type: 'measurement' },
+            { id: 'prostate_volume', label: 'Prostate Volume (cc)', type: 'measurement' },
+            { id: 'prostate_location', label: 'Prostate Location', type: 'location' }
+        ],
+        obstetric: [
+            { id: 'gestational_age', label: 'Gestational Age (weeks)', type: 'measurement' },
+            { id: 'crown_rump_length', label: 'Crown-Rump Length (cm)', type: 'measurement' },
+            { id: 'biparietal_diameter', label: 'Biparietal Diameter (cm)', type: 'measurement' },
+            { id: 'femur_length', label: 'Femur Length (cm)', type: 'measurement' },
+            { id: 'amniotic_fluid_index', label: 'Amniotic Fluid Index (cm)', type: 'measurement' }
+        ],
+        transvaginal: [
+            { id: 'uterus_length', label: 'Uterus Length (cm)', type: 'measurement' },
+            { id: 'uterus_width', label: 'Uterus Width (cm)', type: 'measurement' },
+            { id: 'endometrial_thickness', label: 'Endometrial Thickness (mm)', type: 'measurement' },
+            { id: 'right_ovary_size', label: 'Right Ovary Size (cm)', type: 'measurement' },
+            { id: 'left_ovary_size', label: 'Left Ovary Size (cm)', type: 'measurement' }
+        ],
+        scrotal: [
+            { id: 'right_testis_length', label: 'Right Testis Length (cm)', type: 'measurement' },
+            { id: 'right_testis_width', label: 'Right Testis Width (cm)', type: 'measurement' },
+            { id: 'left_testis_length', label: 'Left Testis Length (cm)', type: 'measurement' },
+            { id: 'left_testis_width', label: 'Left Testis Width (cm)', type: 'measurement' },
+            { id: 'epididymis_location', label: 'Epididymis Location', type: 'location' }
+        ],
+        doppler: [
+            { id: 'peak_systolic_velocity', label: 'Peak Systolic Velocity (cm/s)', type: 'measurement' },
+            { id: 'end_diastolic_velocity', label: 'End Diastolic Velocity (cm/s)', type: 'measurement' },
+            { id: 'resistive_index', label: 'Resistive Index', type: 'measurement' },
+            { id: 'pulsatility_index', label: 'Pulsatility Index', type: 'measurement' }
+        ],
+        other: [
+            { id: 'general_measurements', label: 'General Measurements (cm)', type: 'measurement' },
+            { id: 'abnormal_findings', label: 'Abnormal Findings Location', type: 'location' },
+            { id: 'additional_notes', label: 'Additional Notes', type: 'text' }
         ]
     };
 
@@ -257,9 +292,9 @@
                 initCanvas(imageId);
                 loadSavedAnnotations(imageId);
                 
-                // Load procedure type if selected
-                const procedureTypeSelect = document.getElementById(`procedure-type-${imageId}`);
-                if (procedureTypeSelect && procedureTypeSelect.value) {
+                // Automatically load procedure fields based on the exam's procedure type
+                const procedureTypeHidden = document.getElementById(`procedure-type-${imageId}`);
+                if (procedureTypeHidden && procedureTypeHidden.value) {
                     loadProcedureFields(imageId);
                 }
             } catch (error) {
@@ -563,18 +598,19 @@
     }
 
     function loadProcedureFields(examId) {
-        const procedureTypeSelect = document.getElementById(`procedure-type-${examId}`);
-        if (!procedureTypeSelect) {
-            console.error('Procedure type select not found');
+        const procedureTypeHidden = document.getElementById(`procedure-type-${examId}`);
+        if (!procedureTypeHidden) {
+            console.error('Procedure type hidden field not found');
             return;
         }
 
         // Get and clean up the procedure type value
-        let procedureType = procedureTypeSelect.value.toLowerCase()
+        let procedureType = procedureTypeHidden.value.toLowerCase()
             .replace(/\s+ultrasound/i, '')  // Remove "ultrasound" and spaces before it
+            .replace(/\s+/g, '')  // Remove all spaces
             .trim();
             
-        console.log('Selected procedure type:', procedureTypeSelect.value);
+        console.log('Procedure type from hidden field:', procedureTypeHidden.value);
         console.log('Cleaned procedure type:', procedureType);
         
         const fieldsContainer = document.getElementById(`procedure-fields-${examId}`);
@@ -598,6 +634,10 @@
                                 Set Location
                             </button>
                         </div>
+                    ` : field.type === 'text' ? `
+                        <textarea class="form-control" id="${field.id}-${examId}" rows="2" 
+                                  onchange="updateMeasurement('${examId}', '${field.id}', this.value)" 
+                                  placeholder="Enter additional notes or findings"></textarea>
                     ` : `
                         <input type="number" class="form-control" id="${field.id}-${examId}" 
                                onchange="updateMeasurement('${examId}', '${field.id}', this.value)">
@@ -643,18 +683,20 @@
     }
 
     function updateMeasurementSummary(examId) {
-        const procedureType = document.getElementById(`procedure-type-${examId}`).value;
+        const procedureTypeHidden = document.getElementById(`procedure-type-${examId}`);
+        const procedureType = procedureTypeHidden ? procedureTypeHidden.value : '';
         const previewContainer = document.getElementById(`annotation-preview-${examId}`);
-        const fields = procedureFields[procedureType] || [];
+        const fields = procedureFields[procedureType.toLowerCase().replace(/\s+ultrasound/i, '').replace(/\s+/g, '').trim()] || [];
         
         // Update annotation preview
         let previewHtml = '';
         if (procedureType) {
-            previewHtml += `<h6 class="text-primary">${procedureType.charAt(0).toUpperCase() + procedureType.slice(1)} Ultrasound</h6>`;
+            previewHtml += `<h6 class="text-primary">${procedureType}</h6>`;
             
             // Group measurements and locations
             const measurements = fields.filter(f => f.type === 'measurement' && document.getElementById(`${f.id}-${examId}`).value);
             const locations = fields.filter(f => f.type === 'location' && document.getElementById(`${f.id}-${examId}`).value);
+            const textFields = fields.filter(f => f.type === 'text' && document.getElementById(`${f.id}-${examId}`).value);
             
             if (measurements.length > 0) {
                 previewHtml += '<div class="mb-3"><strong>Measurements:</strong><ul class="mb-0">';
@@ -677,6 +719,17 @@
                 });
                 previewHtml += '</ul></div>';
             }
+            
+            if (textFields.length > 0) {
+                previewHtml += '<div class="mb-3"><strong>Additional Information:</strong><ul class="mb-0">';
+                textFields.forEach(field => {
+                    const value = document.getElementById(`${f.id}-${examId}`).value;
+                    if (value) {
+                        previewHtml += `<li>${field.label}: ${value}</li>`;
+                    }
+                });
+                previewHtml += '</ul></div>';
+            }
 
             // Add notes to preview if they exist
             const notes = document.getElementById(`notes-${examId}`).value.trim();
@@ -684,8 +737,8 @@
                 previewHtml += '<div class="mt-3"><strong>Notes:</strong><p class="mb-0">' + notes.replace(/\n/g, '<br>') + '</p></div>';
             }
 
-            if (!measurements.length && !locations.length && !notes) {
-                previewHtml += '<p class="text-muted">No measurements, locations, or notes marked yet.</p>';
+            if (!measurements.length && !locations.length && !textFields.length && !notes) {
+                previewHtml += '<p class="text-muted">No measurements, locations, additional information, or notes marked yet.</p>';
             }
         } else {
             previewHtml = '<p class="text-muted">Please select a procedure type to start annotation.</p>';
@@ -712,13 +765,17 @@
         undoStack[imageId] = [];
         
         // Clear input fields
-        const procedureType = document.getElementById(`procedure-type-${imageId}`).value;
-        if (procedureType && procedureFields[procedureType]) {
-            Object.values(procedureFields[procedureType].groups).forEach(group => {
-                group.fields.forEach(field => {
-                    const input = document.getElementById(`${field.id}-${imageId}`);
-                    if (input) input.value = '';
-                });
+        const procedureTypeHidden = document.getElementById(`procedure-type-${imageId}`);
+        const procedureType = procedureTypeHidden ? procedureTypeHidden.value : '';
+        if (procedureType) {
+            const cleanedProcedureType = procedureType.toLowerCase()
+                .replace(/\s+ultrasound/i, '')
+                .replace(/\s+/g, '')
+                .trim();
+            const fields = procedureFields[cleanedProcedureType] || [];
+            fields.forEach(field => {
+                const input = document.getElementById(`${field.id}-${imageId}`);
+                if (input) input.value = '';
             });
         }
         
@@ -776,16 +833,23 @@
 
     function saveAnnotations(imageId) {
         const canvas = canvases[imageId];
-        const procedureType = document.getElementById(`procedure-type-${imageId}`).value;
+        const procedureTypeHidden = document.getElementById(`procedure-type-${imageId}`);
+        const procedureType = procedureTypeHidden ? procedureTypeHidden.value : '';
         
         if (!procedureType) {
-            alert('Please select a procedure type before saving.');
+            alert('No procedure type found. Please refresh the page and try again.');
             return;
         }
         
+        // Get the cleaned procedure type for field lookup
+        const cleanedProcedureType = procedureType.toLowerCase()
+            .replace(/\s+ultrasound/i, '')
+            .replace(/\s+/g, '')
+            .trim();
+        
         // Collect all measurements for the current procedure
         const measurementData = {};
-        const fields = procedureFields[procedureType] || [];
+        const fields = procedureFields[cleanedProcedureType] || [];
         
         fields.forEach(field => {
             const input = document.getElementById(`${field.id}-${imageId}`);
@@ -969,10 +1033,11 @@
 
     function saveAnnotationPreview(imageId) {
         const canvas = canvases[imageId];
-        const procedureType = document.getElementById(`procedure-type-${imageId}`).value;
+        const procedureTypeHidden = document.getElementById(`procedure-type-${imageId}`);
+        const procedureType = procedureTypeHidden ? procedureTypeHidden.value : '';
         
         if (!canvas || !procedureType) {
-            alert('Please ensure you have an image and procedure type selected.');
+            alert('Please ensure you have an image and procedure type available.');
             return;
         }
 
@@ -1012,12 +1077,16 @@
         ctx.font = '14px Arial';
         
         // Get all measurements and locations
-        const fields = procedureFields[procedureType] || [];
+        const cleanedProcedureType = procedureType.toLowerCase()
+            .replace(/\s+ultrasound/i, '')
+            .replace(/\s+/g, '')
+            .trim();
+        const fields = procedureFields[cleanedProcedureType] || [];
         let yPos = canvas.height + 30; // Start a bit lower from the image
         
         // Add title
         ctx.font = 'bold 16px Arial';
-        ctx.fillText(`${procedureType.charAt(0).toUpperCase() + procedureType.slice(1)} Ultrasound Annotations`, 10, yPos);
+        ctx.fillText(`${procedureType} Annotations`, 10, yPos);
         yPos += 25;
         ctx.font = '14px Arial';
 
@@ -1097,7 +1166,7 @@
             },
             body: JSON.stringify({
                 image_data: dataUrl,
-                procedure_type: procedureType,
+                procedure_type: cleanedProcedureType,
                 annotations: canvas.toJSON(['measurementId']),
                 preview_html: document.getElementById(`annotation-preview-${imageId}`).innerHTML,
                 notes: notes
