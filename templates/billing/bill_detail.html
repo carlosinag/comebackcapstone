@@ -36,14 +36,22 @@
                         <div class="col-md-6">
                             <p><strong>Patient:</strong> {{ bill.patient.first_name }} {{ bill.patient.last_name }}</p>
                             <p><strong>Bill Date:</strong> {{ bill.bill_date }}</p>
-                            <p><strong>Due Date:</strong> {{ bill.due_date }}</p>
                         </div>
                         <div class="col-md-6">
                             <p><strong>Status:</strong> <span class="badge bg-{{ bill.status|lower }}">{{ bill.get_status_display }}</span></p>
                             <p><strong>Total Amount:</strong> ₱{{ bill.total_amount|floatformat:2 }}</p>
-                            <p><strong>Balance:</strong> ₱{{ remaining_balance|floatformat:2 }}</p>
                         </div>
                     </div>
+                    
+                    <!-- Payment Summary -->
+                    {% if total_change > 0 %}
+                    <div class="alert alert-info mt-3">
+                        <h6 class="alert-heading">Payment Summary</h6>
+                        <p class="mb-1"><strong>Total Amount:</strong> ₱{{ bill.total_amount|floatformat:2 }}</p>
+                        <p class="mb-1"><strong>Total Paid:</strong> ₱{{ total_paid|floatformat:2 }}</p>
+                        <p class="mb-0"><strong>Total Change Given:</strong> <span class="text-success">₱{{ total_change|floatformat:2 }}</span></p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -110,6 +118,7 @@
                                     <th>Method</th>
                                     <th>Reference</th>
                                     <th class="text-end">Amount</th>
+                                    <th class="text-end">Change</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -119,19 +128,29 @@
                                     <td>{{ payment.get_payment_method_display }}</td>
                                     <td>{{ payment.reference_number|default:"-" }}</td>
                                     <td class="text-end">₱{{ payment.amount|floatformat:2 }}</td>
+                                    <td class="text-end">
+                                        {% if payment.change > 0 %}
+                                            <span class="text-success">₱{{ payment.change|floatformat:2 }}</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="4" class="text-center">No payments recorded yet.</td>
+                                    <td colspan="5" class="text-center">No payments recorded yet.</td>
                                 </tr>
                                 {% endfor %}
                                 <tr class="table-light">
                                     <td colspan="3" class="text-end"><strong>Total Paid:</strong></td>
                                     <td class="text-end"><strong>₱{{ total_paid|floatformat:2 }}</strong></td>
-                                </tr>
-                                <tr class="table-light">
-                                    <td colspan="3" class="text-end"><strong>Remaining Balance:</strong></td>
-                                    <td class="text-end"><strong>₱{{ remaining_balance|floatformat:2 }}</strong></td>
+                                    <td class="text-end">
+                                        {% if total_change > 0 %}
+                                            <strong class="text-success">₱{{ total_change|floatformat:2 }}</strong>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -484,6 +503,22 @@
 
         .form-group {
             margin-bottom: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        /* Smooth transitions for reference number field */
+        .form-group[style*="display: none"] {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            margin-bottom: 0;
+            padding: 0;
+        }
+
+        .form-group:not([style*="display: none"]) {
+            opacity: 1;
+            max-height: 200px;
+            margin-bottom: 1.25rem;
         }
 
         .form-control {
@@ -499,6 +534,48 @@
         const form = document.querySelector('.payment-form');
         const submitBtn = form.querySelector('.btn-submit');
         const inputs = form.querySelectorAll('.form-control');
+        const amountInput = form.querySelector('input[name="amount"]');
+        const paymentMethodSelect = form.querySelector('select[name="payment_method"]');
+        const referenceNumberField = form.querySelector('input[name="reference_number"]');
+        const referenceNumberGroup = referenceNumberField ? referenceNumberField.closest('.form-group') : null;
+        const changeDisplay = document.createElement('div');
+        
+        // Create change display element
+        changeDisplay.className = 'alert alert-info mt-2';
+        changeDisplay.style.display = 'none';
+        amountInput.parentNode.appendChild(changeDisplay);
+
+        // Function to toggle reference number field visibility
+        function toggleReferenceNumber() {
+            if (referenceNumberGroup && paymentMethodSelect) {
+                const selectedMethod = paymentMethodSelect.value;
+                if (selectedMethod === 'GCASH' || selectedMethod === 'BANK') {
+                    referenceNumberGroup.style.display = 'block';
+                    referenceNumberGroup.style.opacity = '1';
+                    referenceNumberGroup.style.maxHeight = '200px';
+                    referenceNumberField.required = true;
+                } else {
+                    referenceNumberGroup.style.opacity = '0';
+                    referenceNumberGroup.style.maxHeight = '0';
+                    referenceNumberGroup.style.overflow = 'hidden';
+                    referenceNumberField.required = false;
+                    referenceNumberField.value = '';
+                    
+                    // Hide the field after transition
+                    setTimeout(() => {
+                        referenceNumberGroup.style.display = 'none';
+                    }, 300);
+                }
+            }
+        }
+
+        // Initialize reference number field visibility
+        toggleReferenceNumber();
+
+        // Add event listener for payment method changes
+        if (paymentMethodSelect) {
+            paymentMethodSelect.addEventListener('change', toggleReferenceNumber);
+        }
 
         // Add floating label behavior
         inputs.forEach(input => {
@@ -510,6 +587,36 @@
                 input.parentElement.classList.remove('focused');
             });
         });
+
+        // Calculate change in real-time
+        if (amountInput) {
+            amountInput.addEventListener('input', function() {
+                const paymentAmount = parseFloat(this.value) || 0;
+                const billTotal = parseFloat('{{ bill.total_amount }}') || 0;
+                const totalPaid = parseFloat('{{ total_paid }}') || 0;
+                const remainingNeeded = billTotal - totalPaid;
+                
+                if (paymentAmount > 0) {
+                    if (remainingNeeded <= 0) {
+                        // Bill is already fully paid
+                        changeDisplay.innerHTML = `<strong>Change to be given: ₱${paymentAmount.toFixed(2)}</strong>`;
+                        changeDisplay.style.display = 'block';
+                        changeDisplay.className = 'alert alert-warning mt-2';
+                    } else if (paymentAmount > remainingNeeded) {
+                        // Payment exceeds what's needed
+                        const change = paymentAmount - remainingNeeded;
+                        changeDisplay.innerHTML = `<strong>Change to be given: ₱${change.toFixed(2)}</strong>`;
+                        changeDisplay.style.display = 'block';
+                        changeDisplay.className = 'alert alert-info mt-2';
+                    } else {
+                        // No change needed
+                        changeDisplay.style.display = 'none';
+                    }
+                } else {
+                    changeDisplay.style.display = 'none';
+                }
+            });
+        }
 
         // Form submission
         form.addEventListener('submit', function() {

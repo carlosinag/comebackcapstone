@@ -27,7 +27,7 @@ def bill_detail(request, bill_number):
     bill_items = bill.items.all().select_related('exam', 'service')
     payments = bill.payments.all().order_by('-payment_date')
     total_paid = sum(payment.amount for payment in payments)
-    remaining_balance = bill.total_amount - total_paid
+    total_change = bill.get_total_change_given()
     
     if request.method == 'POST':
         payment_form = PaymentForm(request.POST)
@@ -70,7 +70,14 @@ def bill_detail(request, bill_number):
                             'Please provide these credentials to the patient.'
                         )
                     else:
-                        messages.success(request, 'Payment recorded successfully.')
+                        # Check if there's change to be given
+                        if payment.change > 0:
+                            messages.success(
+                                request, 
+                                f'Payment recorded successfully. Change to be given: ₱{payment.change}'
+                            )
+                        else:
+                            messages.success(request, 'Payment recorded successfully.')
                     
                     return redirect('billing:bill_detail', bill_number=bill.bill_number)
             except Exception as e:
@@ -85,7 +92,7 @@ def bill_detail(request, bill_number):
         'payments': payments,
         'payment_form': payment_form,
         'total_paid': total_paid,
-        'remaining_balance': remaining_balance,
+        'total_change': total_change,
     }
     return render(request, 'billing/bill_detail.html', context)
 
@@ -171,7 +178,6 @@ def create_bill(request, exam_id):
         # Pre-fill form with default values
         initial = {
             'bill_date': timezone.now().date(),
-            'due_date': timezone.now().date() + timezone.timedelta(days=30),
             'discount': 0,
             'tax': 0
         }

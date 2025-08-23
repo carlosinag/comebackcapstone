@@ -1,0 +1,132 @@
+/* Custom styles for the Ultrasound Clinic */
+
+/* General styles */
+body {
+    background-color: #f8f9fa;
+}
+
+/* Card styles */
+.card {
+    border: none;
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid rgba(0,0,0,.125);
+}
+
+/* Form styles */
+.form-control:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+/* Table styles */
+.table th {
+    border-top: none;
+    background-color: #f8f9fa;
+}
+
+.table-responsive {
+    border-radius: 0.25rem;
+}
+
+/* Alert styles */
+.alert {
+    border: none;
+    border-radius: 0.25rem;
+}
+
+.alert-info {
+    background-color: #e8f4f8;
+    color: #0c5460;
+}
+
+/* Badge styles */
+.badge {
+    padding: 0.5em 1em;
+}
+
+/* Button styles */
+.btn-primary {
+    background-color: #3498db;
+    border-color: #3498db;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+    border-color: #2980b9;
+}
+
+.btn-secondary {
+    background-color: #95a5a6;
+    border-color: #95a5a6;
+}
+
+.btn-secondary:hover {
+    background-color: #7f8c8d;
+    border-color: #7f8c8d;
+}
+
+/* Status badges */
+.badge-pending {
+    background-color: #f1c40f;
+    color: #000;
+}
+
+.badge-partial {
+    background-color: #e67e22;
+    color: #fff;
+}
+
+.badge-paid {
+    background-color: #27ae60;
+    color: #fff;
+}
+
+.badge-cancelled {
+    background-color: #e74c3c;
+    color: #fff;
+}
+
+/* Loading spinner */
+.fa-spin {
+    animation: fa-spin 1s infinite linear;
+}
+
+@keyframes fa-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Breadcrumb styles */
+.breadcrumb {
+    background-color: transparent;
+    padding: 0;
+    margin-bottom: 1.5rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    .table {
+        width: 100% !important;
+    }
+} 

@@ -130,6 +130,11 @@ class Patient(models.Model):
             return today.year - self.birthday.year - ((today.month, today.day) < (self.birthday.month, self.birthday.day))
         return None
 
+    @property
+    def date_of_birth(self):
+        """Return the birthday field for template compatibility."""
+        return self.birthday
+
     class Meta:
         ordering = ['-created_at']
 
