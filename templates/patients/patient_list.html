@@ -23,14 +23,121 @@
     <div class="card shadow mb-4">
         <div class="card-body">
             <form method="get" class="mb-3">
-                <div class="input-group">
-                    <input type="text" name="search" class="form-control" placeholder="Search by name..." value="{{ request.GET.search }}">
-                    {% if request.GET.view %}
-                    <input type="hidden" name="view" value="{{ request.GET.view }}">
-                    {% endif %}
-                    <button class="btn btn-primary" type="submit">
-                        <i class="fas fa-search"></i> Search
-                    </button>
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label">Search</label>
+                        <input type="text" name="search" class="form-control" placeholder="Name, contact, email, ID" value="{{ current_filters.search }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label d-none d-md-block">&nbsp;</label>
+                        <button class="btn btn-outline-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters" aria-expanded="false" aria-controls="advancedFilters">
+                            <i class="fas fa-filter"></i> Advanced Filters
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label d-none d-md-block">&nbsp;</label>
+                        <button class="btn btn-primary w-100" type="submit">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+
+                <div id="advancedFilters" class="collapse mt-3 {% if current_filters.sex_filter or current_filters.patient_type or current_filters.patient_status or current_filters.age_min or current_filters.age_max or current_filters.created_start or current_filters.created_end or current_filters.last_visit_start or current_filters.last_visit_end or current_filters.has_visits or current_filters.region or current_filters.province or current_filters.city or current_filters.barangay %}show{% endif %}">
+                    <div class="row g-2">
+                        <div class="col-md-2">
+                            <label class="form-label">Sex</label>
+                            <select class="form-select" name="sex_filter">
+                                <option value="" {% if not current_filters.sex_filter %}selected{% endif %}>All</option>
+                                <option value="M" {% if current_filters.sex_filter == 'M' %}selected{% endif %}>Male</option>
+                                <option value="F" {% if current_filters.sex_filter == 'F' %}selected{% endif %}>Female</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Patient Type</label>
+                            <select class="form-select" name="patient_type">
+                                <option value="" {% if not current_filters.patient_type %}selected{% endif %}>All</option>
+                                {% for value,label in patient_type_choices %}
+                                <option value="{{ value }}" {% if current_filters.patient_type == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Patient Status</label>
+                            <select class="form-select" name="patient_status">
+                                <option value="" {% if not current_filters.patient_status %}selected{% endif %}>All</option>
+                                {% for value,label in patient_status_choices %}
+                                <option value="{{ value }}" {% if current_filters.patient_status == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Age Min</label>
+                            <input type="number" min="0" name="age_min" class="form-control" value="{{ current_filters.age_min }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Age Max</label>
+                            <input type="number" min="0" name="age_max" class="form-control" value="{{ current_filters.age_max }}">
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mt-2">
+                        <div class="col-md-4">
+                            <label class="form-label">Created Date Range</label>
+                            <div class="input-group">
+                                <input type="date" name="created_start" class="form-control" value="{{ current_filters.created_start }}">
+                                <span class="input-group-text">to</span>
+                                <input type="date" name="created_end" class="form-control" value="{{ current_filters.created_end }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Last Visit Date Range</label>
+                            <div class="input-group">
+                                <input type="date" name="last_visit_start" class="form-control" value="{{ current_filters.last_visit_start }}">
+                                <span class="input-group-text">to</span>
+                                <input type="date" name="last_visit_end" class="form-control" value="{{ current_filters.last_visit_end }}">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Has Visits</label>
+                            <select class="form-select" name="has_visits">
+                                <option value="" {% if not current_filters.has_visits %}selected{% endif %}>All</option>
+                                <option value="yes" {% if current_filters.has_visits == 'yes' %}selected{% endif %}>Yes</option>
+                                <option value="no" {% if current_filters.has_visits == 'no' %}selected{% endif %}>No</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mt-2">
+                        <div class="col-md-2">
+                            <label class="form-label">Region</label>
+                            <input type="text" name="region" class="form-control" value="{{ current_filters.region }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Province</label>
+                            <input type="text" name="province" class="form-control" value="{{ current_filters.province }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">City</label>
+                            <input type="text" name="city" class="form-control" value="{{ current_filters.city }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Barangay</label>
+                            <input type="text" name="barangay" class="form-control" value="{{ current_filters.barangay }}">
+                        </div>
+                        <div class="col-md-2">
+                            {% if request.GET.view %}
+                            <input type="hidden" name="view" value="{{ request.GET.view }}">
+                            {% endif %}
+                            <label class="form-label d-none d-md-block">&nbsp;</label>
+                            <button class="btn btn-primary w-100" type="submit">
+                                <i class="fas fa-filter"></i> Apply Filters
+                            </button>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label d-none d-md-block">&nbsp;</label>
+                            <a class="btn btn-outline-secondary w-100" href="?{% if request.GET.view %}view={{ request.GET.view }}{% endif %}">Clear</a>
+                        </div>
+                    </div>
                 </div>
             </form>
 

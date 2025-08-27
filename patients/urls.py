@@ -23,6 +23,10 @@ urlpatterns = [
     path('patient-appointments/<int:appointment_id>/update/', views.patient_update_appointment, name='patient-update-appointment'),
     path('patient-appointments/<int:appointment_id>/cancel/', views.patient_cancel_appointment, name='patient-cancel-appointment'),
     
+    # Patient billing
+    path('patient-bills/', views.patient_bills, name='patient-bills'),
+    path('patient-bills/<str:bill_number>/', views.patient_bill_detail, name='patient-bill-detail'),
+    
     # Staff appointment management
     path('staff/appointments/', views.staff_appointments, name='staff-appointments'),
     path('staff/appointments/<int:appointment_id>/', views.staff_appointment_detail, name='staff-appointment-detail'),
