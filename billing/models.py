@@ -20,7 +20,7 @@ class Bill(models.Model):
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('PARTIAL', 'Partially Paid'),
-        ('PAID', 'Fully Paid'),
+        ('PAID', 'Paid'),
         ('CANCELLED', 'Cancelled'),
     ]
 

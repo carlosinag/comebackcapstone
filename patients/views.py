@@ -36,13 +36,93 @@ class PatientListView(ListView):
         if search_query:
             queryset = queryset.filter(
                 models.Q(first_name__icontains=search_query) |
-                models.Q(last_name__icontains=search_query)
+                models.Q(last_name__icontains=search_query) |
+                models.Q(contact_number__icontains=search_query) |
+                models.Q(email__icontains=search_query) |
+                models.Q(id_number__icontains=search_query)
             )
         
         # Handle sex filtering
         sex_filter = self.request.GET.get('sex_filter')
         if sex_filter in ['M', 'F']:
             queryset = queryset.filter(sex=sex_filter)
+
+        # Patient type filter
+        patient_type = self.request.GET.get('patient_type')
+        if patient_type in dict(Patient.PATIENT_TYPE_CHOICES):
+            queryset = queryset.filter(patient_type=patient_type)
+
+        # Patient status filter (in/out)
+        patient_status = self.request.GET.get('patient_status')
+        if patient_status in dict(Patient.PATIENT_STATUS_CHOICES):
+            queryset = queryset.filter(patient_status=patient_status)
+
+        # Location filters
+        region = self.request.GET.get('region')
+        province = self.request.GET.get('province')
+        city = self.request.GET.get('city')
+        barangay = self.request.GET.get('barangay')
+        if region:
+            queryset = queryset.filter(region=region)
+        if province:
+            queryset = queryset.filter(province=province)
+        if city:
+            queryset = queryset.filter(city=city)
+        if barangay:
+            queryset = queryset.filter(barangay=barangay)
+
+        # Created date range filters
+        from django.utils.dateparse import parse_date
+        created_start = self.request.GET.get('created_start')
+        created_end = self.request.GET.get('created_end')
+        if created_start:
+            start_date = parse_date(created_start)
+            if start_date:
+                queryset = queryset.filter(created_at__date__gte=start_date)
+        if created_end:
+            end_date = parse_date(created_end)
+            if end_date:
+                queryset = queryset.filter(created_at__date__lte=end_date)
+
+        # Age range filters -> convert to birthday range
+        age_min = self.request.GET.get('age_min')
+        age_max = self.request.GET.get('age_max')
+        if age_min or age_max:
+            today = timezone.now().date()
+            if age_min:
+                try:
+                    age_min_int = int(age_min)
+                    # birthdate <= today - age_min years
+                    cutoff = today.replace(year=today.year - age_min_int)
+                    queryset = queryset.filter(birthday__lte=cutoff)
+                except Exception:
+                    pass
+            if age_max:
+                try:
+                    age_max_int = int(age_max)
+                    # birthdate >= today - age_max years
+                    cutoff = today.replace(year=today.year - age_max_int)
+                    queryset = queryset.filter(birthday__gte=cutoff)
+                except Exception:
+                    pass
+
+        # Last visit date range and has_visits
+        queryset = queryset.annotate(last_visit=models.Max('ultrasound_exams__exam_date'))
+        last_visit_start = self.request.GET.get('last_visit_start')
+        last_visit_end = self.request.GET.get('last_visit_end')
+        has_visits = self.request.GET.get('has_visits')  # 'yes' | 'no'
+        if last_visit_start:
+            start_lv = parse_date(last_visit_start)
+            if start_lv:
+                queryset = queryset.filter(last_visit__gte=start_lv)
+        if last_visit_end:
+            end_lv = parse_date(last_visit_end)
+            if end_lv:
+                queryset = queryset.filter(last_visit__lte=end_lv)
+        if has_visits == 'yes':
+            queryset = queryset.filter(last_visit__isnull=False)
+        elif has_visits == 'no':
+            queryset = queryset.filter(last_visit__isnull=True)
         
         # Handle sorting
         sort = self.request.GET.get('sort')
@@ -52,15 +132,36 @@ class PatientListView(ListView):
             elif sort == 'age_desc':
                 queryset = queryset.order_by('-age')
             elif sort == 'visit_asc':
-                queryset = queryset.annotate(
-                    last_visit=models.Max('ultrasound_exams__exam_date')
-                ).order_by('last_visit')
+                queryset = queryset.order_by('last_visit')
             elif sort == 'visit_desc':
-                queryset = queryset.annotate(
-                    last_visit=models.Max('ultrasound_exams__exam_date')
-                ).order_by('-last_visit')
+                queryset = queryset.order_by('-last_visit')
         
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # expose options and current selections
+        context['patient_type_choices'] = Patient.PATIENT_TYPE_CHOICES
+        context['patient_status_choices'] = Patient.PATIENT_STATUS_CHOICES
+        context['current_filters'] = {
+            'search': self.request.GET.get('search', ''),
+            'sex_filter': self.request.GET.get('sex_filter', ''),
+            'patient_type': self.request.GET.get('patient_type', ''),
+            'patient_status': self.request.GET.get('patient_status', ''),
+            'region': self.request.GET.get('region', ''),
+            'province': self.request.GET.get('province', ''),
+            'city': self.request.GET.get('city', ''),
+            'barangay': self.request.GET.get('barangay', ''),
+            'created_start': self.request.GET.get('created_start', ''),
+            'created_end': self.request.GET.get('created_end', ''),
+            'age_min': self.request.GET.get('age_min', ''),
+            'age_max': self.request.GET.get('age_max', ''),
+            'last_visit_start': self.request.GET.get('last_visit_start', ''),
+            'last_visit_end': self.request.GET.get('last_visit_end', ''),
+            'has_visits': self.request.GET.get('has_visits', ''),
+            'sort': self.request.GET.get('sort', ''),
+        }
+        return context
 
 class PatientDetailView(DetailView):
     model = Patient
@@ -325,6 +426,37 @@ def dashboard(request):
         weekly_total = weekly_bills.aggregate(Sum('total_amount'))['total_amount__sum']
         context['weekly_revenue'] = "{:,.2f}".format(weekly_total if weekly_total else 0)
 
+        # Advanced KPIs
+        ninety_days_ago = today - timedelta(days=90)
+        six_months_ago = today - timedelta(days=180)
+        month_start = today.replace(day=1)
+
+        # Active patients in last 90 days
+        active_patients_qs = UltrasoundExam.objects.filter(
+            exam_date__gte=ninety_days_ago
+        ).values('patient').distinct()
+        context['active_patients_90d'] = active_patients_qs.count()
+
+        # New patients this month
+        context['new_patients_month'] = Patient.objects.filter(created_at__date__gte=month_start).count()
+
+        # Average procedures per patient (lifetime)
+        total_exams = UltrasoundExam.objects.count()
+        distinct_patients_with_exam = UltrasoundExam.objects.values('patient').distinct().count()
+        avg_procs = (total_exams / distinct_patients_with_exam) if distinct_patients_with_exam else 0
+        context['avg_procedures_per_patient'] = f"{avg_procs:.2f}"
+
+        # Returning patient rate (last 6 months)
+        recent_exam_counts = (
+            UltrasoundExam.objects.filter(exam_date__gte=six_months_ago)
+            .values('patient')
+            .annotate(num_exams=Count('id'))
+        )
+        num_recent_unique = recent_exam_counts.count()
+        num_returning = sum(1 for r in recent_exam_counts if r['num_exams'] >= 2)
+        returning_rate = (num_returning / num_recent_unique * 100) if num_recent_unique else 0
+        context['returning_rate_percent'] = f"{returning_rate:.1f}"
+
         # Procedure Distribution
         procedures = UltrasoundExam.objects.values(
             'procedure_type__name'
@@ -339,7 +471,6 @@ def dashboard(request):
         context['findings_distribution_labels'] = [dict(UltrasoundExam.RECOMMENDATION_CHOICES)[f['recommendations']] for f in findings]
 
         # Monthly Revenue
-        six_months_ago = today - timedelta(days=180)
         monthly_revenue = Bill.objects.filter(
             bill_date__gte=six_months_ago,
             status__in=['PAID', 'PARTIAL']
@@ -359,6 +490,55 @@ def dashboard(request):
         
         context['week_procedures_dates'] = [entry['exam_date'].strftime('%Y-%m-%d') for entry in week_procedures]
         context['week_procedures_counts'] = [entry['count'] for entry in week_procedures]
+
+        # Demographics: Gender distribution
+        gender_counts = Patient.objects.values('sex').annotate(count=Count('id'))
+        gender_label_map = dict(Patient.GENDER_CHOICES)
+        context['gender_distribution_labels'] = [gender_label_map.get(g['sex'], g['sex']) for g in gender_counts]
+        context['gender_distribution_values'] = [g['count'] for g in gender_counts]
+
+        # Demographics: Patient type distribution
+        type_counts = Patient.objects.values('patient_type').annotate(count=Count('id'))
+        type_label_map = dict(Patient.PATIENT_TYPE_CHOICES)
+        context['patient_type_labels'] = [type_label_map.get(t['patient_type'], t['patient_type']) for t in type_counts]
+        context['patient_type_values'] = [t['count'] for t in type_counts]
+
+        # Age buckets (computed in Python for simplicity)
+        age_buckets = {'0-17': 0, '18-29': 0, '30-44': 0, '45-59': 0, '60+': 0}
+        for p in Patient.objects.exclude(birthday__isnull=True).only('birthday'):
+            try:
+                age = today.year - p.birthday.year - ((today.month, today.day) < (p.birthday.month, p.birthday.day))
+                if age is None:
+                    continue
+                if age < 18:
+                    age_buckets['0-17'] += 1
+                elif age < 30:
+                    age_buckets['18-29'] += 1
+                elif age < 45:
+                    age_buckets['30-44'] += 1
+                elif age < 60:
+                    age_buckets['45-59'] += 1
+                else:
+                    age_buckets['60+'] += 1
+            except Exception:
+                continue
+        context['age_bucket_labels'] = list(age_buckets.keys())
+        context['age_bucket_values'] = list(age_buckets.values())
+
+        # Procedures per patient distribution (histogram data)
+        per_patient_counts = (
+            UltrasoundExam.objects.values('patient').annotate(num=Count('id')).values_list('num', flat=True)
+        )
+        context['procedures_per_patient_counts'] = list(per_patient_counts)
+
+        # Top patients by revenue
+        top_revenue = (
+            Bill.objects.values('patient__first_name', 'patient__last_name')
+            .annotate(total=Sum('total_amount'))
+            .order_by('-total')[:10]
+        )
+        context['top_patients_labels'] = [f"{t['patient__first_name']} {t['patient__last_name']}".strip() for t in top_revenue]
+        context['top_patients_revenue'] = [float(t['total']) if t['total'] else 0 for t in top_revenue]
 
         return render(request, 'dashboard.html', context)
         
@@ -853,6 +1033,53 @@ def patient_appointments(request):
         'appointments': appointments,
     }
     return render(request, 'patients/patient_appointments.html', context)
+
+@login_required
+def patient_bills(request):
+    """Patient bills page: list bills and statuses for the logged-in patient."""
+    if not hasattr(request.user, 'patient'):
+        messages.error(request, 'Access denied. This portal is for patients only.')
+        return redirect('landing')
+
+    patient = request.user.patient
+    bills = (
+        Bill.objects.filter(patient=patient)
+        .order_by('-bill_date')
+    )
+
+    context = {
+        'patient': patient,
+        'bills': bills,
+    }
+    return render(request, 'patients/patient_bills.html', context)
+
+@login_required
+def patient_bill_detail(request, bill_number):
+    """Patient bill detail: show items, related exam info, and payment history."""
+    if not hasattr(request.user, 'patient'):
+        messages.error(request, 'Access denied. This portal is for patients only.')
+        return redirect('landing')
+
+    patient = request.user.patient
+    bill = get_object_or_404(Bill, bill_number=bill_number, patient=patient)
+
+    bill_items = bill.items.all().select_related('exam', 'service')
+    payments = bill.payments.all().order_by('-payment_date')
+
+    total_paid = sum(payment.amount for payment in payments)
+    remaining_balance = float(bill.total_amount) - float(total_paid)
+    if remaining_balance < 0:
+        remaining_balance = 0
+
+    context = {
+        'patient': patient,
+        'bill': bill,
+        'bill_items': bill_items,
+        'payments': payments,
+        'total_paid': total_paid,
+        'remaining_balance': remaining_balance,
+    }
+    return render(request, 'patients/patient_bill_detail.html', context)
 
 @login_required
 def patient_book_appointment(request):

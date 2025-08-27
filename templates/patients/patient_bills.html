@@ -1,0 +1,70 @@
+{% extends 'patients/patient_base.html' %}
+{% load static %}
+
+{% block title %}My Bills - {{ patient.last_name }}, {{ patient.first_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-invoice-dollar me-2"></i>My Bills
+                        </h5>
+                        <a href="{% url 'patient-portal' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Portal
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if bills %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Bill #</th>
+                                    <th>Date</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bill in bills %}
+                                <tr>
+                                    <td>{{ bill.bill_number }}</td>
+                                    <td>{{ bill.bill_date }}</td>
+                                    <td>₱{{ bill.total_amount }}</td>
+                                    <td>
+                                        {% if bill.status == 'PAID' %}
+                                            <span class="badge bg-success">Paid</span>
+                                        {% elif bill.status == 'PARTIAL' %}
+                                            <span class="badge bg-warning text-dark">Partial</span>
+                                        {% elif bill.status == 'PENDING' %}
+                                            <span class="badge bg-danger">Pending</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ bill.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'patient-bill-detail' bill.bill_number %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i>View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center my-4">No bills found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
