@@ -1,0 +1,169 @@
+{% extends 'patients/patient_base.html' %}
+{% load static %}
+
+{% block title %}Book Appointment - {{ patient.last_name }}, {{ patient.first_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex align-items-center">
+                        <a href="{% url 'patient-appointments' %}" class="btn btn-outline-secondary btn-sm me-3">
+                            <i class="fas fa-arrow-left"></i>
+                        </a>
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-calendar-plus me-2"></i>Book New Appointment
+                        </h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.procedure_type.id_for_label }}" class="form-label">
+                                        <i class="fas fa-stethoscope me-2"></i>Procedure Type
+                                    </label>
+                                    {{ form.procedure_type }}
+                                    {% if form.procedure_type.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.procedure_type.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.appointment_date.id_for_label }}" class="form-label">
+                                        <i class="fas fa-calendar me-2"></i>Appointment Date
+                                    </label>
+                                    {{ form.appointment_date }}
+                                    {% if form.appointment_date.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.appointment_date.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.appointment_time.id_for_label }}" class="form-label">
+                                        <i class="fas fa-clock me-2"></i>Appointment Time
+                                    </label>
+                                    {{ form.appointment_time }}
+                                    {% if form.appointment_time.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.appointment_time.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Available hours: 8:00 AM - 5:00 PM</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.reason.id_for_label }}" class="form-label">
+                                <i class="fas fa-notes-medical me-2"></i>Reason for Appointment
+                            </label>
+                            {{ form.reason }}
+                            {% if form.reason.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.reason.errors|join:", " }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Please describe your symptoms or reason for the appointment</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="{{ form.notes.id_for_label }}" class="form-label">
+                                <i class="fas fa-edit me-2"></i>Additional Notes (Optional)
+                            </label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.notes.errors|join:", " }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Any special requirements or additional information</div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-calendar-check me-2"></i>Book Appointment
+                            </button>
+                            <a href="{% url 'patient-appointments' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Appointment Guidelines -->
+            <div class="card border-info mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Appointment Guidelines
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Before Your Appointment:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success me-2"></i>Arrive 15 minutes early</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Bring valid ID</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Wear comfortable clothing</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Follow fasting instructions if required</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary">What to Expect:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-clock text-info me-2"></i>Appointment duration: 30-60 minutes</li>
+                                <li><i class="fas fa-user-md text-info me-2"></i>Professional ultrasound technician</li>
+                                <li><i class="fas fa-file-medical text-info me-2"></i>Detailed examination report</li>
+                                <li><i class="fas fa-phone text-info me-2"></i>Results available within 24 hours</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+    
+    .card {
+        transition: transform 0.2s;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %} 

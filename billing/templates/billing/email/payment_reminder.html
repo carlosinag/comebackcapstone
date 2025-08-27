@@ -43,22 +43,18 @@
         <div class="content">
             <p>Dear {{ patient.name }},</p>
             
-            <p>This is a friendly reminder that the payment for your ultrasound examination (Bill #{{ bill.bill_number }}) is currently overdue by {{ days_overdue }} days.</p>
+            <p>This is a friendly reminder that the payment for your ultrasound examination (Bill #{{ bill.bill_number }}) is still pending.</p>
             
             <p>Bill Details:</p>
             <ul>
                 <li>Bill Number: {{ bill.bill_number }}</li>
-                <li>Service: {{ bill.service.name }}</li>
-                <li>Due Date: {{ bill.due_date }}</li>
-                <li>Remaining Balance: <span class="amount">₱{{ remaining_balance }}</span></li>
+                <li>Total Amount: <span class="amount">₱{{ bill.total_amount }}</span></li>
             </ul>
 
-            <p>Please settle your outstanding balance at your earliest convenience. You can pay through any of our accepted payment methods:</p>
+            <p>Please settle your payment at your earliest convenience. You can pay through any of our accepted payment methods:</p>
             <ul>
                 <li>Cash payment at our clinic</li>
-                <li>Credit/Debit Card</li>
                 <li>GCash</li>
-                <li>Maya</li>
                 <li>Bank Transfer</li>
             </ul>
 

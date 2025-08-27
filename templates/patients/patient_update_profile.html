@@ -1,0 +1,171 @@
+{% extends 'patients/patient_base.html' %}
+{% load static %}
+
+{% block title %}Update Profile - {{ patient.last_name }}, {{ patient.first_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex align-items-center">
+                        <a href="{% url 'patient-settings' %}" class="btn btn-outline-secondary btn-sm me-3">
+                            <i class="fas fa-arrow-left"></i>
+                        </a>
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-user-edit me-2"></i>Update Profile Information
+                        </h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-user me-2"></i>User Account Information
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ user_form.first_name.id_for_label }}" class="form-label">First Name</label>
+                                    {{ user_form.first_name }}
+                                    {% if user_form.first_name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ user_form.first_name.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ user_form.last_name.id_for_label }}" class="form-label">Last Name</label>
+                                    {{ user_form.last_name }}
+                                    {% if user_form.last_name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ user_form.last_name.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ user_form.email.id_for_label }}" class="form-label">Email Address</label>
+                                    {{ user_form.email }}
+                                    {% if user_form.email.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ user_form.email.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">This email will be used for account notifications.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-phone me-2"></i>Contact Information
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ profile_form.contact_number.id_for_label }}" class="form-label">Contact Number</label>
+                                    {{ profile_form.contact_number }}
+                                    {% if profile_form.contact_number.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ profile_form.contact_number.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ profile_form.email.id_for_label }}" class="form-label">Patient Email (Optional)</label>
+                                    {{ profile_form.email }}
+                                    {% if profile_form.email.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ profile_form.email.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">This email is separate from your login email.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-map-marker-alt me-2"></i>Address Information
+                                </h6>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ profile_form.street_address.id_for_label }}" class="form-label">Street Address</label>
+                                    {{ profile_form.street_address }}
+                                    {% if profile_form.street_address.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ profile_form.street_address.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">House/Building Number, Street Name, etc.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Update Profile
+                                    </button>
+                                    <a href="{% url 'patient-settings' %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-2"></i>Cancel
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Current Information Display -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Current Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">User Account</h6>
+                            <p><strong>Username:</strong> {{ patient.user.username }}</p>
+                            <p><strong>Name:</strong> {{ patient.user.first_name }} {{ patient.user.last_name }}</p>
+                            <p><strong>Email:</strong> {{ patient.user.email|default:"Not provided" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Patient Information</h6>
+                            <p><strong>Contact Number:</strong> {{ patient.contact_number }}</p>
+                            <p><strong>Patient Email:</strong> {{ patient.email|default:"Not provided" }}</p>
+                            <p><strong>Address:</strong> {{ patient.street_address }}, {{ patient.barangay_name }}, {{ patient.city_name }}, {{ patient.province_name }}, {{ patient.region_name }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+</style>
+{% endblock %} 

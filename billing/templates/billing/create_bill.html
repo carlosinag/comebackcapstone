@@ -22,21 +22,68 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <!-- Patient and Exam Info -->
+                    <!-- Patient Info -->
                     <div class="alert alert-info">
                         <h6 class="alert-heading">Patient Information</h6>
-                        <p class="mb-1"><strong>Name:</strong> {{ patient.name }}</p>
-                        <p class="mb-1"><strong>Email:</strong> {{ patient.email }}</p>
-                        <p class="mb-0"><strong>Exam Date:</strong> {{ exam.exam_date }}</p>
+                        <p class="mb-1"><strong>Name:</strong> {{ patient.first_name }} {{ patient.last_name }}</p>
+                        <p class="mb-0"><strong>Email:</strong> {{ patient.email }}</p>
                     </div>
 
                     <form method="post">
                         {% csrf_token %}
-                        {{ form|crispy }}
+                        
+                        <!-- Procedures List -->
+                        <div class="card mb-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Procedures for {{ exam_date }}</h6>
+                                <span class="badge bg-primary">{{ procedure_count }} procedure{{ procedure_count|pluralize }}</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Time</th>
+                                                <th>Procedure</th>
+                                                <th class="text-end">Price</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for exam in exams %}
+                                            <tr>
+                                                <td>{{ forloop.counter }}</td>
+                                                <td>{{ exam.exam_time|time:"g:i A" }}</td>
+                                                <td>{{ exam.procedure_type.name }}</td>
+                                                <td class="text-end">₱{{ exam.procedure_type.base_price }}</td>
+                                                <input type="hidden" name="selected_exams" value="{{ exam.id }}">
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="table-info">
+                                                <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                                                <td class="text-end"><strong>₱{{ total_amount }}</strong></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bill Details -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">Bill Details</h6>
+                            </div>
+                            <div class="card-body">
+                                {{ form|crispy }}
+                            </div>
+                        </div>
                         
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Create Bill
+                                <i class="fas fa-save"></i> Create Single Bill for All Procedures
                             </button>
                             <a href="{% url 'billing:bill_list' %}" class="btn btn-secondary">
                                 <i class="fas fa-times"></i> Cancel

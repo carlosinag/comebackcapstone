@@ -1,0 +1,303 @@
+{% extends 'patients/patient_base.html' %}
+{% load static %}
+
+{% block title %}Examination Details - {{ exam.exam_date }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-medical me-2"></i>Ultrasound Examination Details
+                        </h5>
+                        <a href="{% url 'patient-portal' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Portal
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Examination Information</h6>
+                            <dl class="row">
+                                <dt class="col-sm-4">Date</dt>
+                                <dd class="col-sm-8">{{ exam.exam_date }}</dd>
+                                
+                                <dt class="col-sm-4">Time</dt>
+                                <dd class="col-sm-8">{{ exam.exam_time }}</dd>
+                                
+                                <dt class="col-sm-4">Procedure</dt>
+                                <dd class="col-sm-8">{{ exam.procedure_type.name }}</dd>
+                                
+                                <dt class="col-sm-4">Referring Physician</dt>
+                                <dd class="col-sm-8">{{ exam.referring_physician }}</dd>
+                            </dl>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Clinical Information</h6>
+                            <dl class="row">
+                                <dt class="col-sm-4">Findings</dt>
+                                <dd class="col-sm-8">{{ exam.findings|default:"Not provided" }}</dd>
+                                
+                                <dt class="col-sm-4">Impression</dt>
+                                <dd class="col-sm-8">{{ exam.impression|default:"Not provided" }}</dd>
+                                
+                                <dt class="col-sm-4">Recommendations</dt>
+                                <dd class="col-sm-8">{{ exam.get_recommendations_display }}</dd>
+                                
+                                {% if exam.followup_duration %}
+                                <dt class="col-sm-4">Follow-up</dt>
+                                <dd class="col-sm-8">{{ exam.followup_duration }}</dd>
+                                {% endif %}
+                                
+                                {% if exam.specialist_referral %}
+                                <dt class="col-sm-4">Specialist Referral</dt>
+                                <dd class="col-sm-8">{{ exam.specialist_referral }}</dd>
+                                {% endif %}
+                            </dl>
+                        </div>
+                    </div>
+
+                    {% if exam.images.exists %}
+                    <div class="mt-4">
+                        <h6 class="text-muted mb-3">Ultrasound Images</h6>
+                        <div class="row">
+                            {% for image in exam.images.all %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-image me-2"></i>Image {{ forloop.counter }}
+                                            {% if image.annotated_image %}
+                                                <span class="badge bg-success ms-2">Annotated</span>
+                                            {% endif %}
+                                        </h6>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <!-- Original Image -->
+                                        <div class="position-relative">
+                                            <img src="{{ image.image.url }}" 
+                                                 class="img-fluid w-100" 
+                                                 alt="Original Ultrasound Image"
+                                                 style="height: 250px; object-fit: cover;">
+                                        </div>
+                                        
+                                        <!-- Annotated Image (if available) -->
+                                        {% if image.annotated_image %}
+                                        <div class="mt-3">
+                                            <h6 class="text-primary mb-2">
+                                                <i class="fas fa-draw-polygon me-2"></i>Annotated Analysis
+                                            </h6>
+                                            <div class="position-relative">
+                                                <img src="{{ image.annotated_image.url }}" 
+                                                     class="img-fluid w-100" 
+                                                     alt="Annotated Ultrasound Image"
+                                                     style="height: 250px; object-fit: cover; cursor: pointer;"
+                                                     data-bs-toggle="modal" 
+                                                     data-bs-target="#annotatedModal{{ image.pk }}">
+                                                <div class="position-absolute top-0 start-0 m-2">
+                                                    <span class="badge bg-info">Click to enlarge</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if image.caption %}
+                                        <div class="card-footer bg-light">
+                                            <p class="card-text small mb-0">{{ image.caption }}</p>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Modal for enlarged annotated image -->
+                            {% if image.annotated_image %}
+                            <div class="modal fade" id="annotatedModal{{ image.pk }}" tabindex="-1" aria-labelledby="annotatedModalLabel{{ image.pk }}" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="annotatedModalLabel{{ image.pk }}">
+                                                <i class="fas fa-draw-polygon me-2"></i>Annotated Analysis - Image {{ forloop.counter }}
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body text-center">
+                                            <img src="{{ image.annotated_image.url }}" 
+                                                 class="img-fluid" 
+                                                 alt="Annotated Ultrasound Image">
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Options Card -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-download me-2"></i>Download Options
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <p class="mb-3">You can download your examination report in the following formats:</p>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a href="{% url 'patient-download-exam' exam.id %}" class="btn btn-success">
+                                    <i class="fas fa-file-word me-2"></i>Download as Word Document (.docx)
+                                </a>
+                                <button class="btn btn-outline-secondary" onclick="window.print()">
+                                    <i class="fas fa-print me-2"></i>Print Report
+                                </button>
+                            </div>
+                            <p class="text-muted small mt-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                The downloaded report includes all examination details, findings, and recommendations.
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <i class="fas fa-file-medical fa-3x text-success mb-3"></i>
+                                <p class="small text-muted">
+                                    <strong>Keep Your Records</strong><br>
+                                    Download and save your examination reports for your personal medical records.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medical Disclaimer -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Important Medical Disclaimer
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <p class="mb-2"><strong>MEDICAL DISCLAIMER:</strong></p>
+                            <p class="mb-2">The information provided in this ultrasound examination report, including any annotated images and preliminary findings, is intended for educational and informational purposes only. This report represents a preliminary analysis and should not be considered as a final medical diagnosis.</p>
+                            
+                            <p class="mb-2"><strong>IMPORTANT NOTICE:</strong></p>
+                            <ul class="mb-2">
+                                <li>The final diagnosis and treatment recommendations must be provided by your attending physician or qualified healthcare provider.</li>
+                                <li>Annotated images are preliminary analyses and may not capture all clinical findings.</li>
+                                <li>This report should be reviewed in conjunction with your complete medical history and other diagnostic tests.</li>
+                                <li>Please consult with your healthcare provider for proper interpretation and medical decision-making.</li>
+                            </ul>
+                            
+                            <p class="mb-0"><strong>For Medical Emergencies:</strong> If you are experiencing severe symptoms or medical emergencies, please contact emergency services immediately or visit the nearest emergency department.</p>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <i class="fas fa-user-md fa-3x text-primary mb-3"></i>
+                                <p class="small text-muted">
+                                    <strong>Consult Your Physician</strong><br>
+                                    Always discuss your results with your healthcare provider for proper medical interpretation and treatment planning.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        transition: transform 0.2s;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .modal-body img {
+        max-height: 70vh;
+        object-fit: contain;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+    }
+    
+    @media print {
+        /* Hide navigation and buttons */
+        .btn, .modal, .card-header, .d-flex.gap-2 {
+            display: none !important;
+        }
+        
+        /* Clean up cards for printing */
+        .card {
+            border: 1px solid #000 !important;
+            box-shadow: none !important;
+            margin-bottom: 20px !important;
+        }
+        
+        .card-body {
+            padding: 15px !important;
+        }
+        
+        /* Ensure text is readable */
+        body {
+            font-size: 12pt !important;
+            line-height: 1.4 !important;
+        }
+        
+        /* Make images print properly */
+        img {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+        
+        /* Ensure proper page breaks */
+        .row {
+            page-break-inside: avoid;
+        }
+        
+        /* Add page margins */
+        @page {
+            margin: 1in;
+        }
+        
+        /* Hide download options card when printing */
+        .card.border-success {
+            display: none !important;
+        }
+        
+        /* Make disclaimer more prominent in print */
+        .card.border-warning {
+            border: 2px solid #000 !important;
+            background-color: #fff3cd !important;
+        }
+    }
+</style>
+{% endblock %} 

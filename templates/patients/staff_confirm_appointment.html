@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Staff - Confirm Appointment{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex align-items-center">
+                        <a href="{% url 'staff-appointment-detail' appointment.id %}" class="btn btn-outline-secondary btn-sm me-3">
+                            <i class="fas fa-arrow-left"></i>
+                        </a>
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-check-circle me-2"></i>Confirm Appointment
+                        </h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Appointment Details -->
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>Appointment to Confirm
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Patient:</strong> {{ appointment.patient.first_name }} {{ appointment.patient.last_name }}</p>
+                                <p class="mb-1"><strong>Date:</strong> {{ appointment.appointment_date|date:"F d, Y" }}</p>
+                                <p class="mb-1"><strong>Time:</strong> {{ appointment.appointment_time|time:"g:i A" }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Procedure:</strong> {{ appointment.get_procedure_type_display }}</p>
+                                <p class="mb-1"><strong>Contact:</strong> {{ appointment.patient.contact_number }}</p>
+                                <p class="mb-0"><strong>Status:</strong> 
+                                    <span class="badge bg-warning">Pending</span>
+                                </p>
+                            </div>
+                        </div>
+                        <hr>
+                        <p class="mb-1"><strong>Reason:</strong> {{ appointment.reason }}</p>
+                        {% if appointment.notes %}
+                            <p class="mb-0"><strong>Notes:</strong> {{ appointment.notes }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Confirmation -->
+                    <div class="alert alert-success">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-check-circle me-2"></i>Confirm Appointment
+                        </h6>
+                        <p class="mb-2">Are you sure you want to confirm this appointment?</p>
+                        <p class="mb-0"><strong>Note:</strong> This will change the status to "Confirmed" and notify the patient that their appointment has been approved.</p>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check-circle me-2"></i>Yes, Confirm Appointment
+                            </button>
+                            <a href="{% url 'staff-appointment-detail' appointment.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Confirmation Guidelines -->
+            <div class="card border-success mt-4">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Confirmation Guidelines
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-clock text-info me-2"></i>
+                            <strong>Timing:</strong> Confirm appointments at least 24 hours in advance when possible
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-phone text-primary me-2"></i>
+                            <strong>Contact:</strong> Consider calling the patient to confirm their appointment
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-calendar-check text-success me-2"></i>
+                            <strong>Schedule:</strong> Ensure the time slot is available and not double-booked
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-user-md text-warning me-2"></i>
+                            <strong>Preparation:</strong> Verify that the patient has completed any required preparations
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        transition: transform 0.2s;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %} 

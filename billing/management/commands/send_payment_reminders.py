@@ -3,17 +3,16 @@ from django.utils import timezone
 from billing.models import Bill
 
 class Command(BaseCommand):
-    help = 'Send payment reminders for overdue bills'
+    help = 'Send payment reminders for pending bills'
 
     def handle(self, *args, **kwargs):
-        # Get all overdue bills that haven't been paid
-        overdue_bills = Bill.objects.filter(
-            due_date__lt=timezone.now().date(),
+        # Get all pending bills that haven't been paid
+        pending_bills = Bill.objects.filter(
             status__in=['PENDING', 'PARTIAL']
         )
 
         reminders_sent = 0
-        for bill in overdue_bills:
+        for bill in pending_bills:
             if bill.send_payment_reminder():
                 reminders_sent += 1
                 self.stdout.write(

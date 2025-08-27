@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Staff - Appointment Detail{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar-check me-2"></i>Appointment Details
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'staff-appointments' %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Appointments
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <div class="row">
+                        <!-- Patient Information -->
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-user me-2"></i>Patient Information
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <dl class="row">
+                                        <dt class="col-sm-4">Name</dt>
+                                        <dd class="col-sm-8">{{ appointment.patient.first_name }} {{ appointment.patient.last_name }}</dd>
+                                        
+                                        <dt class="col-sm-4">Patient ID</dt>
+                                        <dd class="col-sm-8">{{ appointment.patient.id }}</dd>
+                                        
+                                        <dt class="col-sm-4">Age</dt>
+                                        <dd class="col-sm-8">{{ appointment.patient.age }} years old</dd>
+                                        
+                                        <dt class="col-sm-4">Sex</dt>
+                                        <dd class="col-sm-8">{{ appointment.patient.get_sex_display }}</dd>
+                                        
+                                        <dt class="col-sm-4">Contact</dt>
+                                        <dd class="col-sm-8">{{ appointment.patient.contact_number }}</dd>
+                                        
+                                        <dt class="col-sm-4">Email</dt>
+                                        <dd class="col-sm-8">{{ appointment.patient.email|default:"Not provided" }}</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Appointment Information -->
+                        <div class="col-md-6">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-calendar me-2"></i>Appointment Information
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <dl class="row">
+                                        <dt class="col-sm-4">Date</dt>
+                                        <dd class="col-sm-8">{{ appointment.appointment_date|date:"F d, Y" }}</dd>
+                                        
+                                        <dt class="col-sm-4">Time</dt>
+                                        <dd class="col-sm-8">{{ appointment.appointment_time|time:"g:i A" }}</dd>
+                                        
+                                        <dt class="col-sm-4">Procedure</dt>
+                                        <dd class="col-sm-8">{{ appointment.get_procedure_type_display }}</dd>
+                                        
+                                        <dt class="col-sm-4">Status</dt>
+                                        <dd class="col-sm-8">
+                                            {% if appointment.status == 'PENDING' %}
+                                                <span class="badge bg-warning">Pending</span>
+                                            {% elif appointment.status == 'CONFIRMED' %}
+                                                <span class="badge bg-success">Confirmed</span>
+                                            {% elif appointment.status == 'CANCELLED' %}
+                                                <span class="badge bg-danger">Cancelled</span>
+                                            {% elif appointment.status == 'COMPLETED' %}
+                                                <span class="badge bg-info">Completed</span>
+                                            {% endif %}
+                                        </dd>
+                                        
+                                        <dt class="col-sm-4">Booked On</dt>
+                                        <dd class="col-sm-8">{{ appointment.created_at|date:"M d, Y g:i A" }}</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reason and Notes -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-notes-medical me-2"></i>Appointment Details
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6 class="text-primary">Reason for Appointment:</h6>
+                                            <p class="mb-3">{{ appointment.reason }}</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6 class="text-primary">Additional Notes:</h6>
+                                            <p class="mb-3">{{ appointment.notes|default:"No additional notes provided." }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status Management -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-cogs me-2"></i>Status Management
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="status" class="form-label">Update Status:</label>
+                                                <select name="status" id="status" class="form-select">
+                                                    <option value="PENDING" {% if appointment.status == 'PENDING' %}selected{% endif %}>Pending</option>
+                                                    <option value="CONFIRMED" {% if appointment.status == 'CONFIRMED' %}selected{% endif %}>Confirmed</option>
+                                                    <option value="CANCELLED" {% if appointment.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                                                    <option value="COMPLETED" {% if appointment.status == 'COMPLETED' %}selected{% endif %}>Completed</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 d-flex align-items-end">
+                                                <button type="submit" class="btn btn-success">
+                                                    <i class="fas fa-save me-2"></i>Update Status
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        {% if appointment.status == 'PENDING' %}
+                                            <a href="{% url 'staff-confirm-appointment' appointment.id %}" class="btn btn-success">
+                                                <i class="fas fa-check me-2"></i>Confirm Appointment
+                                            </a>
+                                            <a href="{% url 'staff-cancel-appointment' appointment.id %}" class="btn btn-danger">
+                                                <i class="fas fa-times me-2"></i>Cancel Appointment
+                                            </a>
+                                        {% elif appointment.status == 'CONFIRMED' %}
+                                            <a href="{% url 'staff-complete-appointment' appointment.id %}" class="btn btn-info">
+                                                <i class="fas fa-check-double me-2"></i>Mark as Completed
+                                            </a>
+                                        {% endif %}
+                                        <a href="{% url 'patient-detail' appointment.patient.id %}" class="btn btn-outline-primary">
+                                            <i class="fas fa-user me-2"></i>View Patient Profile
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        transition: transform 0.2s;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %} 

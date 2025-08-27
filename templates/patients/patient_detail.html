@@ -9,15 +9,66 @@
             <h2>Patient Details</h2>
         </div>
         <div class="col text-end">
-            <a href="{% url 'patient-update' patient.pk %}" class="btn btn-warning me-2">
-                <i class="fas fa-edit me-2"></i>Edit Patient
-            </a>
-            <a href="{% url 'image-annotation' patient.pk %}" class="btn btn-success me-2">
-                <i class="fas fa-draw-polygon me-2"></i>Annotate Images
-            </a>
-            <a href="{% url 'exam-create' patient.pk %}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>New Exam
-            </a>
+            {% if not patient.is_archived %}
+                <a href="{% url 'patient-update' patient.pk %}" class="btn btn-warning me-2">
+                    <i class="fas fa-edit me-2"></i>Edit Patient
+                </a>
+                <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#uploadImagesModal">
+                    <i class="fas fa-upload me-2"></i>Upload Images
+                </button>
+                <a href="{% url 'exam-create' patient.pk %}" class="btn btn-primary me-2">
+                    <i class="fas fa-plus me-2"></i>New Exam
+                </a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'patient-delete' patient.pk %}" class="btn btn-danger">
+                    <i class="fas fa-archive me-2"></i>Archive Patient
+                </a>
+                {% endif %}
+            {% else %}
+                <a href="{% url 'archived-patient-list' %}" class="btn btn-secondary me-2">
+                    <i class="fas fa-archive me-2"></i>Archived
+                </a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'patient-unarchive' patient.pk %}" class="btn btn-success">
+                    <i class="fas fa-undo me-2"></i>Unarchive
+                </a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Upload Images Modal -->
+    <div class="modal fade" id="uploadImagesModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Upload Ultrasound Images</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="imageUploadForm" method="post" enctype="multipart/form-data" action="{% url 'exam-image-upload' patient.pk %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="examSelect" class="form-label">Select Examination:</label>
+                            <select name="exam_id" id="examSelect" class="form-select" required>
+                                <option value="">Select an examination</option>
+                                {% for exam in exams %}
+                                    <option value="{{ exam.id }}">{{ exam.exam_date }} - {{ exam.procedure_type }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="images" class="form-label">Select Images:</label>
+                            <input type="file" class="form-control" id="images" name="images[]" multiple accept="image/*" required>
+                            <div id="selectedFiles" class="mt-2"></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" form="imageUploadForm" class="btn btn-primary">Upload Images</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -70,6 +121,32 @@
                         <tr>
                             <th>ID Number:</th>
                             <td>{{ patient.id_number }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if patient.family_group %}
+                        <tr>
+                            <th>Family Members:</th>
+                            <td>
+                                <div class="mb-3">
+                                    <a href="{% url 'family-medical-history' patient.family_group.id %}" 
+                                       class="btn btn-primary">
+                                        <i class="fas fa-users me-2"></i>View Family Medical History
+                                    </a>
+                                </div>
+                                <div class="list-group">
+                                    {% for member in patient.family_group.family_members.all %}
+                                        {% if member != patient %}
+                                        <a href="{% url 'patient-detail' member.pk %}" 
+                                           class="list-group-item list-group-item-action">
+                                            {{ member.first_name }} {{ member.last_name }}
+                                            <small class="text-muted d-block">
+                                                Age: {{ member.age }} | Contact: {{ member.contact_number }}
+                                            </small>
+                                        </a>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </td>
                         </tr>
                         {% endif %}
                     </table>
@@ -160,29 +237,67 @@
                                             <div class="accordion-body">
                                                 <div class="row g-3">
                                                     {% for image in exam.images.all %}
-                                                        <div class="col-md-3 col-sm-6">
+                                                        <div class="col-md-6">
                                                             <div class="card h-100 shadow-sm">
-                                                                <img src="{{ image.image.url }}" 
-                                                                     class="card-img-top img-fluid" 
-                                                                     alt="Ultrasound Image"
-                                                                     style="height: 200px; object-fit: cover; cursor: pointer;"
-                                                                     data-bs-toggle="modal" 
-                                                                     data-bs-target="#imageModal{{ image.pk }}">
+                                                                <div class="row g-0">
+                                                                    <!-- Original Image -->
+                                                                    <div class="col-md-6">
+                                                                        <div class="position-relative">
+                                                                            <img src="{{ image.image.url }}" 
+                                                                                 class="card-img-top img-fluid" 
+                                                                                 alt="Original Ultrasound Image"
+                                                                                 style="height: 200px; object-fit: cover; cursor: pointer;"
+                                                                                 data-bs-toggle="modal" 
+                                                                                 data-bs-target="#imageModal{{ image.pk }}">
+                                                                            <span class="badge bg-primary position-absolute top-0 start-0 m-2">Original</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <!-- Annotated Image -->
+                                                                    <div class="col-md-6">
+                                                                        <div class="position-relative">
+                                                                            {% if image.annotated_image %}
+                                                                                <img src="{{ image.annotated_image.url }}" 
+                                                                                     class="card-img-top img-fluid" 
+                                                                                     alt="Annotated Ultrasound Image"
+                                                                                     style="height: 200px; object-fit: cover; cursor: pointer;"
+                                                                                     data-bs-toggle="modal" 
+                                                                                     data-bs-target="#annotatedModal{{ image.pk }}">
+                                                                                <span class="badge bg-success position-absolute top-0 start-0 m-2">Annotated</span>
+                                                                            {% else %}
+                                                                                <div class="d-flex align-items-center justify-content-center h-100 bg-light">
+                                                                                    <a href="{% url 'image-specific-annotation' image.pk %}" class="btn btn-outline-primary">
+                                                                                        <i class="fas fa-draw-polygon me-1"></i>Add Annotation
+                                                                                    </a>
+                                                                                </div>
+                                                                            {% endif %}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                                 <div class="card-body">
                                                                     {% if image.caption %}
                                                                         <p class="card-text small text-muted">{{ image.caption }}</p>
                                                                     {% endif %}
+                                                                    <div class="btn-group w-100">
+                                                                        <a href="{% url 'image-specific-annotation' image.pk %}" class="btn btn-success btn-sm">
+                                                                            <i class="fas fa-draw-polygon me-1"></i>Annotate
+                                                                        </a>
+                                                                        {% if user.is_authenticated %}
+                                                                            <button type="button" class="btn btn-danger btn-sm delete-image" data-image-id="{{ image.pk }}">
+                                                                                <i class="fas fa-trash-alt"></i> Delete
+                                                                            </button>
+                                                                        {% endif %}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
 
-                                                        <!-- Modal for full-size image -->
+                                                        <!-- Modal for full-size original image -->
                                                         <div class="modal fade" id="imageModal{{ image.pk }}" tabindex="-1" aria-hidden="true">
                                                             <div class="modal-dialog modal-xl modal-dialog-centered">
                                                                 <div class="modal-content">
                                                                     <div class="modal-header">
                                                                         <h5 class="modal-title">
-                                                                            {{ exam.exam_date }} - {{ exam.procedure_type }}
+                                                                            Original Image - {{ exam.exam_date }} - {{ exam.procedure_type }}
                                                                         </h5>
                                                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                                     </div>
@@ -199,15 +314,45 @@
                                                                         <a href="{% url 'exam-detail' exam.pk %}" class="btn btn-primary">
                                                                             <i class="fas fa-info-circle me-1"></i>View Exam Details
                                                                         </a>
-                                                                        {% if user.is_authenticated %}
-                                                                            <a href="{% url 'image-annotation' patient.pk %}" class="btn btn-success">
-                                                                                <i class="fas fa-draw-polygon me-1"></i>Annotate Image
-                                                                            </a>
-                                                                        {% endif %}
+                                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         </div>
+
+                                                        <!-- Modal for full-size annotated image -->
+                                                        {% if image.annotated_image %}
+                                                        <div class="modal fade" id="annotatedModal{{ image.pk }}" tabindex="-1" aria-hidden="true">
+                                                            <div class="modal-dialog modal-xl modal-dialog-centered">
+                                                                <div class="modal-content">
+                                                                    <div class="modal-header">
+                                                                        <h5 class="modal-title">
+                                                                            Annotated Image - {{ exam.exam_date }} - {{ exam.procedure_type }}
+                                                                        </h5>
+                                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                    </div>
+                                                                    <div class="modal-body text-center bg-black">
+                                                                        <img src="{{ image.annotated_image.url }}" 
+                                                                             class="img-fluid" 
+                                                                             alt="Full-size Annotated Image"
+                                                                             style="max-height: 80vh;">
+                                                                        {% if image.caption %}
+                                                                            <p class="mt-2 text-light">{{ image.caption }}</p>
+                                                                        {% endif %}
+                                                                    </div>
+                                                                    <div class="modal-footer">
+                                                                        <a href="{% url 'exam-detail' exam.pk %}" class="btn btn-primary">
+                                                                            <i class="fas fa-info-circle me-1"></i>View Exam Details
+                                                                        </a>
+                                                                        <a href="{{ image.annotated_image.url }}" class="btn btn-success" download>
+                                                                            <i class="fas fa-download me-1"></i>Download Annotated Image
+                                                                        </a>
+                                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        {% endif %}
                                                     {% endfor %}
                                                 </div>
                                             </div>
@@ -240,4 +385,86 @@
         </div>
     </div>
 </div>
+
+{% block extra_js %}
+<script>
+// Get CSRF token from cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// File selection handler
+document.getElementById('images').addEventListener('change', function(e) {
+    const selectedFiles = document.getElementById('selectedFiles');
+    selectedFiles.innerHTML = '';
+    
+    if (this.files.length > 0) {
+        const fileList = document.createElement('div');
+        fileList.className = 'alert alert-info mt-2';
+        fileList.innerHTML = `<strong>Selected files (${this.files.length}):</strong><ul class="mb-0"></ul>`;
+        
+        Array.from(this.files).forEach(file => {
+            const li = document.createElement('li');
+            li.textContent = file.name;
+            fileList.querySelector('ul').appendChild(li);
+        });
+        
+        selectedFiles.appendChild(fileList);
+    }
+});
+
+// Delete image handler using event delegation
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.delete-image')) {
+        const button = e.target.closest('.delete-image');
+        const imageId = button.dataset.imageId;
+        
+        if (confirm('Are you sure you want to delete this image? This action cannot be undone.')) {
+            const csrftoken = getCookie('csrftoken');
+            
+            fetch(`/ultrasound-image/${imageId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove the image card from the DOM
+                    const imageCard = button.closest('.col-md-6');
+                    const imageModal = document.getElementById(`imageModal${imageId}`);
+                    
+                    imageCard.remove();
+                    imageModal.remove();
+                    
+                    // Update the image count
+                    const imageCount = document.getElementById('imageCount');
+                    const currentCount = parseInt(imageCount.textContent);
+                    imageCount.textContent = `${currentCount - 1} Image${currentCount - 1 !== 1 ? 's' : ''}`;
+                } else {
+                    alert(data.message || 'Failed to delete the image. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while deleting the image.');
+            });
+        }
+    }
+});
+</script>
+{% endblock %}
 {% endblock %} 

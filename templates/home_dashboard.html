@@ -60,6 +60,24 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <a href="{% url 'staff-appointments' %}" class="text-decoration-none">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="h5 mb-0 font-weight-bold text-warning">Appointments</div>
+                                <div class="text-xs text-gray-600">Manage patient appointments</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Recent Activity Row -->
@@ -72,6 +90,21 @@
                     <a href="{% url 'patient-list' %}" class="btn btn-sm btn-primary">View All</a>
                 </div>
                 <div class="card-body">
+                    <!-- Search Bar -->
+                    <form method="get" class="mb-3">
+                        <div class="input-group">
+                            <input type="text" 
+                                   name="patient_search" 
+                                   class="form-control form-control-sm text-capitalize" 
+                                   placeholder="Search patient name..." 
+                                   value="{{ request.GET.patient_search }}"
+                                   style="text-transform: capitalize;">
+                            <button class="btn btn-sm btn-primary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                    
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
@@ -82,21 +115,39 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for patient in recent_patients %}
-                                <tr>
-                                    <td>{{ patient.first_name }} {{ patient.last_name }}</td>
-                                    <td>{{ patient.created_at|date:"M d, Y" }}</td>
-                                    <td>
-                                        <a href="{% url 'patient-detail' patient.pk %}" class="btn btn-sm btn-info">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="3" class="text-center">No recent patients</td>
-                                </tr>
-                                {% endfor %}
+                                {% if request.GET.patient_search %}
+                                    {% for patient in searched_patients %}
+                                    <tr>
+                                        <td>{{ patient.first_name }} {{ patient.last_name }}</td>
+                                        <td>{{ patient.created_at|date:"M d, Y" }}</td>
+                                        <td>
+                                            <a href="{% url 'patient-detail' patient.pk %}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center">No patients found matching "{{ request.GET.patient_search }}"</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    {% for patient in recent_patients %}
+                                    <tr>
+                                        <td>{{ patient.first_name }} {{ patient.last_name }}</td>
+                                        <td>{{ patient.created_at|date:"M d, Y" }}</td>
+                                        <td>
+                                            <a href="{% url 'patient-detail' patient.pk %}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center">No recent patients</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% endif %}
                             </tbody>
                         </table>
                     </div>

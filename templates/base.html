@@ -9,6 +9,19 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link href="{% static 'css/style.css' %}" rel="stylesheet">
     <style>
+        /* Input Capitalization */
+        input[type="text"]:not([class*="search"]):not([class*="username"]):not([class*="email"]):not([class*="password"]),
+        textarea:not([class*="no-caps"]) {
+            text-transform: capitalize;
+        }
+        
+        /* Exclude email addresses from capitalization */
+        input[type="email"],
+        input[name*="email"],
+        input[id*="email"] {
+            text-transform: none !important;
+        }
+        
         :root {
             --sidebar-width: 250px;
         }
@@ -114,12 +127,12 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{% url 'patient-list' %}" class="{% if request.resolver_match.url_name == 'patient-list' %}active{% endif %}">
+                    <a href="{% url 'patient-list' %}" class="{% if request.resolver_match.url_name == 'patient-list' and not request.GET.view %}active{% endif %}">
                         <i class="fas fa-users"></i> Patient List
                     </a>
                 </li>
                 <li>
-                    <a href="#" class="{% if request.resolver_match.url_name == 'annotation' %}active{% endif %}">
+                    <a href="{% url 'patient-list' %}?view=annotation" class="{% if request.resolver_match.url_name == 'patient-list' and request.GET.view == 'annotation' %}active{% endif %}">
                         <i class="fas fa-draw-polygon"></i> Image Annotation
                     </a>
                 </li>
@@ -131,6 +144,11 @@
                 <li>
                     <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                         <i class="fas fa-chart-bar"></i> Analytics
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'archived-patient-list' %}" class="{% if request.resolver_match.url_name == 'archived-patient-list' %}active{% endif %}">
+                        <i class="fas fa-archive"></i> Archived Patients
                     </a>
                 </li>
                 <li class="mt-auto">

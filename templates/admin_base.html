@@ -119,6 +119,11 @@
                     </a>
                 </li>
                 <li>
+                    <a href="{% url 'admin-archived-patient-list' %}" class="{% if request.resolver_match.url_name == 'admin-archived-patient-list' %}active{% endif %}">
+                        <i class="fas fa-archive"></i> Archived Patients
+                    </a>
+                </li>
+                <li>
                     <a href="{% url 'admin:patients_ultrasoundexam_changelist' %}" class="{% if 'ultrasoundexam' in request.path %}active{% endif %}">
                         <i class="fas fa-notes-medical"></i> Examinations
                     </a>

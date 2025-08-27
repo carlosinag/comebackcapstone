@@ -18,6 +18,9 @@
                 <i class="fas fa-file-invoice-dollar me-2"></i>View Bill
             </a>
             {% endif %}
+            <a href="{% url 'download-ultrasound-docx' exam.pk %}" class="btn btn-primary me-2">
+                <i class="fas fa-download me-2"></i>Download DOCX
+            </a>
             <a href="{% url 'exam-update' exam.pk %}" class="btn btn-warning me-2">
                 <i class="fas fa-edit me-2"></i>Edit Exam
             </a>
@@ -27,221 +30,41 @@
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow">
-                <div class="card-body">
-                    <!-- Header Information -->
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <table class="table table-borderless">
-                                <tr>
-                                    <th width="200">CASE NUMBER:</th>
-                                    <td>{{ exam.id }}</td>
-                                    <th width="100">DATE:</th>
-                                    <td>{{ exam.exam_date }}</td>
-                                </tr>
-                                <tr>
-                                    <th>NAME OF PATIENT:</th>
-                                    <td colspan="3">{{ exam.patient.first_name }} {{ exam.patient.last_name }}</td>
-                                </tr>
-                                <tr>
-                                    <th>AGE:</th>
-                                    <td>{{ exam.patient.age }}</td>
-                                    <th>GENDER:</th>
-                                    <td>{{ exam.patient.get_sex_display }}</td>
-                                </tr>
-                                <tr>
-                                    <th>MARITAL STATUS:</th>
-                                    <td colspan="3">{{ exam.patient.marital_status|default:"N/A" }}</td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <pre style="font-family: 'Courier New', Courier, monospace; font-size: 12pt; border: none; background: none; margin: 0; padding: 0;">CASE NUMBER	  :      {{ exam.case_number|default:"22- 205" }}		            DATE:  {{ exam.exam_date|date:"F d, Y"|default:"JANUARY 4, 2023"|upper }}
+NAME OF PATIENT	:      {{ exam.patient.last_name }}, {{ exam.patient.first_name }}
+AGE	             		:       {{ exam.patient.age|default:"29" }}
+GENDER	               :     {{ exam.patient.get_sex_display|default:"FEMALE" }}
+MARITAL STATUS             :     {{ exam.patient.marital_status|default:"" }}
+EXAMINATION PERFORMED:                       		{{ exam.procedure_type.name|default:"PELVIC" }}	 ULTRASOUND         
+		              O.R.				             AMOUNT PAID:
+REQUESTING PHYSICIAN:					WARD:    {{ exam.patient.get_patient_status_display|default:"OPD" }}
+											      
+RADIOLOGICAL FINDINGS:
 
-                    <!-- Examination Details -->
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <table class="table table-borderless">
-                                <tr>
-                                    <th width="200">EXAMINATION PERFORMED:</th>
-                                    <td colspan="3" style="text-transform: uppercase;">{{ exam.procedure_type.name }} ULTRASOUND</td>
-                                </tr>
-                                <tr>
-                                    <th>O.R.:</th>
-                                    <td>{{ exam.or_number|default:"" }}</td>
-                                    <th width="150">AMOUNT PAID:</th>
-                                    <td>{% if exam.bill %}₱{{ exam.bill.total_amount }}{% else %}Pending{% endif %}</td>
-                                </tr>
-                                <tr>
-                                    <th>REQUESTING PHYSICIAN:</th>
-                                    <td>{{ exam.referring_physician }}</td>
-                                    <th>WARD:</th>
-                                    <td>{{ exam.patient.get_patient_status_display }}</td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
+{{ exam.findings|default:"" }}
 
-                    <!-- Radiological Findings -->
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <h5 class="border-bottom pb-2">RADIOLOGICAL FINDINGS:</h5>
-                            <div class="findings-content mt-3">
-                                {{ exam.findings|linebreaks }}
-                            </div>
-                        </div>
-                    </div>
+IMPRESSION:
 
-                    <!-- Specific Measurements -->
-                    {% if exam.procedure_type == 'OB' %}
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <table class="table table-borderless">
-                                <tr>
-                                    <th width="200">FETAL HEART RATE:</th>
-                                    <td>{{ exam.fetal_heart_rate|default:"-" }}</td>
-                                </tr>
-                                <tr>
-                                    <th>AMNIOTIC FLUID:</th>
-                                    <td>{{ exam.amniotic_fluid|default:"-" }}</td>
-                                </tr>
-                                <tr>
-                                    <th>PLACENTA:</th>
-                                    <td>{{ exam.placenta|default:"-" }}</td>
-                                </tr>
-                                <tr>
-                                    <th>FETAL SEX:</th>
-                                    <td>{{ exam.fetal_sex|default:"-" }}</td>
-                                </tr>
-                                <tr>
-                                    <th>EDD:</th>
-                                    <td>{{ exam.edd|default:"-" }}</td>
-                                </tr>
-                                <tr>
-                                    <th>EFW:</th>
-                                    <td>{{ exam.efw|default:"-" }}</td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Impression -->
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <h5 class="border-bottom pb-2">IMPRESSION:</h5>
-                            <div class="impression-content mt-3">
-                                {{ exam.impression|linebreaks }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Signatures -->
-                    <div class="row mt-5">
-                        <div class="col-md-6">
-                            <p class="text-center">
-                                <strong>{{ exam.technologist }}</strong><br>
-                                Ultrasound Technologist
-                            </p>
-                        </div>
-                        <div class="col-md-6">
-                            <p class="text-center">
-                                <strong>{{ exam.radiologist }}</strong><br>
-                                Radiologist
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Image Gallery -->
-                    <div class="row mt-5">
-                        <div class="col-12">
-                            <h5 class="border-bottom pb-2">ULTRASOUND IMAGES:</h5>
-                            {% if exam.images.exists %}
-                                <div class="row g-4 mt-2">
-                                    {% for image in exam.images.all %}
-                                        <div class="col-md-3">
-                                            <div class="card h-100 shadow-sm">
-                                                <img src="{{ image.image.url }}" 
-                                                     class="card-img-top img-fluid" 
-                                                     alt="Ultrasound Image"
-                                                     style="height: 200px; object-fit: cover; cursor: pointer;"
-                                                     data-bs-toggle="modal" 
-                                                     data-bs-target="#imageModal{{ image.pk }}">
-                                                {% if image.caption %}
-                                                    <div class="card-body">
-                                                        <p class="card-text small text-muted">{{ image.caption }}</p>
-                                                    </div>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-
-                                        <!-- Modal for full-size image -->
-                                        <div class="modal fade" id="imageModal{{ image.pk }}" tabindex="-1" aria-hidden="true">
-                                            <div class="modal-dialog modal-xl modal-dialog-centered">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">
-                                                            Ultrasound Image
-                                                            {% if image.caption %}
-                                                                - {{ image.caption }}
-                                                            {% endif %}
-                                                        </h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body text-center bg-black">
-                                                        <img src="{{ image.image.url }}" 
-                                                             class="img-fluid" 
-                                                             alt="Full-size Ultrasound Image"
-                                                             style="max-height: 80vh;">
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        {% if user.is_authenticated %}
-                                                            <a href="{% url 'image-annotation' exam.patient.pk %}" class="btn btn-success">
-                                                                <i class="fas fa-draw-polygon me-1"></i>Annotate Image
-                                                            </a>
-                                                        {% endif %}
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <div class="text-center py-5">
-                                    <i class="fas fa-images text-muted fa-3x mb-3"></i>
-                                    <p class="text-muted">No ultrasound images available for this examination.</p>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
+{{ exam.impression|default:"" }}</pre>
         </div>
     </div>
 </div>
 
 <style>
-    .findings-content, .impression-content {
-        min-height: 150px;
-        white-space: pre-line;
+@media print {
+    .btn, .container > .row:first-child {
+        display: none !important;
     }
-    .table th {
-        font-weight: bold;
-        color: #333;
+    .card {
+        border: none;
+        box-shadow: none;
     }
-    @media print {
-        .btn {
-            display: none;
-        }
-        .card {
-            border: none;
-            box-shadow: none;
-        }
-        .modal {
-            display: none !important;
-        }
+    pre {
+        margin: 0;
+        padding: 0;
     }
+}
 </style>
 {% endblock %} 
