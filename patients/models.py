@@ -232,6 +232,10 @@ class UltrasoundExam(models.Model):
     followup_duration = models.CharField(max_length=50, blank=True, null=True)
     specialist_referral = models.CharField(max_length=100, blank=True, null=True)
     
+    # Additional fields
+    technician = models.CharField(max_length=100, blank=True, null=True, help_text="Technician who performed the exam")
+    notes = models.TextField(blank=True, null=True, help_text="Additional notes about the examination")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

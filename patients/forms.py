@@ -152,7 +152,9 @@ class UltrasoundExamForm(forms.ModelForm):
             'impression',
             'recommendations',
             'followup_duration',
-            'specialist_referral'
+            'specialist_referral',
+            'technician',
+            'notes'
         ]
         widgets = {
             'exam_date': forms.DateInput(attrs={'type': 'date'}),

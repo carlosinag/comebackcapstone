@@ -114,7 +114,7 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{% url 'admin:patients_patient_changelist' %}" class="{% if 'patients_patient' in request.path %}active{% endif %}">
+                    <a href="{% url 'admin_patient_list' %}" class="{% if request.resolver_match.url_name == 'admin_patient_list' %}active{% endif %}">
                         <i class="fas fa-users"></i> Patients
                     </a>
                 </li>
@@ -124,7 +124,7 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{% url 'admin:patients_ultrasoundexam_changelist' %}" class="{% if 'ultrasoundexam' in request.path %}active{% endif %}">
+                    <a href="{% url 'admin_examinations' %}" class="{% if request.resolver_match.url_name == 'admin_examinations' %}active{% endif %}">
                         <i class="fas fa-notes-medical"></i> Examinations
                     </a>
                 </li>

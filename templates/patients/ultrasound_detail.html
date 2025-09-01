@@ -9,12 +9,12 @@
             <h2>Ultrasound Examination Report</h2>
         </div>
         <div class="col text-end">
-            {% if not exam.bill %}
+            {% if not exam.bill_item %}
             <a href="{% url 'billing:create_bill' exam.pk %}" class="btn btn-success me-2">
                 <i class="fas fa-file-invoice-dollar me-2"></i>Create Bill
             </a>
             {% else %}
-            <a href="{% url 'billing:bill_detail' exam.bill.bill_number %}" class="btn btn-info me-2">
+            <a href="{% url 'billing:bill_detail' exam.bill_item.bill.bill_number %}" class="btn btn-info me-2">
                 <i class="fas fa-file-invoice-dollar me-2"></i>View Bill
             </a>
             {% endif %}

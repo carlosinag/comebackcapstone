@@ -53,7 +53,7 @@
                             <select name="exam_id" id="examSelect" class="form-select" required>
                                 <option value="">Select an examination</option>
                                 {% for exam in exams %}
-                                    <option value="{{ exam.id }}">{{ exam.exam_date }} - {{ exam.procedure_type }}</option>
+                                    <option value="{{ exam.id }}">{{ exam.exam_date }} - {{ exam.procedure_type.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -175,18 +175,21 @@
                                 {% for exam in exams %}
                                 <tr>
                                     <td>{{ exam.exam_date }}</td>
-                                    <td>{{ exam.procedure_type }}</td>
+                                    <td>{{ exam.procedure_type.name }}</td>
                                     <td>
                                         <a href="{% url 'exam-detail' exam.pk %}" class="btn btn-sm btn-info">
                                             <i class="fas fa-eye"></i> View
                                         </a>
                                         {% if user.is_authenticated %}
-                                            {% if not exam.bill %}
+                                            <a href="{% url 'exam-update' exam.pk %}" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                            {% if not exam.bill_item %}
                                             <a href="{% url 'billing:create_bill' exam.pk %}" class="btn btn-sm btn-success">
                                                 <i class="fas fa-file-invoice-dollar"></i> Create Bill
                                             </a>
                                             {% else %}
-                                            <a href="{% url 'billing:bill_detail' exam.bill.bill_number %}" class="btn btn-sm btn-secondary">
+                                            <a href="{% url 'billing:bill_detail' exam.bill_item.bill.bill_number %}" class="btn btn-sm btn-secondary">
                                                 <i class="fas fa-file-invoice"></i> View Bill
                                             </a>
                                             {% endif %}
@@ -230,7 +233,7 @@
                                     <div class="accordion-item mb-3">
                                         <h2 class="accordion-header" id="exam{{ exam.pk }}Header">
                                             <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#exam{{ exam.pk }}Collapse" aria-expanded="true" aria-controls="exam{{ exam.pk }}Collapse">
-                                                {{ exam.exam_date }} - {{ exam.procedure_type }}
+                                                {{ exam.exam_date }} - {{ exam.procedure_type.name }}
                                             </button>
                                         </h2>
                                         <div id="exam{{ exam.pk }}Collapse" class="accordion-collapse collapse show" aria-labelledby="exam{{ exam.pk }}Header">
@@ -297,7 +300,7 @@
                                                                 <div class="modal-content">
                                                                     <div class="modal-header">
                                                                         <h5 class="modal-title">
-                                                                            Original Image - {{ exam.exam_date }} - {{ exam.procedure_type }}
+                                                                            Original Image - {{ exam.exam_date }} - {{ exam.procedure_type.name }}
                                                                         </h5>
                                                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                                     </div>
@@ -327,7 +330,7 @@
                                                                 <div class="modal-content">
                                                                     <div class="modal-header">
                                                                         <h5 class="modal-title">
-                                                                            Annotated Image - {{ exam.exam_date }} - {{ exam.procedure_type }}
+                                                                            Annotated Image - {{ exam.exam_date }} - {{ exam.procedure_type.name }}
                                                                         </h5>
                                                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                                     </div>

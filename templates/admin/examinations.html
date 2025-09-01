@@ -1,0 +1,195 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Examinations Management{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+<style>
+    .exam-status-pending {
+        color: #ffc107;
+    }
+    .exam-status-completed {
+        color: #28a745;
+    }
+    .exam-status-cancelled {
+        color: #dc3545;
+    }
+    .patient-info {
+        font-size: 0.9em;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Examinations Management</h1>
+        <div>
+            <a href="#" class="btn btn-primary" onclick="alert('Please select a patient first to create an examination')">
+                <i class="fas fa-plus"></i> New Examination
+            </a>
+            <button class="btn btn-success" onclick="exportToExcel()">
+                <i class="fas fa-file-excel"></i> Export to Excel
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Examinations</h5>
+                    <h3 class="text-primary">{{ total_exams }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h5 class="card-title">Today's Exams</h5>
+                    <h3 class="text-info">{{ today_exams }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Search Examinations</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-10">
+                    <input type="text" name="search" class="form-control" value="{{ search_query }}" placeholder="Search by patient name, exam type, or technician...">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary d-block w-100">Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Examinations Table -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Examinations</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="examinationsTable">
+                    <thead>
+                        <tr>
+                            <th>Exam ID</th>
+                            <th>Patient Name</th>
+                            <th>Exam Type</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exam in exams %}
+                        <tr>
+                            <td>{{ exam.id }}</td>
+                            <td>
+                                <strong>{{ exam.patient.first_name }} {{ exam.patient.last_name }}</strong>
+                                <div class="patient-info">
+                                    ID: {{ exam.patient.id }} | Age: {{ exam.patient.age }} | Gender: {{ exam.patient.get_sex_display }}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ exam.procedure_type.name }}</span>
+                            </td>
+                            <td>{{ exam.exam_date|date:"M d, Y" }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'exam-detail' exam.id %}" class="btn btn-sm btn-info" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'exam-update' exam.id %}" class="btn btn-sm btn-primary" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'image-annotation' exam.patient.id %}" class="btn btn-sm btn-success" title="Annotate Images">
+                                        <i class="fas fa-pen"></i>
+                                    </a>
+                                    <a href="{% url 'download-ultrasound-docx' exam.id %}" class="btn btn-sm btn-secondary" title="Download Report">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No examinations found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if exams.has_other_pages %}
+            <nav aria-label="Examinations pagination">
+                <ul class="pagination justify-content-center">
+                    {% if exams.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ exams.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in exams.paginator.page_range %}
+                    {% if exams.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > exams.number|add:'-3' and num < exams.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if exams.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ exams.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize toastr
+    toastr.options = {
+        "closeButton": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "timeOut": "3000"
+    };
+});
+
+function exportToExcel() {
+    var searchParam = "{% if search_query %}&search={{ search_query }}{% endif %}";
+    window.location.href = "{% url 'admin_examinations' %}?export=excel" + searchParam;
+}
+
+// Add confirmation for delete actions
+function confirmDelete(examId, patientName) {
+    if (confirm(`Are you sure you want to delete the examination for ${patientName}?`)) {
+        // Add delete functionality here if needed
+        toastr.warning('Delete functionality not implemented yet');
+    }
+}
+</script>
+{% endblock %}

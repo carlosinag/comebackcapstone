@@ -61,8 +61,14 @@ urlpatterns = [
     # Custom admin interface
     path('custom-admin/login/', views.admin_login, name='admin_login'),
     path('custom-admin/dashboard/', admin_views.admin_dashboard, name='admin_dashboard'),
+    path('custom-admin/patients/', admin_views.admin_patient_list, name='admin_patient_list'),
     path('custom-admin/billing-report/', admin_views.admin_billing_report, name='admin_billing_report'),
     path('custom-admin/billing-export/', admin_views.admin_billing_export, name='admin_billing_export'),
+    path('custom-admin/examinations/', admin_views.admin_examinations, name='admin_examinations'),
     path('ultrasound-image/<int:image_id>/delete/', views.delete_ultrasound_image, name='delete-ultrasound-image'),
-    path('admin/update-expenses/', admin_views.update_expenses, name='update_expenses'),
+    path('custom-admin/update-expenses/', admin_views.update_expenses, name='update_expenses'),
+    path('custom-admin/add-expense/', admin_views.add_expense, name='add_expense'),
+    path('custom-admin/delete-expense/', admin_views.delete_expense, name='delete_expense'),
+    path('custom-admin/get-expenses/', admin_views.get_expenses, name='get_expenses'),
+    path('custom-admin/get-total-expenses/', admin_views.get_total_expenses, name='get_total_expenses'),
 ] 
