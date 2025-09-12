@@ -4,174 +4,511 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultrasound Center</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
-            --light-bg: #f8f9fa;
-        }
-
-        body {
-            background-color: var(--light-bg);
-            font-family: 'Arial', sans-serif;
-            line-height: 1.6;
-        }
-
-        .navbar {
-            background-color: var(--primary-color) !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 1rem 0;
-        }
-
-        .navbar-brand {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-
-        .hero-section {
-            background: linear-gradient(rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.8)),
-                        url('https://images.unsplash.com/photo-1581595220892-b0739db3ba8c?auto=format&fit=crop&w=1920');
-            background-size: cover;
-            background-position: center;
-            color: white;
-            padding: 80px 0;
-            text-align: center;
-            margin-bottom: 50px;
-        }
-
-        .hero-content {
-            max-width: 700px;
-            margin: 0 auto;
-        }
-
-        .login-section {
-            padding: 50px 0;
-            background-color: white;
-        }
-
-        .login-card {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            height: 100%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-        }
-
-        .login-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .card-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1.5rem;
-            color: var(--secondary-color);
-        }
-
-        .btn-custom {
-            padding: 8px 20px;
-            border-radius: 5px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        footer {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 20px 0;
-            margin-top: 50px;
-        }
-
-        .contact-info {
-            margin-top: 10px;
-        }
-
-        .contact-info i {
-            margin-right: 10px;
-            color: var(--secondary-color);
-        }
-    </style>
+    <title>MSRA Ultrasound Clinic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="#">
-                <i class="fas fa-heartbeat me-2"></i>
-                Ultrasound Center
-            </a>
+<body class="bg-gray-100 font-sans">
+    <!-- Top Contact Bar -->
+    <div class="bg-black text-white py-2">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <span class="text-sm font-medium">NUMBER</span>
+            <span class="text-sm font-medium">ADDRESS</span>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="bg-gray-200 shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <img src="{% static 'logo.png' %}" alt="Clinic Logo" class="w-10 h-10 object-contain" />
+                    <span class="text-xl font-bold text-gray-800">MSRA Ultrasound Clinic</span>
+                </div>
+                
+                <!-- Navigation Links -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#about" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">About Us</a>
+                    <a href="#services" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">Prices</a>
+                    <a href="#contact" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">Contact</a>
+                    <button id="open-nav-login" type="button" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">Login</button>
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <button class="md:hidden text-gray-700">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
         </div>
     </nav>
 
-    <div class="hero-section">
-        <div class="container">
-            <div class="hero-content">
-                <h1 class="display-4 mb-4">Welcome to Our Ultrasound Center</h1>
-                <p class="lead">Quality ultrasound services with care and precision</p>
-            </div>
-        </div>
+    <!-- Hero Section -->
+    <main class="bg-gray-100 min-h-screen flex items-center justify-center relative">
+        
+        <!-- Hero Content -->
+        <div class="container mx-auto px-4 text-center relative z-10">
+            <h1 class="text-6xl md:text-7xl font-bold text-black mb-6 leading-tight opacity-0 translate-y-6 transition-all duration-700 ease-out" data-animate="stagger-0">
+                MSRA Ultrasound Clinic Services
+            </h1>
+            <p class="text-xl md:text-2xl text-gray-700 mb-8 max-w-4xl mx-auto leading-relaxed opacity-0 translate-y-6 transition-all duration-700 ease-out" data-animate="stagger-1">
+                A mobile ultrasound clinic that serves the people with quality healthcare services and compassionate care.
+            </p>
+            <a href="{% url 'patient_login' %}" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-4 px-8 rounded-lg text-lg transition-all duration-300 ease-out shadow-lg hover:shadow-xl hover:-translate-y-0.5 hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-purple-300 opacity-0 translate-y-6 inline-block" data-animate="stagger-2">
+                Patient Login
+            </a>
+    </div>
+    </main>
+
+    <!-- About Us Section -->
+    <section id="about" class="bg-pink-50 py-16 md:py-24">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <!-- Section Label -->
+                <p class="text-pink-300 text-sm font-medium uppercase tracking-wider mb-2 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
+                    MSRA Ultrasound Clinic and Services
+                </p>
+                
+                <!-- Main Heading -->
+                <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-8 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
+                    About Us
+                </h2>
+                
+                <!-- Description Text -->
+                <div class="text-gray-700 text-lg leading-relaxed mb-12">
+                    <p class="mb-6 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
+                        MSRA Ultrasound Clinic is a healthcare service designed to bring diagnostic imaging directly to patients, 
+                        eliminating the need for travel to hospitals or specialized centers. Our mobile ultrasound clinics are 
+                        equipped with portable ultrasound machines and staffed by trained medical professionals, providing 
+                        convenient, cost-effective, and accessible imaging services.
+                    </p>
+                    <p class="opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
+                        By reaching remote communities, underserved populations, and patients with mobility challenges, 
+                        these mobile ultrasound clinics help improve early detection, timely diagnosis, and overall 
+                        healthcare delivery.
+                    </p>
     </div>
 
-    <div class="login-section">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-4">
-                    <div class="login-card">
-                        <div class="text-center">
-                            <i class="fas fa-user-md card-icon"></i>
-                            <h3 class="h4 mb-3">Staff Portal</h3>
-                            <p class="mb-4">Access for medical staff to manage patient records</p>
-                            <a href="{% url 'staff_login' %}" class="btn btn-custom btn-primary">Staff Login</a>
+                <!-- Image Carousel (4 visible, smooth slide) -->
+                <div id="about-photos" class="relative overflow-hidden" data-images="{% static 'flower1.jpg' %},{% static 'flower2.jpeg' %},{% static 'flower3.jpeg' %},{% static 'flower4.jpeg' %},{% static 'flower5.jpeg' %}" data-descriptions="Blooming flower 1,Blooming flower 2,Blooming flower 3,Blooming flower 4,Blooming flower 5">
+                    <div id="about-photos-track" class="flex items-stretch will-change-transform" style="transform: translateX(0);">
+                        <!-- Slides (initialized by JS with images) -->
+                        <div class="carousel-slide flex-none basis-1/2 md:basis-1/4 p-2 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
+                            <div class="h-40 md:h-56 lg:h-64 rounded-lg bg-gray-200 bg-center bg-cover shadow-sm"></div>
+                        </div>
+                        <div class="carousel-slide flex-none basis-1/2 md:basis-1/4 p-2 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
+                            <div class="h-40 md:h-56 lg:h-64 rounded-lg bg-gray-200 bg-center bg-cover shadow-sm"></div>
+                        </div>
+                        <div class="carousel-slide flex-none basis-1/2 md:basis-1/4 p-2 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
+                            <div class="h-40 md:h-56 lg:h-64 rounded-lg bg-gray-200 bg-center bg-cover shadow-sm"></div>
+                        </div>
+                        <div class="carousel-slide flex-none basis-1/2 md:basis-1/4 p-2 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
+                            <div class="h-40 md:h-56 lg:h-64 rounded-lg bg-gray-200 bg-center bg-cover shadow-sm"></div>
+                        </div>
+                        <!-- This 5th slide is used as the incoming slide during animation -->
+                        <div class="carousel-slide flex-none basis-1/2 md:basis-1/4 p-2 opacity-0">
+                            <div class="h-40 md:h-56 lg:h-64 rounded-lg bg-gray-200 bg-center bg-cover"></div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="col-md-4">
-                    <div class="login-card">
-                        <div class="text-center">
-                            <i class="fas fa-user-shield card-icon"></i>
-                            <h3 class="h4 mb-3">Admin Portal</h3>
-                            <p class="mb-4">System administration and clinic management</p>
-                            <a href="{% url 'admin_login' %}" class="btn btn-custom btn-secondary">Admin Login</a>
+                <!-- Modal for image preview -->
+                <div id="image-modal" class="fixed inset-0 hidden items-center justify-center z-50">
+                    <!-- Backdrop -->
+                    <div class="absolute inset-0 bg-black/60"></div>
+                    <!-- Dialog -->
+                    <div class="relative bg-white rounded-xl shadow-2xl w-[90vw] max-w-3xl mx-auto overflow-hidden">
+                        <!-- Close button -->
+                        <button id="modal-close" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700" aria-label="Close preview">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                        <!-- Image -->
+                        <div class="w-full bg-black">
+                            <img id="modal-image" src="" alt="Preview" class="w-full h-[60vh] object-contain bg-black" />
                         </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-4">
-                    <div class="login-card">
-                        <div class="text-center">
-                            <i class="fas fa-user card-icon"></i>
-                            <h3 class="h4 mb-3">Patient Portal</h3>
-                            <p class="mb-4">View your medical records and appointments</p>
-                            <a href="{% url 'patient_login' %}" class="btn btn-custom btn-info">Patient Login</a>
+                        <!-- Description -->
+                        <div class="p-4">
+                            <p id="modal-caption" class="text-gray-700"></p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    </section>
+
+    <!-- Nav Login Modal -->
+    <div id="nav-login-modal" class="fixed inset-0 hidden items-center justify-center z-50">
+        <div class="absolute inset-0 bg-black/60"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-[90vw] max-w-sm mx-auto p-6">
+            <button id="nav-login-close" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700" aria-label="Close login chooser">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-gray-900 mb-5">Choose login</h3>
+            <div class="grid grid-cols-1 gap-3">
+                <a href="{% url 'staff_login' %}" class="w-full inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white font-semibold py-2.5 rounded-lg transition-colors">
+                    <i class="fas fa-user-shield"></i>
+                    <span>Staff Login</span>
+                </a>
+                <a href="{% url 'patient_login' %}" class="w-full inline-flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 rounded-lg transition-colors">
+                    <i class="fas fa-user"></i>
+                    <span>Patient Login</span>
+                </a>
+            </div>
+        </div>
     </div>
 
-    <footer>
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>Ultrasound Center</h5>
+    
+
+    <!-- Service Rates Section -->
+    <section id="services" class="bg-pink-100 py-16 md:py-24">
+        <div class="container mx-auto px-4">
+            <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
+                <div>
+                    <p class="text-pink-300 text-sm font-medium uppercase tracking-wider mb-2 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>MSRA Ultrasound Clinic and Services</p>
+                    <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>Service Rates</h2>
+                    <p class="text-gray-700 leading-relaxed mb-4 max-w-prose opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
+                        MSRA Ultrasound Clinic maintains a transparent pricing structure to ensure affordability while
+                        upholding the quality of diagnostic services. A detailed breakdown of service fees is provided to
+                        support informed decision-making.
+                    </p>
+                    <p class="text-gray-700 leading-relaxed mb-8 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>See our affordable service rates!</p>
+
+                    <!-- Scrollable list of procedures (dynamic from ServiceType) -->
+                    <div class="bg-pink-200/70 rounded-xl p-4 md:p-6 h-72 md:h-80 overflow-y-auto border border-pink-200 shadow-inner opacity-0 translate-y-4 transition-all duration-700 ease-out" id="rates-list" data-observe>
+                        <ul class="divide-y divide-pink-300/40">
+                            {% for s in service_types %}
+                            <li class="py-3 flex items-center justify-between cursor-pointer select-none hover:bg-white/40 px-2 rounded group opacity-0 translate-y-4 transition-all duration-700 ease-out" data-proc="{{ s.name }}" data-part="{{ s.name }}" data-observe>
+                                <span class="font-medium text-gray-800 group-hover:text-gray-900">{{ s.name }}</span>
+                                <span class="text-gray-700">₱{{ s.base_price }}</span>
+                            </li>
+                            {% empty %}
+                            <li class="py-6 text-gray-600">No active services configured yet.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="contact-info text-md-end">
-                        <p class="mb-2"><i class="fas fa-phone"></i> (555) 123-4567</p>
-                        <p class="mb-0"><i class="fas fa-clock"></i> Mon-Fri: 8:00 AM - 6:00 PM</p>
+                <!-- Anatomy placeholder panel -->
+                <div class="w-full flex items-center justify-center opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
+                    <div class="bg-white rounded-2xl shadow-md border border-pink-200 p-6 w-full max-w-md">
+                        <div class="aspect-[3/4] w-full rounded-lg bg-gradient-to-b from-gray-100 to-gray-200 relative flex items-center justify-center mb-4 overflow-hidden">
+                            <img id="anatomy-image" src="{% static 'anatomy/upper abdomen.png' %}" alt="" class="absolute inset-0 w-full h-full object-contain" />
+                            <div id="anatomy-highlight" class="relative z-10 w-0 h-0 rounded-md bg-pink-300/70"></div>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm text-gray-500 uppercase tracking-wider">Highlighted Area</p>
+                            <p id="highlight-label" class="text-lg font-semibold text-gray-800">Abdominal Ultrasound — Abdomen</p>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="text-center mt-3">
-                <p class="mb-0">&copy; 2024 Ultrasound Center. All rights reserved.</p>
+        </div>
+    </section>
+
+    <!-- Contact Us Section -->
+    <section id="contact" class="bg-pink-50 py-16 md:py-24">
+        <div class="container mx-auto px-4">
+            <div class="max-w-6xl mx-auto">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight mb-2 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
+                    Need something checked? Contact us now
+                </h2>
+                <p class="text-sm text-gray-500 mb-8 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
+                    Contact information and map below
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-start">
+                    <!-- Left: Contact Info -->
+                    <div class="md:col-span-1 bg-white rounded-2xl border border-pink-200 shadow-sm p-6 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
+                        <div class="space-y-5">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-1">Clinic Address</h3>
+                                <p class="text-gray-700">123 MSRA Street, Barangay Sample, City, Province, Philippines</p>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-1">Contact Number</h3>
+                                <p class="text-gray-700">(+63) 912-345-6789</p>
+                                <p class="text-gray-700">(02) 8123-4567</p>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-1">Email</h3>
+                                <p class="text-gray-700">msra.ultrasound@example.com</p>
+                            </div>
+                            <div class="pt-2 text-sm text-gray-500">
+                                <p>Mon–Fri: 8:00 AM – 6:00 PM</p>
+                                <p>Sat: 8:00 AM – 12:00 PM</p>
+            </div>
+        </div>
+    </div>
+
+                    <!-- Right: Google Map (centered on Manila by default) -->
+                    <div id="map-wrapper" class="md:col-span-2 bg-gray-200 rounded-2xl border border-pink-200 shadow-inner h-64 md:h-80 lg:h-96 relative overflow-hidden opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe data-place="Real, Quezon, Philippines" data-zoom="13">
+                        <iframe id="google-map" title="Clinic Location Map" class="absolute inset-0 w-full h-full border-0"
+                            src="https://www.google.com/maps?q=Real,%20Quezon,%20Philippines&z=13&output=embed" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-black text-white py-3">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between text-xs md:text-sm">
+                <span>Copyright</span>
+                <span>{% now "Y" %}</span>
+                <a href="{% url 'staff_login' %}" class="text-gray-300 hover:text-white transition-colors">Staff? Login</a>
             </div>
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Simple on-load fade-up animation (no library required)
+        document.addEventListener('DOMContentLoaded', function () {
+            const animated = Array.from(document.querySelectorAll('[data-animate]'))
+                .sort((a, b) => (a.dataset.animate > b.dataset.animate ? 1 : -1));
+
+            animated.forEach((el, index) => {
+                const delay = 150 + index * 150; // staggered appearance
+                setTimeout(() => {
+                    el.classList.remove('opacity-0', 'translate-y-6');
+                    el.classList.add('opacity-100', 'translate-y-0');
+                }, delay);
+            });
+            
+            // Intersection-based reveal for About section
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.remove('opacity-0', 'translate-y-4');
+                        entry.target.classList.add('opacity-100', 'translate-y-0');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.2 });
+
+            document.querySelectorAll('[data-observe]').forEach((el) => observer.observe(el));
+
+            // Smooth 4-up carousel for About photos
+            const photosContainer = document.getElementById('about-photos');
+            const track = document.getElementById('about-photos-track');
+            if (photosContainer && track) {
+                const dataAttr = photosContainer.getAttribute('data-images') || '';
+                const imageUrls = dataAttr.split(',').map(s => s.trim()).filter(Boolean);
+                const slides = Array.from(track.querySelectorAll('.carousel-slide'));
+
+                // Assign initial images to first 5 slides (4 visible + 1 buffer)
+                let assignIndex = 0;
+                slides.forEach((slide) => {
+                    const frame = slide.firstElementChild;
+                    const url = imageUrls[assignIndex % imageUrls.length];
+                    frame.style.backgroundImage = url ? `url('${url}')` : '';
+                    assignIndex += 1;
+                });
+
+                let currentStart = 0; // index of left-most image in imageUrls
+                let isAnimating = false;
+
+                function slideOnce() {
+                    if (isAnimating || imageUrls.length === 0) return;
+                    isAnimating = true;
+
+                    const slideWidth = slides[0].getBoundingClientRect().width;
+
+                    // Prepare incoming right-most BEFORE it becomes visible: set image, place slightly to right and fully transparent
+                    const incoming = slides[4] || slides[slides.length - 1];
+                    const incomingIndex = (currentStart + 4) % imageUrls.length;
+                    incoming.firstElementChild.style.backgroundImage = `url('${imageUrls[incomingIndex]}')`;
+                    incoming.style.transition = 'opacity 350ms ease, transform 350ms ease';
+                    incoming.style.opacity = '0'; // keep hidden until slide completes
+                    incoming.firstElementChild.classList.add('translate-x-6');
+
+                    // Start left-most fade-out FIRST, then slide the track
+                    const firstSlide = slides[0];
+                    firstSlide.style.transition = 'opacity 250ms ease';
+                    firstSlide.style.opacity = '0';
+                    firstSlide.firstElementChild.classList.add('scale-[0.98]');
+
+                    // Slight delay so the fade-out reads before movement
+                    setTimeout(() => {
+                        track.style.transition = 'transform 600ms ease-in-out';
+                        track.style.transform = `translateX(-${slideWidth}px)`;
+                    }, 80);
+
+                    // After transition completes, recycle first slide to the end
+                    setTimeout(() => {
+                        currentStart = (currentStart + 1) % imageUrls.length;
+
+                        track.style.transition = 'none';
+                        track.style.transform = 'translateX(0)';
+
+                        const first = slides.shift();
+                        track.appendChild(first);
+                        slides.push(first);
+
+                        // Reset classes for recycled slide (now at right end but not visible as 'incoming')
+                        first.classList.remove('opacity-0');
+                        first.style.transition = '';
+                        first.firstElementChild.classList.remove('scale-[0.98]');
+
+                        // Fade in the prepared incoming slide on the right
+                        requestAnimationFrame(() => {
+                            incoming.style.opacity = '1';
+                            incoming.firstElementChild.classList.remove('translate-x-6');
+                        });
+
+                        isAnimating = false;
+                    }, 620);
+                }
+
+                // Start when visible
+                let started = false;
+                const startCarousel = () => {
+                    if (started) return; started = true;
+                    setInterval(slideOnce, 3000);
+                };
+
+                const carObs = new IntersectionObserver((entries) => {
+                    entries.forEach((e) => {
+                        if (e.isIntersecting) {
+                            startCarousel();
+                            carObs.unobserve(e.target);
+                        }
+                    });
+                }, { threshold: 0.2 });
+                carObs.observe(photosContainer);
+
+                // ---- Modal interactions ----
+                const modal = document.getElementById('image-modal');
+                const modalImg = document.getElementById('modal-image');
+                const modalCaption = document.getElementById('modal-caption');
+                const modalClose = document.getElementById('modal-close');
+                const descriptions = (photosContainer.getAttribute('data-descriptions') || '').split(',');
+
+                function openModal(url, caption) {
+                    modalImg.src = url || '';
+                    modalCaption.textContent = caption || '';
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                }
+
+                function closeModal() {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    modalImg.src = '';
+                }
+
+                // Click slide to open modal with the correct image after rotations
+                slides.forEach((slide) => {
+                    slide.addEventListener('click', () => {
+                        const position = Array.from(track.children).indexOf(slide); // current on-screen position
+                        const thisIndex = (currentStart + position) % imageUrls.length;
+                        openModal(imageUrls[thisIndex], descriptions[thisIndex] || '');
+                    });
+                });
+
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) closeModal();
+                });
+                modalClose.addEventListener('click', closeModal);
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') closeModal();
+                });
+            }
+
+            // ---- Service rates interactions (static foundation) ----
+            const ratesList = document.getElementById('rates-list');
+            const highlightBox = document.getElementById('anatomy-highlight');
+            const highlightLabel = document.getElementById('highlight-label');
+            if (ratesList && highlightBox && highlightLabel) {
+                const anatomyImg = document.getElementById('anatomy-image');
+                // Map service keywords to anatomy images
+                const anatomyMap = {
+                    // keys are lowercase keywords to search in service name
+                    'abdomen': "{% static 'anatomy/upper abdomen.png' %}",
+                    'abdominal': "{% static 'anatomy/upper abdomen.png' %}",
+                    'hbt': "{% static 'anatomy/hepatobillary tree hbt.png' %}",
+                    'hepatobiliary': "{% static 'anatomy/hepatobillary tree hbt.png' %}",
+                    'liver': "{% static 'anatomy/hepatobillary tree hbt.png' %}",
+                    'breast': "{% static 'anatomy/breast bilateral.png' %}",
+                    'chest': "{% static 'anatomy/chest.png' %}",
+                    'thorax': "{% static 'anatomy/chest.png' %}",
+                };
+                ratesList.addEventListener('click', (e) => {
+                    const li = e.target.closest('li[data-proc]');
+                    if (!li) return;
+                    // Label update
+                    highlightLabel.textContent = `${li.dataset.proc} — ${li.dataset.part}`;
+                    // Simple placeholder 'highlight movement' to suggest area change
+                    highlightBox.classList.add('animate-pulse');
+                    setTimeout(() => highlightBox.classList.remove('animate-pulse'), 600);
+
+                    // Update anatomy image based on procedure name
+                    const name = (li.dataset.proc || '').toLowerCase();
+                    let matched = '';
+                    for (const key in anatomyMap) {
+                        if (name.includes(key)) { matched = anatomyMap[key]; break; }
+                    }
+                    anatomyImg.src = matched || '';
+                });
+            }
+
+            // ---- Map dynamic update helper (for future coordinates) ----
+            const mapWrapper = document.getElementById('map-wrapper');
+            const mapIframe = document.getElementById('google-map');
+            function setMapByPlace(place, zoom) {
+                if (!mapIframe) return;
+                const z = zoom || 13;
+                const encoded = encodeURIComponent(place);
+                mapIframe.src = `https://www.google.com/maps?q=${encoded}&z=${z}&output=embed`;
+            }
+            if (mapWrapper) {
+                const place = mapWrapper.getAttribute('data-place');
+                const zoom = mapWrapper.getAttribute('data-zoom');
+                if (place) setMapByPlace(place, zoom);
+            }
+
+            // ---- Navbar login modal ----
+            const openNavLogin = document.getElementById('open-nav-login');
+            const navLoginModal = document.getElementById('nav-login-modal');
+            const navLoginClose = document.getElementById('nav-login-close');
+            if (openNavLogin && navLoginModal && navLoginClose) {
+                openNavLogin.addEventListener('click', () => {
+                    navLoginModal.classList.remove('hidden');
+                    navLoginModal.classList.add('flex');
+                });
+                navLoginClose.addEventListener('click', () => {
+                    navLoginModal.classList.add('hidden');
+                    navLoginModal.classList.remove('flex');
+                });
+                navLoginModal.addEventListener('click', (e) => {
+                    if (e.target === navLoginModal) {
+                        navLoginModal.classList.add('hidden');
+                        navLoginModal.classList.remove('flex');
+                    }
+                });
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        navLoginModal.classList.add('hidden');
+                        navLoginModal.classList.remove('flex');
+                    }
+                });
+            }
+
+            // ---- Smooth scrolling for in-page anchors ----
+            const NAV_OFFSET = 72; // approximate sticky navbar height
+            document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+                anchor.addEventListener('click', (e) => {
+                    const href = anchor.getAttribute('href');
+                    if (!href || href === '#') return;
+                    const target = document.querySelector(href);
+                    if (!target) return;
+                    e.preventDefault();
+                    const targetTop = target.getBoundingClientRect().top + window.scrollY - NAV_OFFSET;
+                    window.scrollTo({ top: targetTop, behavior: 'smooth' });
+                });
+            });
+
+            // removed login modal wiring (using dedicated login page instead)
+        });
+    </script>
 </body>
 </html> 

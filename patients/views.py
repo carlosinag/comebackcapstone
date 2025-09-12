@@ -717,6 +717,15 @@ def generate_report(request, exam_id):
 class LandingView(TemplateView):
     template_name = 'landing.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        try:
+            # Active service types for pricing list
+            context['service_types'] = ServiceType.objects.filter(is_active=True).order_by('name')
+        except Exception:
+            context['service_types'] = []
+        return context
+
 def patient_login(request):
     if request.method == 'POST':
         username = request.POST.get('username')
