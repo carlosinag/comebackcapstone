@@ -4,7 +4,7 @@ from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from datetime import datetime, timedelta
 from .models import Patient, UltrasoundExam
-from billing.models import Bill
+from billing.models import Bill, ServiceType
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from decimal import Decimal
@@ -436,3 +436,62 @@ def admin_examinations_export(request, exams_queryset):
     response['Content-Disposition'] = 'attachment; filename=examinations_report.xlsx'
 
     return response
+
+@staff_member_required
+def admin_prices(request):
+    """Admin view for managing service prices"""
+    services = ServiceType.objects.all().order_by('name')
+    
+    # Calculate statistics
+    total_services = services.count()
+    active_services = services.filter(is_active=True).count()
+    
+    if services.exists():
+        prices = [service.base_price for service in services]
+        avg_price = sum(prices) / len(prices)
+        min_price = min(prices)
+        max_price = max(prices)
+    else:
+        avg_price = 0
+        min_price = 0
+        max_price = 0
+    
+    context = {
+        'services': services,
+        'total_services': total_services,
+        'active_services': active_services,
+        'avg_price': avg_price,
+        'min_price': min_price,
+        'max_price': max_price,
+    }
+    
+    return render(request, 'admin/prices.html', context)
+
+@staff_member_required
+@require_POST
+def update_service_price(request):
+    """AJAX endpoint for updating individual service prices"""
+    try:
+        service_id = request.POST.get('service_id')
+        new_price = request.POST.get('new_price')
+        
+        if not service_id or not new_price:
+            return JsonResponse({'success': False, 'error': 'Service ID and price are required'})
+        
+        try:
+            service = ServiceType.objects.get(id=service_id)
+            service.base_price = Decimal(str(new_price))
+            service.save()
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'Price updated successfully for {service.name}',
+                'new_price': str(service.base_price)
+            })
+        except ServiceType.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Service not found'})
+        except (ValueError, TypeError) as e:
+            return JsonResponse({'success': False, 'error': f'Invalid price value: {str(e)}'})
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Error updating price: {str(e)}'})

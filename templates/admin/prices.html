@@ -1,0 +1,258 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Service Prices Management{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+<style>
+    .price-input {
+        width: 120px;
+        text-align: right;
+    }
+    .service-card {
+        transition: all 0.3s ease;
+    }
+    .service-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .status-active {
+        color: #28a745;
+    }
+    .status-inactive {
+        color: #dc3545;
+    }
+    .price-display {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Service Prices Management</h1>
+        <div>
+            <a href="{% url 'admin:billing_servicetype_add' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Service
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Services</h5>
+                    <h3 class="text-primary">{{ total_services }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h5 class="card-title">Active Services</h5>
+                    <h3 class="text-success">{{ active_services }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h5 class="card-title">Average Price</h5>
+                    <h3 class="text-info">₱{{ avg_price|floatformat:0 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Price Range</h5>
+                    <h6 class="text-warning">₱{{ min_price|floatformat:0 }} - ₱{{ max_price|floatformat:0 }}</h6>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Services List -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Service Prices</h6>
+        </div>
+        <div class="card-body">
+            {% if services %}
+                <div class="row">
+                    {% for service in services %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card service-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h5 class="card-title mb-0">{{ service.name }}</h5>
+                                    <span class="badge {% if service.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                        {% if service.is_active %}Active{% else %}Inactive{% endif %}
+                                    </span>
+                                </div>
+                                
+                                {% if service.description %}
+                                <p class="card-text text-muted small mb-3">{{ service.description }}</p>
+                                {% endif %}
+                                
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Current Price:</label>
+                                    <div class="price-display">₱{{ service.base_price|floatformat:2 }}</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="price_{{ service.id }}" class="form-label">Update Price:</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₱</span>
+                                        <input type="number" 
+                                               class="form-control price-input" 
+                                               id="price_{{ service.id }}" 
+                                               value="{{ service.base_price|floatformat:2 }}" 
+                                               step="0.01" 
+                                               min="0"
+                                               data-service-id="{{ service.id }}"
+                                               data-original-price="{{ service.base_price|floatformat:2 }}">
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-primary btn-sm update-price-btn" 
+                                            data-service-id="{{ service.id }}"
+                                            data-service-name="{{ service.name }}">
+                                        <i class="fas fa-save"></i> Update Price
+                                    </button>
+                                    <a href="{% url 'admin:billing_servicetype_change' service.id %}" 
+                                       class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-edit"></i> Edit Service
+                                    </a>
+                                </div>
+                                
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        Last updated: {{ service.updated_at|date:"M d, Y H:i" }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No services found</h5>
+                    <p class="text-muted">Add your first service to get started.</p>
+                    <a href="{% url 'admin:billing_servicetype_add' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add New Service
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize toastr
+    toastr.options = {
+        "closeButton": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "timeOut": "3000"
+    };
+
+    // Handle price updates
+    document.querySelectorAll('.update-price-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const serviceId = this.dataset.serviceId;
+            const serviceName = this.dataset.serviceName;
+            const priceInput = document.getElementById(`price_${serviceId}`);
+            const newPrice = priceInput.value;
+            const originalPrice = priceInput.dataset.originalPrice;
+
+            if (!newPrice || parseFloat(newPrice) < 0) {
+                toastr.error('Please enter a valid price');
+                return;
+            }
+
+            if (parseFloat(newPrice) === parseFloat(originalPrice)) {
+                toastr.info('Price is already set to this value');
+                return;
+            }
+
+            // Disable button and show loading
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+            // Get CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            // Make AJAX request
+            fetch('{% url "update_service_price" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
+                },
+                body: `service_id=${serviceId}&new_price=${newPrice}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    toastr.success(data.message);
+                    // Update the displayed price
+                    const priceDisplay = this.closest('.card-body').querySelector('.price-display');
+                    priceDisplay.textContent = `₱${parseFloat(data.new_price).toFixed(2)}`;
+                    // Update original price for future comparisons
+                    priceInput.dataset.originalPrice = data.new_price;
+                } else {
+                    toastr.error(data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                toastr.error('An error occurred while updating the price');
+            })
+            .finally(() => {
+                // Re-enable button
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-save"></i> Update Price';
+            });
+        });
+    });
+
+    // Handle Enter key in price inputs
+    document.querySelectorAll('.price-input').forEach(input => {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const serviceId = this.dataset.serviceId;
+                const updateBtn = document.querySelector(`[data-service-id="${serviceId}"].update-price-btn`);
+                if (updateBtn) {
+                    updateBtn.click();
+                }
+            }
+        });
+    });
+
+    // Validate price inputs
+    document.querySelectorAll('.price-input').forEach(input => {
+        input.addEventListener('input', function() {
+            const value = parseFloat(this.value);
+            if (value < 0) {
+                this.value = 0;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
