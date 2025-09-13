@@ -6,6 +6,7 @@ urlpatterns = [
     # Landing and authentication
     path('', views.LandingView.as_view(), name='landing'),
     path('staff-login/', views.staff_login, name='staff_login'),
+    path('staff-logout/', views.staff_logout, name='staff_logout'),
     path('patient-login/', views.patient_login, name='patient_login'),
     path('patient-portal/', views.patient_portal, name='patient-portal'),
     path('patient-logout/', views.patient_logout, name='patient_logout'),
@@ -73,4 +74,10 @@ urlpatterns = [
     path('custom-admin/get-total-expenses/', admin_views.get_total_expenses, name='get_total_expenses'),
     path('custom-admin/prices/', admin_views.admin_prices, name='admin_prices'),
     path('custom-admin/update-service-price/', admin_views.update_service_price, name='update_service_price'),
+    path('custom-admin/users/', admin_views.admin_users, name='admin_users'),
+    path('custom-admin/users/<int:user_id>/edit/', admin_views.admin_edit_user, name='admin_edit_user'),
+    path('custom-admin/users/<int:user_id>/change-password/', admin_views.admin_change_user_password, name='admin_change_user_password'),
+    
+    # Forbidden page for invalid navigation
+    path('forbidden/', views.forbidden_page, name='forbidden'),
 ] 

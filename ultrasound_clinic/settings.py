@@ -35,6 +35,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'patients.middleware.NavigationControlMiddleware',
 ]
 
 ROOT_URLCONF = 'ultrasound_clinic.urls'
@@ -108,6 +109,17 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'carlosinagx@gmail.com'  
 EMAIL_HOST_PASSWORD = 'dqmq bhcs kvcu tasv'  
+
+# Messages Framework Configuration
+from django.contrib.messages import constants as messages
+
+MESSAGE_TAGS = {
+    messages.DEBUG: 'debug',
+    messages.INFO: 'info',
+    messages.SUCCESS: 'success',
+    messages.WARNING: 'warning',
+    messages.ERROR: 'danger',
+}
 
 # Clinic Information
 CLINIC_NAME = 'MSRA Services'
