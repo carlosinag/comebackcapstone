@@ -156,11 +156,8 @@
                                                                     </button>
                                                                 </div>
                                                                 <div class="btn-group" role="group" aria-label="Save">
-                                                                    <button class="btn btn-success btn-sm" onclick="saveAnnotations('{{ image.id }}')" title="Save measurements & notes">
-                                                                        <i class="fas fa-save me-1"></i>Save
-                                                                    </button>
-                                                                    <button class="btn btn-primary btn-sm" onclick="saveAnnotationPreview('{{ image.id }}')" title="Export preview image">
-                                                                        <i class="fas fa-download me-1"></i>Save Preview
+                                                                    <button class="btn btn-success btn-sm" onclick="saveAll('{{ image.id }}')" title="Save annotations, drawing notes, and preview image">
+                                                                        <i class="fas fa-save me-1"></i>Save All
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -171,12 +168,7 @@
                                                                 </div>
                                                             </div>
                                                             <div class="annotation-preview mt-4">
-                                                                <h6 class="mb-3">
-                                                                    Annotation Preview
-                                                                    <button class="btn btn-outline-primary btn-sm float-end" onclick="saveAnnotationPreview('{{ image.id }}')">
-                                                                        <i class="fas fa-download"></i> Save Preview
-                                                                    </button>
-                                                                </h6>
+                                                                <h6 class="mb-3">Annotation Preview</h6>
                                                                 <div class="card">
                                                                     <div class="card-body">
                                                                         <div class="mb-3">
@@ -1200,6 +1192,7 @@
     }
 
     function saveAnnotations(imageId) {
+        // Deprecated in favor of saveAll, but keep for safety
         const canvas = canvases[imageId];
         const procedureTypeHidden = document.getElementById(`procedure-type-${imageId}`);
         const procedureType = procedureTypeHidden ? procedureTypeHidden.value : '';
@@ -1401,6 +1394,7 @@
     }
 
     function saveAnnotationPreview(imageId) {
+        // Called by saveAll
         const canvas = canvases[imageId];
         const procedureTypeHidden = document.getElementById(`procedure-type-${imageId}`);
         const procedureType = procedureTypeHidden ? procedureTypeHidden.value : '';
@@ -1669,6 +1663,55 @@
                 errorMessage.remove();
             }, 5000);
         });
+    }
+
+    async function saveAll(imageId) {
+        // 1) Save annotations/measurements/notes/drawing_notes
+        await new Promise((resolve) => {
+            const canvas = canvases[imageId];
+            const procedureTypeHidden = document.getElementById(`procedure-type-${imageId}`);
+            const procedureType = procedureTypeHidden ? procedureTypeHidden.value : '';
+            if (!procedureType) {
+                alert('No procedure type found. Please refresh the page and try again.');
+                resolve();
+                return;
+            }
+
+            const cleanedProcedureType = procedureType.toLowerCase()
+                .replace(/\s+ultrasound/i, '')
+                .replace(/\s+/g, '')
+                .trim();
+
+            const measurementData = {};
+            const fields = procedureFields[cleanedProcedureType] || [];
+            fields.forEach(field => {
+                const input = document.getElementById(`${field.id}-${imageId}`);
+                if (input && input.value) {
+                    measurementData[field.id] = input.value;
+                }
+            });
+
+            const notes = (document.getElementById(`notes-${imageId}`)?.value || '').trim();
+
+            const payload = {
+                annotations: canvas.toJSON(['measurementId','drawingId','labelType','associatedId']),
+                measurements: measurementData,
+                procedure_type: procedureType,
+                notes: notes,
+                drawing_notes: drawingNotes[imageId] || {}
+            };
+
+            const loadingIndicator = document.getElementById('loading-indicator');
+            if (loadingIndicator) loadingIndicator.style.display = 'block';
+            fetch(`/api/exams/${imageId}/annotations/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify(payload)
+            }).then(r => r.json()).then(() => resolve()).catch(() => resolve());
+        });
+
+        // 2) Save preview and redirect per existing behavior
+        saveAnnotationPreview(imageId);
     }
 </script>
 {% endblock %} 
