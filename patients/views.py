@@ -547,6 +547,13 @@ def dashboard(request):
         return render(request, 'dashboard.html', {'error': str(e)})
 
 def home_dashboard(request):
+    from django.db.models import Sum, Count
+    from datetime import timedelta
+    from billing.models import Bill
+    from .models import Appointment
+    import json
+    from collections import defaultdict
+    
     # Get search parameter
     patient_search = request.GET.get('patient_search', '')
     
@@ -554,22 +561,132 @@ def home_dashboard(request):
     if patient_search:
         searched_patients = Patient.objects.filter(is_archived=False).filter(
             models.Q(first_name__icontains=patient_search) |
-            models.Q(last_name__icontains=patient_search)
-        ).order_by('-created_at')[:5]
+            models.Q(last_name__icontains=patient_search) |
+            models.Q(contact_number__icontains=patient_search) |
+            models.Q(id_number__icontains=patient_search)
+        ).order_by('-created_at')[:10]  # Show more results for search
     else:
         searched_patients = None
 
-    # Get recent patients (when not searching)
-    recent_patients = Patient.objects.filter(is_archived=False).order_by('-created_at')[:5]
+    # Calculate KPIs
+    today = timezone.now().date()
     
-    # Get recent procedures
-    recent_exams = UltrasoundExam.objects.select_related('patient').order_by('-exam_date', '-exam_time')[:5]
+    # Basic counts
+    total_patients = Patient.objects.filter(is_archived=False).count()
+    total_procedures = UltrasoundExam.objects.count()
+    
+    # Revenue calculations
+    total_revenue = Bill.objects.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    pending_bills = Bill.objects.filter(status='PENDING').count()
+    
+    # Appointment counts
+    pending_appointments = Appointment.objects.filter(status='PENDING').count()
+    today_appointments = Appointment.objects.filter(appointment_date=today).count()
+    
+    # Advanced KPIs
+    ninety_days_ago = today - timedelta(days=90)
+    six_months_ago = today - timedelta(days=180)
+    month_start = today.replace(day=1)
+
+    # Active patients in last 90 days
+    active_patients_qs = UltrasoundExam.objects.filter(
+        exam_date__gte=ninety_days_ago
+    ).values('patient').distinct()
+    active_patients_90d = active_patients_qs.count()
+
+    # New patients this month
+    new_patients_month = Patient.objects.filter(
+        is_archived=False,
+        created_at__date__gte=month_start
+    ).count()
+
+    # Average procedures per patient (lifetime)
+    distinct_patients_with_exam = UltrasoundExam.objects.values('patient').distinct().count()
+    avg_procs = (total_procedures / distinct_patients_with_exam) if distinct_patients_with_exam else 0
+    avg_procedures_per_patient = f"{avg_procs:.2f}"
+
+    # Returning patient rate (last 6 months)
+    recent_exam_counts = (
+        UltrasoundExam.objects.filter(exam_date__gte=six_months_ago)
+        .values('patient')
+        .annotate(num_exams=Count('id'))
+    )
+    num_recent_unique = recent_exam_counts.count()
+    num_returning = sum(1 for r in recent_exam_counts if r['num_exams'] >= 2)
+    returning_rate = (num_returning / num_recent_unique * 100) if num_recent_unique else 0
+    returning_rate_percent = f"{returning_rate:.1f}"
+
+    # Chart Data
+    # Monthly Revenue Data (Last 6 months)
+    monthly_revenue_data = []
+    monthly_revenue_labels = []
+    for i in range(6):
+        month_date = today.replace(day=1) - timedelta(days=30*i)
+        month_revenue = Bill.objects.filter(
+            bill_date__year=month_date.year,
+            bill_date__month=month_date.month,
+            status__in=['PAID', 'PARTIAL']
+        ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        monthly_revenue_data.append(float(month_revenue))
+        monthly_revenue_labels.append(month_date.strftime('%b %Y'))
+    
+    monthly_revenue_data.reverse()
+    monthly_revenue_labels.reverse()
+
+    # Procedure Distribution Data
+    procedure_data = []
+    procedure_labels = []
+    procedures = UltrasoundExam.objects.values('procedure_type__name').annotate(count=Count('id')).order_by('-count')[:8]
+    for proc in procedures:
+        procedure_data.append(proc['count'])
+        procedure_labels.append(proc['procedure_type__name'] or 'Unknown')
+
+    # Monthly Activity Data (Last 6 months)
+    activity_labels = []
+    activity_procedures = []
+    activity_patients = []
+    
+    for i in range(6):
+        month_date = today.replace(day=1) - timedelta(days=30*i)
+        month_procedures = UltrasoundExam.objects.filter(
+            exam_date__year=month_date.year,
+            exam_date__month=month_date.month
+        ).count()
+        month_patients = Patient.objects.filter(
+            is_archived=False,
+            created_at__year=month_date.year,
+            created_at__month=month_date.month
+        ).count()
+        
+        activity_labels.append(month_date.strftime('%b'))
+        activity_procedures.append(month_procedures)
+        activity_patients.append(month_patients)
+    
+    activity_labels.reverse()
+    activity_procedures.reverse()
+    activity_patients.reverse()
     
     context = {
-        'recent_patients': recent_patients,
         'searched_patients': searched_patients,
-        'recent_exams': recent_exams,
         'search_term': patient_search,
+        'total_patients': total_patients,
+        'total_procedures': total_procedures,
+        'total_revenue': f"{total_revenue:,.2f}",
+        'pending_bills': pending_bills,
+        'active_patients_90d': active_patients_90d,
+        'new_patients_month': new_patients_month,
+        'avg_procedures_per_patient': avg_procedures_per_patient,
+        'returning_rate_percent': returning_rate_percent,
+        'pending_appointments': pending_appointments,
+        'today_appointments': today_appointments,
+        # Chart data
+        'monthly_revenue_labels': json.dumps(monthly_revenue_labels),
+        'monthly_revenue_data': json.dumps(monthly_revenue_data),
+        'procedure_labels': json.dumps(procedure_labels),
+        'procedure_data': json.dumps(procedure_data),
+        'activity_labels': json.dumps(activity_labels),
+        'activity_procedures': json.dumps(activity_procedures),
+        'activity_patients': json.dumps(activity_patients),
     }
     
     return render(request, 'home_dashboard.html', context)
