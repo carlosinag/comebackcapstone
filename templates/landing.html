@@ -7,6 +7,7 @@
     <title>MSRA Ultrasound Clinic</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 font-sans">
     <!-- Top Contact Bar -->
@@ -431,6 +432,13 @@
                     'breast': "{% static 'anatomy/breast bilateral.png' %}",
                     'chest': "{% static 'anatomy/chest.png' %}",
                     'thorax': "{% static 'anatomy/chest.png' %}",
+                    'kub': "{% static 'anatomy/kub.png' %}",
+                    'neck': "{% static 'anatomy/neck.png' %}",
+                    'one organ': "{% static 'anatomy/one organ.png' %}",
+                    'pelvic': "{% static 'anatomy/pelvic.png' %}",
+                    'thyroid': "{% static 'anatomy/thyroid.png' %}",
+                    'prostate gland': "{% static 'anatomy/prostate gland.png' %}",
+                    'scrotal': "{% static 'anatomy/inguino scrotal.png' %}",
                 };
                 ratesList.addEventListener('click', (e) => {
                     const li = e.target.closest('li[data-proc]');
@@ -508,6 +516,59 @@
             });
 
             // removed login modal wiring (using dedicated login page instead)
+        });
+    </script>
+    
+    <!-- Notification System -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script>
+        // Configure Toastr
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        };
+
+        $(document).ready(function() {
+            // Handle Django messages with Toastr
+            {% if messages %}
+                {% for message in messages %}
+                    {% if message.tags == 'success' %}
+                        if (typeof toastr !== 'undefined') {
+                            toastr.success('{{ message|escapejs }}');
+                        }
+                    {% elif message.tags == 'error' %}
+                        if (typeof toastr !== 'undefined') {
+                            toastr.error('{{ message|escapejs }}');
+                        }
+                    {% elif message.tags == 'warning' %}
+                        if (typeof toastr !== 'undefined') {
+                            toastr.warning('{{ message|escapejs }}');
+                        }
+                    {% elif message.tags == 'info' %}
+                        if (typeof toastr !== 'undefined') {
+                            toastr.info('{{ message|escapejs }}');
+                        }
+                    {% else %}
+                        if (typeof toastr !== 'undefined') {
+                            toastr.info('{{ message|escapejs }}');
+                        }
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
         });
     </script>
 </body>

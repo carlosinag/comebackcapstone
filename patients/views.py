@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.views.generic import ListView, DetailView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
-from django.http import JsonResponse, HttpResponseRedirect, HttpResponse
+from django.http import JsonResponse, HttpResponseRedirect, HttpResponse, Http404
 from django.views.decorators.http import require_http_methods
 from django.db import models, transaction
 from .models import Patient, UltrasoundExam, UltrasoundImage, FamilyGroup, Appointment
@@ -16,13 +16,78 @@ from billing.models import Bill, ServiceType
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, AccessMixin
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import REDIRECT_FIELD_NAME
 from docx import Document
 from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from functools import wraps
 
-class PatientListView(ListView):
+def custom_staff_member_required(view_func):
+    """
+    Custom decorator that requires staff membership and redirects to forbidden page
+    instead of Django admin login.
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('forbidden')
+        if not request.user.is_staff:
+            return redirect('forbidden')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+class CustomStaffRequiredMixin(AccessMixin):
+    """
+    Custom mixin that requires staff membership and redirects to forbidden page
+    instead of Django admin login.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('forbidden')
+        if not request.user.is_staff:
+            return redirect('forbidden')
+        return super().dispatch(request, *args, **kwargs)
+
+def require_valid_navigation(view_func):
+    """
+    Decorator to ensure views are accessed through proper navigation flow.
+    Redirects to forbidden page if accessed directly via URL.
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        # Check if request has proper referrer
+        referer = request.META.get('HTTP_REFERER', '')
+        
+        # Allow POST requests (form submissions)
+        if request.method == 'POST':
+            return view_func(request, *args, **kwargs)
+        
+        # Allow if referrer is from the same domain and a valid page
+        if referer and referer.startswith(request.build_absolute_uri('/')):
+            # Check if referrer is from a valid page
+            valid_referrer_patterns = [
+                '/patients/',
+                '/patient/',
+                '/custom-admin/',
+                '/patient-portal/',
+                '/patient-appointments/',
+                '/staff/appointments/',
+                '/home/',
+                '/dashboard/',
+            ]
+            
+            for pattern in valid_referrer_patterns:
+                if pattern in referer:
+                    return view_func(request, *args, **kwargs)
+        
+        # If no valid referrer, redirect to forbidden page
+        return redirect('forbidden')
+    
+    return wrapper
+
+class PatientListView(CustomStaffRequiredMixin, ListView):
     model = Patient
     template_name = 'patients/patient_list.html'
     context_object_name = 'patients'
@@ -163,7 +228,7 @@ class PatientListView(ListView):
         }
         return context
 
-class PatientDetailView(DetailView):
+class PatientDetailView(CustomStaffRequiredMixin, DetailView):
     model = Patient
     template_name = 'patients/patient_detail.html'
     context_object_name = 'patient'
@@ -174,7 +239,7 @@ class PatientDetailView(DetailView):
         context['exams'] = self.object.ultrasound_exams.all().order_by('-exam_date', '-exam_time')
         return context
 
-class PatientCreateView(CreateView):
+class PatientCreateView(CustomStaffRequiredMixin, CreateView):
     model = Patient
     form_class = PatientForm
     template_name = 'patients/patient_form.html'
@@ -184,6 +249,8 @@ class PatientCreateView(CreateView):
         messages.success(self.request, 'Patient record created successfully.')
         return super().form_valid(form)
 
+@method_decorator(custom_staff_member_required, name='dispatch')
+@method_decorator(require_valid_navigation, name='dispatch')
 class PatientUpdateView(UpdateView):
     model = Patient
     form_class = PatientForm
@@ -203,6 +270,8 @@ class PatientUpdateView(UpdateView):
             return redirect('patient-detail', pk=patient.pk)
         return super().dispatch(request, *args, **kwargs)
 
+@method_decorator(custom_staff_member_required, name='dispatch')
+@method_decorator(require_valid_navigation, name='dispatch')
 class PatientDeleteView(LoginRequiredMixin, DeleteView):
     model = Patient
     template_name = 'patients/patient_confirm_delete.html'
@@ -247,7 +316,7 @@ class ArchivedPatientListView(ListView):
             )
         return queryset
 
-@staff_member_required
+@custom_staff_member_required
 def unarchive_patient(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
     patient.is_archived = False
@@ -256,6 +325,8 @@ def unarchive_patient(request, pk):
     messages.success(request, 'Patient restored from archive.')
     return redirect('archived-patient-list')
 
+@method_decorator(staff_member_required, name='dispatch')
+@method_decorator(require_valid_navigation, name='dispatch')
 class UltrasoundExamCreateView(CreateView):
     model = UltrasoundExam
     form_class = UltrasoundExamForm
@@ -303,6 +374,8 @@ class UltrasoundExamCreateView(CreateView):
     def get_success_url(self):
         return reverse_lazy('patient-detail', kwargs={'pk': self.object.patient.pk})
 
+@method_decorator(staff_member_required, name='dispatch')
+@method_decorator(require_valid_navigation, name='dispatch')
 class UltrasoundExamUpdateView(UpdateView):
     model = UltrasoundExam
     form_class = UltrasoundExamForm
@@ -331,12 +404,12 @@ class UltrasoundExamUpdateView(UpdateView):
     def get_success_url(self):
         return reverse_lazy('patient-detail', kwargs={'pk': self.object.patient.pk})
 
-class UltrasoundExamDetailView(DetailView):
+class UltrasoundExamDetailView(CustomStaffRequiredMixin, DetailView):
     model = UltrasoundExam
     template_name = 'patients/ultrasound_detail.html'
     context_object_name = 'exam'
 
-class ImageAnnotationView(DetailView):
+class ImageAnnotationView(CustomStaffRequiredMixin, DetailView):
     model = Patient
     template_name = 'patients/image_annotation.html'
     context_object_name = 'patient'
@@ -363,6 +436,8 @@ class ImageAnnotationView(DetailView):
         context['procedure_types'] = ServiceType.objects.filter(is_active=True)
         return context
 
+@custom_staff_member_required
+@require_valid_navigation
 @require_http_methods(["POST"])
 def exam_image_upload(request, patient_id):
     patient = get_object_or_404(Patient, pk=patient_id)
@@ -395,6 +470,7 @@ def exam_image_upload(request, patient_id):
     
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
+@custom_staff_member_required
 @require_http_methods(["POST"])
 def delete_ultrasound_image(request, image_id):
     if not request.user.is_authenticated:
@@ -407,6 +483,7 @@ def delete_ultrasound_image(request, image_id):
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
+@custom_staff_member_required
 def dashboard(request):
     try:
         today = timezone.now().date()
@@ -546,6 +623,7 @@ def dashboard(request):
         messages.error(request, f'Error loading dashboard: {str(e)}')
         return render(request, 'dashboard.html', {'error': str(e)})
 
+@custom_staff_member_required
 def home_dashboard(request):
     from django.db.models import Sum, Count
     from datetime import timedelta
@@ -703,6 +781,7 @@ def admin_login(request):
         
         if user is not None and user.is_staff:
             login(request, user)
+            messages.success(request, f'Welcome back, {user.username}! You have been successfully logged in.')
             next_url = request.POST.get('next') or request.GET.get('next')
             if next_url:
                 return redirect(next_url)
@@ -713,11 +792,13 @@ def admin_login(request):
     
     return render(request, 'admin_login.html')
 
+@custom_staff_member_required
 def confirm_family_relationship(request, last_name):
     # This feature has been removed. Redirect back to patient creation.
     messages.info(request, 'Family confirmation step is no longer required.')
     return redirect('patient-create')
 
+@custom_staff_member_required
 def family_medical_history(request, family_group_id):
     family_group = get_object_or_404(FamilyGroup, id=family_group_id)
     family_members = family_group.family_members.all()
@@ -788,6 +869,7 @@ def get_recommendation_stats(exams):
         recommendations[rec] = recommendations.get(rec, 0) + 1
     return recommendations
 
+@custom_staff_member_required
 def generate_report(request, exam_id):
     exam = get_object_or_404(UltrasoundExam, id=exam_id)
     
@@ -851,6 +933,7 @@ def patient_login(request):
         
         if user is not None and hasattr(user, 'patient'):
             login(request, user)
+            messages.success(request, f'Welcome back, {user.username}! You have been successfully logged in.')
             return redirect('patient-portal')
         else:
             messages.error(request, 'Invalid username or password.')
@@ -876,6 +959,11 @@ def patient_logout(request):
     messages.success(request, 'You have been successfully logged out.')
     return redirect('landing')
 
+def staff_logout(request):
+    logout(request)
+    messages.success(request, 'You have been successfully logged out.')
+    return redirect('staff_login')
+
 def staff_login(request):
     # Clear all messages
     storage = messages.get_messages(request)
@@ -888,6 +976,7 @@ def staff_login(request):
         
         if user is not None and user.is_staff and not user.is_superuser:
             login(request, user)
+            messages.success(request, f'Welcome back, {user.username}! You have been successfully logged in.')
             next_url = request.POST.get('next') or request.GET.get('next')
             if next_url:
                 return redirect(next_url)
@@ -917,6 +1006,7 @@ def patient_view_exam(request, exam_id):
     }
     return render(request, 'patients/patient_exam_detail.html', context)
 
+@custom_staff_member_required
 def download_ultrasound_docx(request, pk):
     exam = get_object_or_404(UltrasoundExam, pk=pk)
     
@@ -1291,7 +1381,7 @@ def patient_cancel_appointment(request, appointment_id):
     }
     return render(request, 'patients/patient_cancel_appointment.html', context) 
 
-@staff_member_required
+@custom_staff_member_required
 def staff_appointments(request):
     """Staff view to manage all appointments."""
     # Get filter parameters
@@ -1325,7 +1415,7 @@ def staff_appointments(request):
     }
     return render(request, 'patients/staff_appointments.html', context)
 
-@staff_member_required
+@custom_staff_member_required
 def staff_appointment_detail(request, appointment_id):
     """Staff view to see appointment details and manage status."""
     appointment = get_object_or_404(Appointment, id=appointment_id)
@@ -1343,7 +1433,7 @@ def staff_appointment_detail(request, appointment_id):
     }
     return render(request, 'patients/staff_appointment_detail.html', context)
 
-@staff_member_required
+@custom_staff_member_required
 def staff_confirm_appointment(request, appointment_id):
     """Staff view to confirm an appointment."""
     appointment = get_object_or_404(Appointment, id=appointment_id)
@@ -1359,7 +1449,7 @@ def staff_confirm_appointment(request, appointment_id):
     }
     return render(request, 'patients/staff_confirm_appointment.html', context)
 
-@staff_member_required
+@custom_staff_member_required
 def staff_cancel_appointment(request, appointment_id):
     """Staff view to cancel an appointment."""
     appointment = get_object_or_404(Appointment, id=appointment_id)
@@ -1375,7 +1465,7 @@ def staff_cancel_appointment(request, appointment_id):
     }
     return render(request, 'patients/staff_cancel_appointment.html', context)
 
-@staff_member_required
+@custom_staff_member_required
 def staff_complete_appointment(request, appointment_id):
     """Staff view to mark an appointment as completed."""
     appointment = get_object_or_404(Appointment, id=appointment_id)
@@ -1389,4 +1479,8 @@ def staff_complete_appointment(request, appointment_id):
     context = {
         'appointment': appointment,
     }
-    return render(request, 'patients/staff_complete_appointment.html', context) 
+    return render(request, 'patients/staff_complete_appointment.html', context)
+
+def forbidden_page(request):
+    """Custom forbidden page for invalid navigation attempts"""
+    return render(request, 'forbidden.html') 
