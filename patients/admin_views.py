@@ -569,3 +569,15 @@ def admin_change_user_password(request, user_id):
     }
     
     return render(request, 'admin/change_user_password.html', context)
+
+from .forms import ServiceForm
+
+def add_procedure(request):
+    if request.method == 'POST':
+        form = ServiceForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('admin_prices')
+    else:
+        form = ServiceForm()
+    return render(request, 'admin/add_procedure_new.html', {'form': form})

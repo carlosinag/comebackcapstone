@@ -1,0 +1,351 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Add New Procedure{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-plus-circle text-primary me-2"></i>
+                        Add New Procedure
+                    </h1>
+                    <p class="text-muted mt-1 mb-0">Create a new medical procedure for your clinic</p>
+                </div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'admin_prices' %}">Prices</a></li>
+                        <li class="breadcrumb-item active">Add Procedure</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Form Card -->
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-10">
+            <div class="card shadow-lg border-0 rounded-lg">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-stethoscope me-2"></i>
+                        Procedure Information
+                    </h5>
+                </div>
+
+                <div class="card-body p-4">
+                    <form method="POST" action="{% url 'add_service' %}" novalidate>
+                        {% csrf_token %}
+
+                        <div class="row">
+                            <!-- Left Column -->
+                            <div class="col-md-6">
+                                <!-- Procedure Name -->
+                                <div class="form-group mb-4">
+                                    <label for="{{ form.name.id_for_label }}" class="form-label fw-bold">
+                                        <i class="fas fa-tag text-primary me-2"></i>
+                                        Procedure Name *
+                                    </label>
+                                    {{ form.name }}
+                                    {% if form.name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.name.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">
+                                        Enter a descriptive name for the medical procedure
+                                    </small>
+                                </div>
+
+                                <!-- Base Price -->
+                                <div class="form-group mb-4">
+                                    <label for="{{ form.base_price.id_for_label }}" class="form-label fw-bold">
+                                        <i class="fas fa-peso-sign text-success me-2"></i>
+                                        Base Price (₱) *
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </span>
+                                        {{ form.base_price }}
+                                    </div>
+                                    {% if form.base_price.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.base_price.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">
+                                        Set the standard price for this procedure
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Right Column -->
+                            <div class="col-md-6">
+                                <!-- Description -->
+                                <div class="form-group mb-4">
+                                    <label for="{{ form.description.id_for_label }}" class="form-label fw-bold">
+                                        <i class="fas fa-align-left text-info me-2"></i>
+                                        Description
+                                    </label>
+                                    {{ form.description }}
+                                    {% if form.description.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.description.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">
+                                        Provide details about what this procedure involves
+                                    </small>
+                                </div>
+
+                                <!-- Active Status -->
+                                <div class="form-group mb-4">
+                                    <label for="{{ form.is_active.id_for_label }}" class="form-label fw-bold">
+                                        <i class="fas fa-toggle-on text-warning me-2"></i>
+                                        Status
+                                    </label>
+                                    <div class="form-check form-switch">
+                                        {{ form.is_active }}
+                                        <label class="form-check-label ms-2" for="{{ form.is_active.id_for_label }}">
+                                            <span class="badge bg-success-subtle text-success" id="status-text">
+                                                <i class="fas fa-check-circle me-1"></i>
+                                                Active
+                                            </span>
+                                        </label>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Enable this procedure for patient bookings
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <hr class="my-4">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <a href="{% url 'admin_prices' %}" class="btn btn-outline-secondary btn-lg">
+                                        <i class="fas fa-arrow-left me-2"></i>
+                                        Back to Prices
+                                    </a>
+
+                                    <div class="btn-group">
+                                        <button type="reset" class="btn btn-outline-warning btn-lg me-2">
+                                            <i class="fas fa-undo me-2"></i>
+                                            Reset Form
+                                        </button>
+
+                                        <button type="submit" class="btn btn-primary btn-lg">
+                                            <i class="fas fa-save me-2"></i>
+                                            Add Procedure
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h6 class="card-title text-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Tips for Adding Procedures
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Use clear, descriptive names
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Set competitive pricing
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Provide detailed descriptions
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Keep procedures active for bookings
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Review pricing regularly
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Update descriptions as needed
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom styles for enhanced appearance */
+.card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.input-group-text {
+    border-color: #ced4da;
+}
+
+.btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #0d6efd, #6610f2);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(45deg, #0b5ed7, #5a0fc8);
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.form-switch .form-check-input {
+    width: 3em;
+    height: 1.5em;
+    margin-left: 0;
+}
+
+.form-switch .form-check-input:checked {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 2rem 1rem !important;
+    }
+
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-group .btn {
+        margin-bottom: 0.5rem;
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+// Enhanced form interactions
+document.addEventListener('DOMContentLoaded', function() {
+    // Status toggle animation
+    const statusToggle = document.getElementById('{{ form.is_active.id_for_label }}');
+    const statusText = document.getElementById('status-text');
+
+    if (statusToggle) {
+        statusToggle.addEventListener('change', function() {
+            if (this.checked) {
+                statusText.innerHTML = '<i class="fas fa-check-circle me-1"></i> Active';
+                statusText.className = 'badge bg-success-subtle text-success';
+            } else {
+                statusText.innerHTML = '<i class="fas fa-times-circle me-1"></i> Inactive';
+                statusText.className = 'badge bg-danger-subtle text-danger';
+            }
+        });
+    }
+
+    // Form validation enhancement
+    const form = document.querySelector('form');
+    const requiredFields = form.querySelectorAll('[required]');
+
+    requiredFields.forEach(field => {
+        field.addEventListener('blur', function() {
+            if (this.value.trim() === '') {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+
+        field.addEventListener('input', function() {
+            if (this.classList.contains('is-invalid') && this.value.trim() !== '') {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+    });
+
+    // Price input formatting
+    const priceField = document.getElementById('{{ form.base_price.id_for_label }}');
+    if (priceField) {
+        priceField.addEventListener('input', function(e) {
+            // Allow only numbers and decimal point
+            let value = e.target.value.replace(/[^0-9.]/g, '');
+            // Ensure only one decimal point
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            e.target.value = value;
+        });
+    }
+
+    // Auto-resize textarea
+    const textareas = document.querySelectorAll('textarea');
+    textareas.forEach(textarea => {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+    });
+});
+</script>
+{% endblock %}

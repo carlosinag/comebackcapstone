@@ -331,3 +331,9 @@ class StaffPasswordChangeForm(forms.Form):
         if commit:
             self.user.save()
         return self.user 
+
+from billing.models import ServiceType
+class ServiceForm(forms.ModelForm):
+    class Meta:
+        model = ServiceType
+        fields = ['name', 'description', 'base_price', 'is_active']
