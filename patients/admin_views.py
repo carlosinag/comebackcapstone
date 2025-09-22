@@ -1,5 +1,5 @@
 from django.contrib.admin.views.decorators import staff_member_required
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404, redirect, get_object_or_404, redirect
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from datetime import datetime, timedelta
@@ -581,3 +581,73 @@ def add_procedure(request):
     else:
         form = ServiceForm()
     return render(request, 'admin/add_procedure_new.html', {'form': form})
+
+@custom_staff_member_required
+def admin_users(request):
+    """Admin view for managing staff users"""
+    # Get all staff users (is_staff=True)
+    users = User.objects.filter(is_staff=True).order_by('username')
+    
+    # Calculate statistics
+    total_staff = users.count()
+    active_staff = users.filter(is_active=True).count()
+    inactive_staff = users.filter(is_active=False).count()
+    superusers = users.filter(is_superuser=True).count()
+    
+    context = {
+        'users': users,
+        'total_staff': total_staff,
+        'active_staff': active_staff,
+        'inactive_staff': inactive_staff,
+        'superusers': superusers,
+    }
+    
+    return render(request, 'admin/users.html', context)
+
+@custom_staff_member_required
+@require_valid_navigation
+def admin_edit_user(request, user_id):
+    """Admin view for editing a staff user"""
+    user = get_object_or_404(User, id=user_id, is_staff=True)
+    
+    if request.method == 'POST':
+        form = StaffUserForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'User {user.username} updated successfully.')
+            return redirect('admin_users')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = StaffUserForm(instance=user)
+    
+    context = {
+        'form': form,
+        'user': user,
+    }
+    
+    return render(request, 'admin/edit_user.html', context)
+
+@custom_staff_member_required
+@require_valid_navigation
+def admin_change_user_password(request, user_id):
+    """Admin view for changing a staff user's password"""
+    user = get_object_or_404(User, id=user_id, is_staff=True)
+    
+    if request.method == 'POST':
+        form = StaffPasswordChangeForm(user, request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Password for {user.username} changed successfully.')
+            return redirect('admin_users')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = StaffPasswordChangeForm(user)
+    
+    context = {
+        'form': form,
+        'user': user,
+    }
+    
+    return render(request, 'admin/change_user_password.html', context)
