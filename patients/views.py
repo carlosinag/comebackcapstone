@@ -545,7 +545,13 @@ def dashboard(request):
         # Findings Distribution
         findings = UltrasoundExam.objects.values('recommendations').annotate(count=Count('id'))
         context['findings_distribution_data'] = [f['count'] for f in findings]
-        context['findings_distribution_labels'] = [dict(UltrasoundExam.RECOMMENDATION_CHOICES)[f['recommendations']] for f in findings]
+        
+        # Safe mapping of recommendations with fallback
+        recommendation_map = dict(UltrasoundExam.RECOMMENDATION_CHOICES)
+        context['findings_distribution_labels'] = [
+            recommendation_map.get(f['recommendations'], f['recommendations']) 
+            for f in findings
+        ]
 
         # Monthly Revenue
         monthly_revenue = Bill.objects.filter(
@@ -616,6 +622,107 @@ def dashboard(request):
         )
         context['top_patients_labels'] = [f"{t['patient__first_name']} {t['patient__last_name']}".strip() for t in top_revenue]
         context['top_patients_revenue'] = [float(t['total']) if t['total'] else 0 for t in top_revenue]
+
+        # Revenue by Procedure Type
+        from billing.models import BillItem
+        procedure_revenue = (
+            BillItem.objects.filter(
+                bill__status__in=['PAID', 'PARTIAL']
+            )
+            .values('service__name')
+            .annotate(
+                total_revenue=Sum('amount'),
+                procedure_count=Count('id')
+            )
+            .order_by('-total_revenue')
+        )
+        
+        context['procedure_revenue_labels'] = [p['service__name'] for p in procedure_revenue]
+        context['procedure_revenue_values'] = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in procedure_revenue]
+        context['procedure_revenue_counts'] = [p['procedure_count'] for p in procedure_revenue]
+
+        # Revenue by Location (Region)
+        location_revenue = (
+            Bill.objects.filter(
+                status__in=['PAID', 'PARTIAL']
+            )
+            .values('patient__region')
+            .annotate(
+                total_revenue=Sum('total_amount'),
+                patient_count=Count('patient', distinct=True)
+            )
+            .order_by('-total_revenue')
+        )
+        context['location_revenue_labels'] = [l['patient__region'] for l in location_revenue]
+        context['location_revenue_values'] = [float(l['total_revenue']) if l['total_revenue'] else 0 for l in location_revenue]
+        context['location_patient_counts'] = [l['patient_count'] for l in location_revenue]
+
+        # Revenue by City
+        city_revenue = (
+            Bill.objects.filter(
+                status__in=['PAID', 'PARTIAL']
+            )
+            .values('patient__city')
+            .annotate(
+                total_revenue=Sum('total_amount'),
+                patient_count=Count('patient', distinct=True)
+            )
+            .order_by('-total_revenue')[:10]  # Top 10 cities
+        )
+        context['city_revenue_labels'] = [c['patient__city'] for c in city_revenue]
+        context['city_revenue_values'] = [float(c['total_revenue']) if c['total_revenue'] else 0 for c in city_revenue]
+        context['city_patient_counts'] = [c['patient_count'] for c in city_revenue]
+
+        # Revenue by Payment Method
+        payment_method_revenue = (
+            Bill.objects.filter(
+                status__in=['PAID', 'PARTIAL']
+            )
+            .values('payments__payment_method')
+            .annotate(
+                total_revenue=Sum('total_amount'),
+                payment_count=Count('payments')
+            )
+            .filter(payments__payment_method__isnull=False)
+            .order_by('-total_revenue')
+        )
+        context['payment_method_labels'] = [p['payments__payment_method'] for p in payment_method_revenue]
+        context['payment_method_values'] = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in payment_method_revenue]
+        context['payment_method_counts'] = [p['payment_count'] for p in payment_method_revenue]
+
+        # Revenue by Patient Type
+        patient_type_revenue = (
+            Bill.objects.filter(
+                status__in=['PAID', 'PARTIAL']
+            )
+            .values('patient__patient_type')
+            .annotate(
+                total_revenue=Sum('total_amount'),
+                patient_count=Count('patient', distinct=True)
+            )
+            .order_by('-total_revenue')
+        )
+        patient_type_map = dict(Patient.PATIENT_TYPE_CHOICES)
+        context['patient_type_revenue_labels'] = [patient_type_map.get(p['patient__patient_type'], p['patient__patient_type']) for p in patient_type_revenue]
+        context['patient_type_revenue_values'] = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in patient_type_revenue]
+        context['patient_type_revenue_counts'] = [p['patient_count'] for p in patient_type_revenue]
+
+        # Monthly Revenue Trends (Last 12 months)
+        monthly_trends = []
+        for i in range(12):
+            month_date = today.replace(day=1) - timedelta(days=30*i)
+            month_revenue = Bill.objects.filter(
+                bill_date__year=month_date.year,
+                bill_date__month=month_date.month,
+                status__in=['PAID', 'PARTIAL']
+            ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+            monthly_trends.append({
+                'month': month_date.strftime('%b %Y'),
+                'revenue': float(month_revenue)
+            })
+        monthly_trends.reverse()
+        context['monthly_trend_labels'] = [m['month'] for m in monthly_trends]
+        context['monthly_trend_values'] = [m['revenue'] for m in monthly_trends]
 
         return render(request, 'dashboard.html', context)
         
