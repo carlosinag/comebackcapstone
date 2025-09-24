@@ -127,7 +127,7 @@
                                             data-service-name="{{ service.name }}">
                                         <i class="fas fa-save"></i> Update Price
                                     </button>
-                                    <a href="{% url 'admin:billing_servicetype_change' service.id %}" 
+                                    <a href="{% url 'edit_procedure' service.id %}" 
                                        class="btn btn-outline-secondary btn-sm">
                                         <i class="fas fa-edit"></i> Edit Service
                                     </a>
@@ -168,8 +168,21 @@ document.addEventListener('DOMContentLoaded', function() {
         "closeButton": true,
         "progressBar": true,
         "positionClass": "toast-top-right",
-        "timeOut": "3000"
+        "timeOut": "4000"
     };
+
+    // Display Django messages with toastr
+    {% for message in messages %}
+        {% if message.tags == 'success' %}
+            toastr.success('{{ message.message|escapejs }}');
+        {% elif message.tags == 'error' %}
+            toastr.error('{{ message.message|escapejs }}');
+        {% elif message.tags == 'warning' %}
+            toastr.warning('{{ message.message|escapejs }}');
+        {% elif message.tags == 'info' %}
+            toastr.info('{{ message.message|escapejs }}');
+        {% endif %}
+    {% endfor %}
 
     // Handle price updates
     document.querySelectorAll('.update-price-btn').forEach(button => {

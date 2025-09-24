@@ -74,6 +74,7 @@ urlpatterns = [
     path('custom-admin/get-total-expenses/', admin_views.get_total_expenses, name='get_total_expenses'),
     path('custom-admin/prices/', admin_views.admin_prices, name='admin_prices'),
     path('custom-admin/add-procedure/', admin_views.add_procedure, name='add_service'),
+    path('custom-admin/edit-procedure/<int:procedure_id>/', admin_views.edit_procedure, name='edit_procedure'),
     path('custom-admin/update-service-price/', admin_views.update_service_price, name='update_service_price'),
     path('custom-admin/users/', admin_views.admin_users, name='admin_users'),
     path('custom-admin/users/<int:user_id>/edit/', admin_views.admin_edit_user, name='admin_edit_user'),

@@ -582,6 +582,18 @@ def add_procedure(request):
         form = ServiceForm()
     return render(request, 'admin/add_procedure_new.html', {'form': form})
 
+def edit_procedure(request, procedure_id):
+    procedure = get_object_or_404(ServiceType, id=procedure_id)
+    if request.method == 'POST':
+        form = ServiceForm(request.POST, instance=procedure)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Procedure "{procedure.name}" updated successfully.')
+            return redirect('admin_prices')
+    else:
+        form = ServiceForm(instance=procedure)
+    return render(request, 'admin/edit_procedure.html', {'form': form, 'procedure': procedure})
+
 @custom_staff_member_required
 def admin_users(request):
     """Admin view for managing staff users"""
