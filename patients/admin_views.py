@@ -572,6 +572,8 @@ def admin_change_user_password(request, user_id):
 
 from .forms import ServiceForm
 
+@custom_staff_member_required
+@require_valid_navigation
 def add_procedure(request):
     if request.method == 'POST':
         form = ServiceForm(request.POST)
@@ -582,6 +584,8 @@ def add_procedure(request):
         form = ServiceForm()
     return render(request, 'admin/add_procedure_new.html', {'form': form})
 
+@custom_staff_member_required
+@require_valid_navigation
 def edit_procedure(request, procedure_id):
     procedure = get_object_or_404(ServiceType, id=procedure_id)
     if request.method == 'POST':
@@ -595,6 +599,7 @@ def edit_procedure(request, procedure_id):
     return render(request, 'admin/edit_procedure.html', {'form': form, 'procedure': procedure})
 
 @custom_staff_member_required
+@require_valid_navigation
 def admin_users(request):
     """Admin view for managing staff users"""
     # Get all staff users (is_staff=True)

@@ -876,6 +876,8 @@ def home_dashboard(request):
     
     return render(request, 'home_dashboard.html', context)
 
+@custom_staff_member_required
+@require_valid_navigation
 def admin_login(request):
     # Clear all messages
     storage = messages.get_messages(request)
