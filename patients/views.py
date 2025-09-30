@@ -1497,8 +1497,11 @@ def staff_appointments(request):
     status_filter = request.GET.get('status', '')
     date_filter = request.GET.get('date', '')
     
-    # Base queryset
-    appointments = Appointment.objects.select_related('patient').order_by('appointment_date', 'appointment_time')
+    # Base queryset - newest booked first (by creation time)
+    appointments = (
+        Appointment.objects.select_related('patient')
+        .order_by('-created_at', '-appointment_date', '-appointment_time')
+    )
     
     # Apply filters
     if status_filter:
