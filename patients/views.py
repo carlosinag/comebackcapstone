@@ -68,6 +68,7 @@ def require_valid_navigation(view_func):
         if referer and referer.startswith(request.build_absolute_uri('/')):
             # Check if referrer is from a valid page
             valid_referrer_patterns = [
+                '/',
                 '/patients/',
                 '/patient/',
                 '/custom-admin/',
@@ -92,6 +93,7 @@ class PatientListView(CustomStaffRequiredMixin, ListView):
     template_name = 'patients/patient_list.html'
     context_object_name = 'patients'
     ordering = ['-created_at']
+    paginate_by = 10
 
     def get_queryset(self):
         queryset = super().get_queryset().filter(is_archived=False)
@@ -876,7 +878,6 @@ def home_dashboard(request):
     
     return render(request, 'home_dashboard.html', context)
 
-@custom_staff_member_required
 @require_valid_navigation
 def admin_login(request):
     # Clear all messages
@@ -1360,6 +1361,7 @@ def patient_appointments(request):
     return render(request, 'patients/patient_appointments.html', context)
 
 @login_required
+@custom_staff_member_required
 def patient_bills(request):
     """Patient bills page: list bills and statuses for the logged-in patient."""
     if not hasattr(request.user, 'patient'):

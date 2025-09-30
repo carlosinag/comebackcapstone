@@ -41,6 +41,8 @@ def admin_dashboard(request):
 
 @custom_staff_member_required
 def admin_billing_report(request):
+    from django.core.paginator import Paginator
+
     # Get filter parameters
     date_range = request.GET.get('date_range', '')
     status = request.GET.get('status', '')
@@ -75,18 +77,26 @@ def admin_billing_report(request):
         except ValueError:
             pass
 
-    # Calculate totals
+    # Calculate totals (before pagination)
     total_revenue = bills.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
     pending_amount = bills.filter(status='PENDING').aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
-    
+
     # Get other expenses from session or default to 0
     other_expenses = Decimal(str(request.session.get('other_expenses', '0')))
-    
+
     # Calculate net revenue
     net_revenue = total_revenue - other_expenses
 
+    # Pagination - 5 bills per page
+    paginator = Paginator(bills.order_by('-bill_date'), 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     context = {
-        'bills': bills.order_by('-bill_date'),
+        'bills': page_obj,
+        'page_obj': page_obj,
+        'is_paginated': page_obj.has_other_pages(),
+        'paginator': paginator,
         'total_revenue': total_revenue,
         'pending_amount': pending_amount,
         'other_expenses': other_expenses,
