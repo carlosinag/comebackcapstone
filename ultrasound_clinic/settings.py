@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap4',
     'widget_tweaks',
+    'channels',
     'patients',
     'billing',
 ]
@@ -57,6 +58,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'ultrasound_clinic.wsgi.application'
+ASGI_APPLICATION = 'ultrasound_clinic.asgi.application'
 
 DATABASES = {
     'default': {
@@ -124,4 +126,11 @@ MESSAGE_TAGS = {
 # Clinic Information
 CLINIC_NAME = 'MSRA Services'
 CLINIC_PHONE = '09614764302'  # Replace with your clinic's phone number
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER 
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# Channels Configuration
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+} 

@@ -9,6 +9,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
     <link href="{% static 'css/style.css' %}" rel="stylesheet">
+    {% if user.is_authenticated %}
+    <meta name="user-id" content="{{ user.id }}">
+    {% endif %}
     <style>
         /* Input Capitalization */
         input[type="text"]:not([class*="search"]):not([class*="username"]):not([class*="email"]):not([class*="password"]),
@@ -238,6 +241,12 @@
             }
         };
     </script>
+    
+    <!-- Real-time Notifications -->
+    {% if user.is_authenticated %}
+    <script src="{% static 'js/realtime_notifications.js' %}"></script>
+    {% endif %}
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html> 

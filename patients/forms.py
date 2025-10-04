@@ -1,7 +1,7 @@
 from django import forms
 from .models import Patient, UltrasoundExam, Appointment
 from billing.models import ServiceType
-from django.contrib.auth.forms import PasswordChangeForm, UserChangeForm, UserChangeForm
+from django.contrib.auth.forms import PasswordChangeForm, UserChangeForm, UserChangeForm, UserCreationForm
 from django.contrib.auth.models import User
 from datetime import date, timedelta
 
@@ -337,3 +337,177 @@ class ServiceForm(forms.ModelForm):
     class Meta:
         model = ServiceType
         fields = ['name', 'description', 'base_price', 'is_active']
+
+class PatientRegistrationForm(forms.Form):
+    """Form for patient registration with user account creation."""
+    
+    # User account fields
+    username = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Choose a username',
+            'pattern': '[A-Za-z0-9@/./+/-/_]+',
+            'title': 'Letters, digits and @/./+/-/_ only'
+        }),
+        help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.'
+    )
+    password1 = forms.CharField(
+        label="Password",
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter password'
+        }),
+        help_text='Your password must contain at least 8 characters.'
+    )
+    password2 = forms.CharField(
+        label="Confirm Password",
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirm password'
+        }),
+        help_text='Enter the same password as before, for verification.'
+    )
+    
+    # Patient information fields
+    first_name = forms.CharField(
+        max_length=50,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter first name',
+            'pattern': '[A-Za-z ]+',
+            'title': 'Only letters and spaces are allowed'
+        })
+    )
+    last_name = forms.CharField(
+        max_length=50,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter last name',
+            'pattern': '[A-Za-z ]+',
+            'title': 'Only letters and spaces are allowed'
+        })
+    )
+    birthday = forms.DateField(
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date',
+            'placeholder': 'Select birthday'
+        })
+    )
+    sex = forms.ChoiceField(
+        choices=Patient.GENDER_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    marital_status = forms.ChoiceField(
+        choices=Patient.MARITAL_STATUS_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    patient_type = forms.ChoiceField(
+        choices=Patient.PATIENT_TYPE_CHOICES,
+        initial='REGULAR',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    id_number = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter Senior Citizen/PWD ID number'
+        })
+    )
+    
+    # Address fields
+    region = forms.CharField(
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'id': 'id_region'
+        })
+    )
+    province = forms.CharField(
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'id': 'id_province',
+            'disabled': True
+        })
+    )
+    city = forms.CharField(
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'id': 'id_city',
+            'disabled': True
+        })
+    )
+    barangay = forms.CharField(
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'id': 'id_barangay',
+            'disabled': True
+        })
+    )
+    street_address = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Enter street address, building name/number, etc.'
+        })
+    )
+    
+    # Contact information
+    contact_number = forms.CharField(
+        max_length=20,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter contact number'
+        })
+    )
+    email = forms.EmailField(
+        required=False,
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter email address'
+        })
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialize empty choices for address dropdowns
+        self.fields['region'].choices = [('', 'Select Region...')]
+        self.fields['province'].choices = [('', 'Select Province...')]
+        self.fields['city'].choices = [('', 'Select City/Municipality...')]
+        self.fields['barangay'].choices = [('', 'Select Barangay...')]
+        
+        # Add help text for address fields
+        self.fields['region'].help_text = 'Select your region'
+        self.fields['province'].help_text = 'Select your province'
+        self.fields['city'].help_text = 'Select your city/municipality'
+        self.fields['barangay'].help_text = 'Select your barangay'
+    
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError("A user with this username already exists.")
+        return username
+    
+    def clean_password2(self):
+        password1 = self.cleaned_data.get('password1')
+        password2 = self.cleaned_data.get('password2')
+        
+        if password1 and password2:
+            if password1 != password2:
+                raise forms.ValidationError("The two password fields didn't match.")
+        
+        return password2
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email and User.objects.filter(email=email).exists():
+            raise forms.ValidationError("A user with this email already exists.")
+        return email
+    
+    def clean_contact_number(self):
+        contact_number = self.cleaned_data.get('contact_number')
+        if Patient.objects.filter(contact_number=contact_number).exists():
+            raise forms.ValidationError("A patient with this contact number already exists.")
+        return contact_number

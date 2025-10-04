@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Registration - Ultrasound Clinic</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            padding: 20px;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 1.5rem;
+        }
+        .form-control {
+            border-radius: 8px;
+        }
+        .form-control:focus {
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+            border-color: #0d6efd;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            border: none;
+            padding: 12px;
+            font-weight: 500;
+            border-radius: 8px;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0a58ca 0%, #084298 100%);
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            border-radius: 8px;
+        }
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+        }
+        .required {
+            color: #dc3545;
+        }
+        .section-title {
+            color: #0d6efd;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .back-link {
+            text-decoration: none;
+            color: #6c757d;
+            transition: color 0.3s;
+        }
+        .back-link:hover {
+            color: #0d6efd;
+        }
+        .address-cascade {
+            display: none;
+        }
+        .address-cascade.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="card">
+                    <div class="card-header text-center">
+                        <h2 class="mb-0">
+                            <i class="fas fa-user-plus me-2"></i>Patient Registration
+                        </h2>
+                        <p class="mb-0 mt-2">Create your patient account to access medical records</p>
+                    </div>
+                    <div class="card-body">
+                        {% if messages %}
+                        <div class="alert alert-danger">
+                            {% for message in messages %}
+                            {{ message }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <form method="post" id="registrationForm">
+                            {% csrf_token %}
+                            
+                            <!-- Account Information Section -->
+                            <div class="mb-4">
+                                <h5 class="section-title">
+                                    <i class="fas fa-user-circle me-2"></i>Account Information
+                                </h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.username.id_for_label }}" class="form-label">
+                                                Username <span class="required">*</span>
+                                            </label>
+                                            {{ form.username }}
+                                            {% if form.username.help_text %}
+                                            <div class="form-text">{{ form.username.help_text }}</div>
+                                            {% endif %}
+                                            {% if form.username.errors %}
+                                            <div class="text-danger">{{ form.username.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                                            {{ form.email }}
+                                            {% if form.email.errors %}
+                                            <div class="text-danger">{{ form.email.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.password1.id_for_label }}" class="form-label">
+                                                Password <span class="required">*</span>
+                                            </label>
+                                            {{ form.password1 }}
+                                            {% if form.password1.help_text %}
+                                            <div class="form-text">{{ form.password1.help_text }}</div>
+                                            {% endif %}
+                                            {% if form.password1.errors %}
+                                            <div class="text-danger">{{ form.password1.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.password2.id_for_label }}" class="form-label">
+                                                Confirm Password <span class="required">*</span>
+                                            </label>
+                                            {{ form.password2 }}
+                                            {% if form.password2.help_text %}
+                                            <div class="form-text">{{ form.password2.help_text }}</div>
+                                            {% endif %}
+                                            {% if form.password2.errors %}
+                                            <div class="text-danger">{{ form.password2.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Personal Information Section -->
+                            <div class="mb-4">
+                                <h5 class="section-title">
+                                    <i class="fas fa-id-card me-2"></i>Personal Information
+                                </h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                                First Name <span class="required">*</span>
+                                            </label>
+                                            {{ form.first_name }}
+                                            {% if form.first_name.errors %}
+                                            <div class="text-danger">{{ form.first_name.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                                Last Name <span class="required">*</span>
+                                            </label>
+                                            {{ form.last_name }}
+                                            {% if form.last_name.errors %}
+                                            <div class="text-danger">{{ form.last_name.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ form.birthday.id_for_label }}" class="form-label">
+                                                Birthday <span class="required">*</span>
+                                            </label>
+                                            {{ form.birthday }}
+                                            {% if form.birthday.errors %}
+                                            <div class="text-danger">{{ form.birthday.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ form.sex.id_for_label }}" class="form-label">
+                                                Gender <span class="required">*</span>
+                                            </label>
+                                            {{ form.sex }}
+                                            {% if form.sex.errors %}
+                                            <div class="text-danger">{{ form.sex.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ form.marital_status.id_for_label }}" class="form-label">Marital Status</label>
+                                            {{ form.marital_status }}
+                                            {% if form.marital_status.errors %}
+                                            <div class="text-danger">{{ form.marital_status.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.patient_type.id_for_label }}" class="form-label">
+                                                Patient Type <span class="required">*</span>
+                                            </label>
+                                            {{ form.patient_type }}
+                                            {% if form.patient_type.errors %}
+                                            <div class="text-danger">{{ form.patient_type.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.id_number.id_for_label }}" class="form-label">ID Number</label>
+                                            {{ form.id_number }}
+                                            <div class="form-text">Senior Citizen/PWD ID number</div>
+                                            {% if form.id_number.errors %}
+                                            <div class="text-danger">{{ form.id_number.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Address Information Section -->
+                            <div class="mb-4">
+                                <h5 class="section-title">
+                                    <i class="fas fa-map-marker-alt me-2"></i>Address Information
+                                </h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.region.id_for_label }}" class="form-label">
+                                                Region <span class="required">*</span>
+                                            </label>
+                                            {{ form.region }}
+                                            {% if form.region.help_text %}
+                                            <div class="form-text">{{ form.region.help_text }}</div>
+                                            {% endif %}
+                                            {% if form.region.errors %}
+                                            <div class="text-danger">{{ form.region.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.province.id_for_label }}" class="form-label">
+                                                Province <span class="required">*</span>
+                                            </label>
+                                            {{ form.province }}
+                                            {% if form.province.help_text %}
+                                            <div class="form-text">{{ form.province.help_text }}</div>
+                                            {% endif %}
+                                            {% if form.province.errors %}
+                                            <div class="text-danger">{{ form.province.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.city.id_for_label }}" class="form-label">
+                                                City/Municipality <span class="required">*</span>
+                                            </label>
+                                            {{ form.city }}
+                                            {% if form.city.help_text %}
+                                            <div class="form-text">{{ form.city.help_text }}</div>
+                                            {% endif %}
+                                            {% if form.city.errors %}
+                                            <div class="text-danger">{{ form.city.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.barangay.id_for_label }}" class="form-label">
+                                                Barangay <span class="required">*</span>
+                                            </label>
+                                            {{ form.barangay }}
+                                            {% if form.barangay.help_text %}
+                                            <div class="form-text">{{ form.barangay.help_text }}</div>
+                                            {% endif %}
+                                            {% if form.barangay.errors %}
+                                            <div class="text-danger">{{ form.barangay.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ form.street_address.id_for_label }}" class="form-label">
+                                        Street Address <span class="required">*</span>
+                                    </label>
+                                    {{ form.street_address }}
+                                    {% if form.street_address.errors %}
+                                    <div class="text-danger">{{ form.street_address.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Contact Information Section -->
+                            <div class="mb-4">
+                                <h5 class="section-title">
+                                    <i class="fas fa-phone me-2"></i>Contact Information
+                                </h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.contact_number.id_for_label }}" class="form-label">
+                                                Contact Number <span class="required">*</span>
+                                            </label>
+                                            {{ form.contact_number }}
+                                            {% if form.contact_number.errors %}
+                                            <div class="text-danger">{{ form.contact_number.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Submit Buttons -->
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'patient_login' %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to Login
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-user-plus me-2"></i>Create Account
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Address cascade functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const regionSelect = document.getElementById('id_region');
+            const provinceSelect = document.getElementById('id_province');
+            const citySelect = document.getElementById('id_city');
+            const barangaySelect = document.getElementById('id_barangay');
+
+            // Load regions on page load
+            loadRegions();
+
+            regionSelect.addEventListener('change', function() {
+                if (this.value) {
+                    loadProvinces(this.value);
+                    provinceSelect.disabled = false;
+                } else {
+                    provinceSelect.disabled = true;
+                    citySelect.disabled = true;
+                    barangaySelect.disabled = true;
+                    provinceSelect.innerHTML = '<option value="">Select Province...</option>';
+                    citySelect.innerHTML = '<option value="">Select City/Municipality...</option>';
+                    barangaySelect.innerHTML = '<option value="">Select Barangay...</option>';
+                }
+            });
+
+            provinceSelect.addEventListener('change', function() {
+                if (this.value) {
+                    loadCities(this.value);
+                    citySelect.disabled = false;
+                } else {
+                    citySelect.disabled = true;
+                    barangaySelect.disabled = true;
+                    citySelect.innerHTML = '<option value="">Select City/Municipality...</option>';
+                    barangaySelect.innerHTML = '<option value="">Select Barangay...</option>';
+                }
+            });
+
+            citySelect.addEventListener('change', function() {
+                if (this.value) {
+                    loadBarangays(this.value);
+                    barangaySelect.disabled = false;
+                } else {
+                    barangaySelect.disabled = true;
+                    barangaySelect.innerHTML = '<option value="">Select Barangay...</option>';
+                }
+            });
+
+            function loadRegions() {
+                fetch('/static/philippine-addresses/region.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        regionSelect.innerHTML = '<option value="">Select Region...</option>';
+                        data.forEach(region => {
+                            const option = document.createElement('option');
+                            option.value = region.region_code;
+                            option.textContent = region.region_name;
+                            regionSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Error loading regions:', error));
+            }
+
+            function loadProvinces(regionCode) {
+                fetch('/static/philippine-addresses/province.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        provinceSelect.innerHTML = '<option value="">Select Province...</option>';
+                        data.forEach(province => {
+                            if (province.region_code === regionCode) {
+                                const option = document.createElement('option');
+                                option.value = province.province_code;
+                                option.textContent = province.province_name;
+                                provinceSelect.appendChild(option);
+                            }
+                        });
+                    })
+                    .catch(error => console.error('Error loading provinces:', error));
+            }
+
+            function loadCities(provinceCode) {
+                fetch('/static/philippine-addresses/city.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        citySelect.innerHTML = '<option value="">Select City/Municipality...</option>';
+                        data.forEach(city => {
+                            if (city.province_code === provinceCode) {
+                                const option = document.createElement('option');
+                                option.value = city.city_code;
+                                option.textContent = city.city_name;
+                                citySelect.appendChild(option);
+                            }
+                        });
+                    })
+                    .catch(error => console.error('Error loading cities:', error));
+            }
+
+            function loadBarangays(cityCode) {
+                fetch('/static/philippine-addresses/barangay.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        barangaySelect.innerHTML = '<option value="">Select Barangay...</option>';
+                        data.forEach(barangay => {
+                            if (barangay.city_code === cityCode) {
+                                const option = document.createElement('option');
+                                option.value = barangay.brgy_code;
+                                option.textContent = barangay.brgy_name;
+                                barangaySelect.appendChild(option);
+                            }
+                        });
+                    })
+                    .catch(error => console.error('Error loading barangays:', error));
+            }
+        });
+    </script>
+</body>
+</html>
