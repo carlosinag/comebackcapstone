@@ -7,13 +7,14 @@ from django.http import JsonResponse, HttpResponseRedirect, HttpResponse, Http40
 from django.views.decorators.http import require_http_methods
 from django.db import models, transaction
 from .models import Patient, UltrasoundExam, UltrasoundImage, FamilyGroup, Appointment
-from .forms import PatientForm, UltrasoundExamForm, PatientPasswordChangeForm, PatientProfileForm, PatientUserForm, AppointmentForm, AppointmentUpdateForm
+from .forms import PatientForm, UltrasoundExamForm, PatientPasswordChangeForm, PatientProfileForm, PatientUserForm, AppointmentForm, AppointmentUpdateForm, PatientRegistrationForm
 from django.db.models import Count, Sum
 from django.db.models.functions import ExtractWeek
 from django.utils import timezone
 from datetime import timedelta
 from billing.models import Bill, ServiceType
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.models import User
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
 from django.contrib.auth.mixins import LoginRequiredMixin, AccessMixin
@@ -1361,7 +1362,6 @@ def patient_appointments(request):
     return render(request, 'patients/patient_appointments.html', context)
 
 @login_required
-@custom_staff_member_required
 def patient_bills(request):
     """Patient bills page: list bills and statuses for the logged-in patient."""
     if not hasattr(request.user, 'patient'):
@@ -1421,6 +1421,11 @@ def patient_book_appointment(request):
             appointment = form.save(commit=False)
             appointment.patient = request.user.patient
             appointment.save()
+            
+            # Send real-time notification to all staff members
+            from .notification_utils import notify_staff_new_appointment
+            notify_staff_new_appointment(appointment)
+            
             messages.success(request, 'Appointment booked successfully! We will contact you to confirm.')
             return redirect('patient-appointments')
         else:
@@ -1555,6 +1560,11 @@ def staff_confirm_appointment(request, appointment_id):
     if request.method == 'POST':
         appointment.status = 'CONFIRMED'
         appointment.save()
+        
+        # Send real-time notification to patient
+        from .notification_utils import notify_patient_appointment_update
+        notify_patient_appointment_update(appointment, 'confirmed')
+        
         messages.success(request, f'Appointment for {appointment.patient.first_name} {appointment.patient.last_name} has been confirmed.')
         return redirect('staff-appointments')
     
@@ -1571,6 +1581,11 @@ def staff_cancel_appointment(request, appointment_id):
     if request.method == 'POST':
         appointment.status = 'CANCELLED'
         appointment.save()
+        
+        # Send real-time notification to patient
+        from .notification_utils import notify_patient_appointment_update
+        notify_patient_appointment_update(appointment, 'cancelled')
+        
         messages.success(request, f'Appointment for {appointment.patient.first_name} {appointment.patient.last_name} has been cancelled.')
         return redirect('staff-appointments')
     
@@ -1597,4 +1612,63 @@ def staff_complete_appointment(request, appointment_id):
 
 def forbidden_page(request):
     """Custom forbidden page for invalid navigation attempts"""
-    return render(request, 'forbidden.html') 
+    return render(request, 'forbidden.html')
+
+def patient_register(request):
+    """Patient registration view."""
+    # Check if user is already logged in and has a patient account
+    if request.user.is_authenticated and hasattr(request.user, 'patient'):
+        messages.info(request, 'You already have a patient account. You are already logged in.')
+        return redirect('patient-portal')
+    
+    if request.method == 'POST':
+        form = PatientRegistrationForm(request.POST)
+        if form.is_valid():
+            try:
+                # Create user account
+                user = User.objects.create_user(
+                    username=form.cleaned_data['username'],
+                    password=form.cleaned_data['password1'],
+                    first_name=form.cleaned_data['first_name'],
+                    last_name=form.cleaned_data['last_name'],
+                    email=form.cleaned_data.get('email', '')
+                )
+                
+                # Create patient profile
+                patient = Patient.objects.create(
+                    user=user,
+                    first_name=form.cleaned_data['first_name'],
+                    last_name=form.cleaned_data['last_name'],
+                    birthday=form.cleaned_data['birthday'],
+                    sex=form.cleaned_data['sex'],
+                    marital_status=form.cleaned_data.get('marital_status'),
+                    patient_type=form.cleaned_data['patient_type'],
+                    id_number=form.cleaned_data.get('id_number', ''),
+                    region=form.cleaned_data['region'],
+                    province=form.cleaned_data['province'],
+                    city=form.cleaned_data['city'],
+                    barangay=form.cleaned_data['barangay'],
+                    street_address=form.cleaned_data['street_address'],
+                    contact_number=form.cleaned_data['contact_number'],
+                    email=form.cleaned_data.get('email', '')
+                )
+                
+                # Log the user in
+                login(request, user)
+                messages.success(request, f'Welcome {user.first_name}! Your patient account has been created successfully.')
+                return redirect('patient-portal')
+                
+            except Exception as e:
+                messages.error(request, f'An error occurred during registration: {str(e)}')
+                # Clean up user if patient creation failed
+                if 'user' in locals():
+                    user.delete()
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = PatientRegistrationForm()
+    
+    context = {
+        'form': form,
+    }
+    return render(request, 'patient_register.html', context) 
