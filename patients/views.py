@@ -1103,17 +1103,22 @@ def patient_view_exam(request, exam_id):
     if not hasattr(request.user, 'patient'):
         messages.error(request, 'Access denied. This portal is for patients only.')
         return redirect('landing')
-    
+
     exam = get_object_or_404(UltrasoundExam, id=exam_id)
-    
+
     # Security check: ensure the patient can only view their own exams
     if exam.patient != request.user.patient:
         messages.error(request, 'Access denied. You can only view your own examinations.')
         return redirect('patient-portal')
-    
+
+    # Get bill information for payment status
+    from billing.models import Bill
+    bill = Bill.objects.filter(items__exam=exam).first()
+
     context = {
         'exam': exam,
-        'patient': request.user.patient
+        'patient': request.user.patient,
+        'bill': bill
     }
     return render(request, 'patients/patient_exam_detail.html', context)
 
