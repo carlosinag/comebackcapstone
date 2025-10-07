@@ -6,7 +6,9 @@ urlpatterns = [
     # Landing and authentication
     path('', views.LandingView.as_view(), name='landing'),
     path('staff-login/', views.staff_login, name='staff_login'),
+    path('staff-logout/', views.staff_logout, name='staff_logout'),
     path('patient-login/', views.patient_login, name='patient_login'),
+    path('patient-register/', views.patient_register, name='patient_register'),
     path('patient-portal/', views.patient_portal, name='patient-portal'),
     path('patient-logout/', views.patient_logout, name='patient_logout'),
     path('patient-exam/<int:exam_id>/', views.patient_view_exam, name='patient_view_exam'),
@@ -61,8 +63,24 @@ urlpatterns = [
     # Custom admin interface
     path('custom-admin/login/', views.admin_login, name='admin_login'),
     path('custom-admin/dashboard/', admin_views.admin_dashboard, name='admin_dashboard'),
+    path('custom-admin/patients/', admin_views.admin_patient_list, name='admin_patient_list'),
     path('custom-admin/billing-report/', admin_views.admin_billing_report, name='admin_billing_report'),
     path('custom-admin/billing-export/', admin_views.admin_billing_export, name='admin_billing_export'),
+    path('custom-admin/examinations/', admin_views.admin_examinations, name='admin_examinations'),
     path('ultrasound-image/<int:image_id>/delete/', views.delete_ultrasound_image, name='delete-ultrasound-image'),
-    path('admin/update-expenses/', admin_views.update_expenses, name='update_expenses'),
+    path('custom-admin/update-expenses/', admin_views.update_expenses, name='update_expenses'),
+    path('custom-admin/add-expense/', admin_views.add_expense, name='add_expense'),
+    path('custom-admin/delete-expense/', admin_views.delete_expense, name='delete_expense'),
+    path('custom-admin/get-expenses/', admin_views.get_expenses, name='get_expenses'),
+    path('custom-admin/get-total-expenses/', admin_views.get_total_expenses, name='get_total_expenses'),
+    path('custom-admin/prices/', admin_views.admin_prices, name='admin_prices'),
+    path('custom-admin/add-procedure/', admin_views.add_procedure, name='add_service'),
+    path('custom-admin/edit-procedure/<int:procedure_id>/', admin_views.edit_procedure, name='edit_procedure'),
+    path('custom-admin/update-service-price/', admin_views.update_service_price, name='update_service_price'),
+    path('custom-admin/users/', admin_views.admin_users, name='admin_users'),
+    path('custom-admin/users/<int:user_id>/edit/', admin_views.admin_edit_user, name='admin_edit_user'),
+    path('custom-admin/users/<int:user_id>/change-password/', admin_views.admin_change_user_password, name='admin_change_user_password'),
+    
+    # Forbidden page for invalid navigation
+    path('forbidden/', views.forbidden_page, name='forbidden'),
 ] 

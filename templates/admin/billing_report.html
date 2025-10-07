@@ -22,11 +22,29 @@
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3">Billing Report</h1>
+        <h1 class="h3">Financial Management</h1>
         <button class="btn btn-success" onclick="exportToExcel()">
             <i class="fas fa-file-excel"></i> Export to Excel
         </button>
     </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs" id="financialTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="billing-tab" data-bs-toggle="tab" data-bs-target="#billing" type="button" role="tab">
+                <i class="fas fa-file-invoice-dollar"></i> Billing Report
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="expenses-tab" data-bs-toggle="tab" data-bs-target="#expenses" type="button" role="tab">
+                <i class="fas fa-receipt"></i> Expenses Management
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="financialTabsContent">
+        <!-- Billing Report Tab -->
+        <div class="tab-pane fade show active" id="billing" role="tabpanel">
 
     <div class="card shadow mb-4">
         <div class="card-header py-3">
@@ -97,7 +115,7 @@
                                 <a href="{% url 'admin:billing_bill_change' bill.id %}" class="btn btn-sm btn-primary">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <button class="btn btn-sm btn-info" onclick="viewDetails({{ bill.id }})">
+                                <button class="btn btn-sm btn-info" onclick="viewDetails('{{ bill.id }}')">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </td>
@@ -106,6 +124,8 @@
                     </tbody>
                 </table>
             </div>
+
+            
 
             <div class="mt-3">
                 <div class="row">
@@ -157,10 +177,149 @@
             </div>
         </div>
     </div>
+
+            <!-- Pagination (only for billing tab) -->
+            {% if is_paginated %}
+            <div class="d-flex justify-content-center mt-3">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Previous</span>
+                        </li>
+                        {% endif %}
+
+                        {% if page_obj.number <= 3 %}
+                        {% for page_num in page_obj.paginator.page_range %}
+                            {% if page_num <= 5 %}
+                                {% if page_num == page_obj.number %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_num }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ page_num }}</a>
+                                </li>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        {% else %}
+                        {% for page_num in page_obj.paginator.page_range %}
+                            {% if page_num >= page_obj.number|add:-2 and page_num <= page_obj.number|add:2 %}
+                                {% if page_num == page_obj.number %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_num }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ page_num }}</a>
+                                </li>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        {% endif %}
+
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Next</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            <div class="text-center mt-2 text-muted">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Expenses Management Tab -->
+        <div class="tab-pane fade" id="expenses" role="tabpanel">
+            <div class="card shadow mt-3">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Expenses Management</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>Add New Expense</h5>
+                            <form id="addExpenseForm">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Description *</label>
+                                        <input type="text" name="description" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Amount *</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">₱</span>
+                                            <input type="number" name="amount" class="form-control" step="0.01" min="0" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Date</label>
+                                        <input type="date" name="date" class="form-control" value="{{ today|date:'Y-m-d' }}">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Notes</label>
+                                        <textarea name="notes" class="form-control" rows="2" placeholder="Optional notes about this expense"></textarea>
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Add Expense
+                                        </button>
+                                        <button type="reset" class="btn btn-secondary">
+                                            <i class="fas fa-undo"></i> Reset
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Current Expenses Summary</h5>
+                            <div class="card border-danger">
+                                <div class="card-body">
+                                    <h6 class="card-title">Total Expenses</h6>
+                                    <h3 class="text-danger" id="totalExpensesDisplay">₱{{ other_expenses|floatformat:2 }}</h3>
+                                    <small class="text-muted">This amount is automatically subtracted from total revenue</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="expensesTable">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                    <th>Notes</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expensesTableBody">
+                                <!-- Expenses will be loaded here dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
@@ -200,6 +359,23 @@ document.addEventListener('DOMContentLoaded', function() {
         saveButton.addEventListener('click', saveExpenses);
     } else {
         console.error('Save button not found!');
+    }
+
+    // Handle expenses form submission
+    const addExpenseForm = document.getElementById('addExpenseForm');
+    if (addExpenseForm) {
+        addExpenseForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            addExpense();
+        });
+    }
+
+    // Load expenses when expenses tab is shown
+    const expensesTab = document.getElementById('expenses-tab');
+    if (expensesTab) {
+        expensesTab.addEventListener('shown.bs.tab', function() {
+            loadExpenses();
+        });
     }
 
     function updateNetRevenue() {
@@ -249,7 +425,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: 'expenses=' + expenses
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     toastr.success('Expenses updated successfully');
@@ -289,6 +470,150 @@ function exportToExcel() {
 
 function viewDetails(billId) {
     window.location.href = "{% url 'admin:billing_bill_change' 0 %}".replace('0', billId);
+}
+
+function addExpense() {
+    const form = document.getElementById('addExpenseForm');
+    const formData = new FormData(form);
+
+    // Add CSRF token to form data
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    // Debug: Log form data
+    console.log('Form data being sent:');
+    for (let [key, value] of formData.entries()) {
+        console.log(key + ': ' + value);
+    }
+
+    fetch("{% url 'add_expense' %}", {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            toastr.success('Expense added successfully');
+            form.reset();
+            loadExpenses();
+            updateTotalExpenses();
+        } else {
+            toastr.error('Error adding expense: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        toastr.error('Error adding expense: ' + error.message);
+    });
+}
+
+function loadExpenses() {
+    fetch("{% url 'get_expenses' %}")
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            displayExpenses(data.expenses);
+        } else {
+            toastr.error('Error loading expenses: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        toastr.error('Error loading expenses: ' + error.message);
+    });
+}
+
+function displayExpenses(expenses) {
+    const tbody = document.getElementById('expensesTableBody');
+    tbody.innerHTML = '';
+
+    if (expenses.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No expenses found.</td></tr>';
+        return;
+    }
+
+    expenses.forEach(expense => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${expense.description}</td>
+            <td class="text-danger">₱${parseFloat(expense.amount).toFixed(2)}</td>
+            <td>${expense.date}</td>
+            <td>${expense.notes || '-'}</td>
+            <td>
+                <button class="btn btn-sm btn-danger" onclick="deleteExpense('${expense.id}', '${expense.description}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function deleteExpense(expenseId, description) {
+    if (!confirm(`Are you sure you want to delete the expense "${description}"?`)) {
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('expense_id', expenseId);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    fetch("{% url 'delete_expense' %}", {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            toastr.success('Expense deleted successfully');
+            loadExpenses();
+            updateTotalExpenses();
+        } else {
+            toastr.error('Error deleting expense: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        toastr.error('Error deleting expense: ' + error.message);
+    });
+}
+
+function updateTotalExpenses() {
+    fetch("{% url 'get_total_expenses' %}")
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            document.getElementById('totalExpensesDisplay').textContent = '₱' + parseFloat(data.total_expenses).toFixed(2);
+            // Update the expenses input in billing tab
+            const expensesInput = document.getElementById('expensesInput');
+            if (expensesInput) {
+                expensesInput.value = data.total_expenses;
+                updateNetRevenue();
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error updating total expenses:', error);
+    });
 }
 </script>
 {% endblock %} 

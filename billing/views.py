@@ -19,7 +19,18 @@ def bill_list(request):
         'items__service',
         'items__exam'
     )
-    return render(request, 'billing/bill_list.html', {'bills': bills})
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(bills, 10)  # Show 10 bills per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'billing/bill_list.html', {
+        'bills': page_obj,
+        'page_obj': page_obj,
+        'is_paginated': page_obj.has_other_pages(),
+        'paginator': paginator
+    })
 
 @login_required
 def bill_detail(request, bill_number):

@@ -111,6 +111,92 @@
             </div>
         </div>
     </div>
+
+    <!-- Charts Row 5: Revenue by Procedure Type -->
+    <div class="row">
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Revenue by Procedure Type</h6>
+                </div>
+                <div class="card-body">
+                    <div id="procedureRevenueChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Procedure Count vs Revenue</h6>
+                </div>
+                <div class="card-body">
+                    <div id="procedureCountRevenueChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 6: Revenue by Location -->
+    <div class="row">
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Revenue by Region</h6>
+                </div>
+                <div class="card-body">
+                    <div id="locationRevenueChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Revenue by City (Top 10)</h6>
+                </div>
+                <div class="card-body">
+                    <div id="cityRevenueChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 7: Revenue by Payment Method and Patient Type -->
+    <div class="row">
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Revenue by Payment Method</h6>
+                </div>
+                <div class="card-body">
+                    <div id="paymentMethodChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Revenue by Patient Type</h6>
+                </div>
+                <div class="card-body">
+                    <div id="patientTypeRevenueChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 8: Monthly Revenue Trends -->
+    <div class="row">
+        <div class="col-xl-12 col-lg-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Monthly Revenue Trends (Last 12 Months)</h6>
+                </div>
+                <div class="card-body">
+                    <div id="monthlyTrendChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Advanced KPI Row -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-4">
@@ -329,6 +415,113 @@
         y: {{ top_patients_revenue|safe }},
         type: 'bar', marker: { color: '#1cc88a' }
     }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, xaxis: { automargin: true } });
+
+    // Revenue by Procedure Type (Pie Chart)
+    const procedureRevenueData = {
+        values: {{ procedure_revenue_values|safe }},
+        labels: {{ procedure_revenue_labels|safe }},
+        type: 'pie',
+        hole: 0.4,
+        marker: {
+            colors: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796', '#5a5c69', '#2e59d9', '#17a673', '#2c9faf']
+        }
+    };
+    Plotly.newPlot('procedureRevenueChart', [procedureRevenueData], {
+        margin: { t: 0, b: 0, l: 0, r: 0 },
+        showlegend: true,
+        legend: { orientation: 'h', y: -0.1 }
+    });
+
+    // Procedure Count vs Revenue (Scatter Plot)
+    const procedureCountRevenueData = {
+        x: {{ procedure_revenue_counts|safe }},
+        y: {{ procedure_revenue_values|safe }},
+        mode: 'markers+text',
+        type: 'scatter',
+        text: {{ procedure_revenue_labels|safe }},
+        textposition: 'top center',
+        marker: { 
+            size: 12,
+            color: '#4e73df',
+            opacity: 0.7
+        }
+    };
+    Plotly.newPlot('procedureCountRevenueChart', [procedureCountRevenueData], {
+        margin: { t: 20, b: 40, l: 60, r: 20 },
+        xaxis: { title: 'Number of Procedures' },
+        yaxis: { title: 'Total Revenue (₱)', tickformat: ',.0f' },
+        showlegend: false
+    });
+
+    // Revenue by Region (Bar Chart)
+    Plotly.newPlot('locationRevenueChart', [{
+        x: {{ location_revenue_labels|safe }},
+        y: {{ location_revenue_values|safe }},
+        type: 'bar',
+        marker: { color: '#36b9cc' }
+    }], {
+        margin: { t: 20, b: 40, l: 40, r: 20 },
+        yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' },
+        xaxis: { title: 'Region' },
+        showlegend: false
+    });
+
+    // Revenue by City (Bar Chart)
+    Plotly.newPlot('cityRevenueChart', [{
+        x: {{ city_revenue_labels|safe }},
+        y: {{ city_revenue_values|safe }},
+        type: 'bar',
+        marker: { color: '#f6c23e' }
+    }], {
+        margin: { t: 20, b: 40, l: 40, r: 20 },
+        yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' },
+        xaxis: { title: 'City', automargin: true },
+        showlegend: false
+    });
+
+    // Revenue by Payment Method (Pie Chart)
+    const paymentMethodData = {
+        values: {{ payment_method_values|safe }},
+        labels: {{ payment_method_labels|safe }},
+        type: 'pie',
+        marker: {
+            colors: ['#4e73df', '#1cc88a', '#36b9cc']
+        }
+    };
+    Plotly.newPlot('paymentMethodChart', [paymentMethodData], {
+        margin: { t: 0, b: 0, l: 0, r: 0 },
+        showlegend: true,
+        legend: { orientation: 'h', y: -0.1 }
+    });
+
+    // Revenue by Patient Type (Bar Chart)
+    Plotly.newPlot('patientTypeRevenueChart', [{
+        x: {{ patient_type_revenue_labels|safe }},
+        y: {{ patient_type_revenue_values|safe }},
+        type: 'bar',
+        marker: { color: '#e74a3b' }
+    }], {
+        margin: { t: 20, b: 40, l: 40, r: 20 },
+        yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' },
+        xaxis: { title: 'Patient Type' },
+        showlegend: false
+    });
+
+    // Monthly Revenue Trends (Line Chart)
+    const monthlyTrendData = {
+        x: {{ monthly_trend_labels|safe }},
+        y: {{ monthly_trend_values|safe }},
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: { color: '#4e73df', width: 3 },
+        marker: { size: 8, color: '#4e73df' }
+    };
+    Plotly.newPlot('monthlyTrendChart', [monthlyTrendData], {
+        margin: { t: 20, b: 40, l: 60, r: 20 },
+        yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' },
+        xaxis: { title: 'Month' },
+        showlegend: false
+    });
     {% endif %}
 </script>
 {% endblock %}

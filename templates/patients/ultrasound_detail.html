@@ -3,68 +3,133 @@
 {% block title %}Ultrasound Examination Details{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container-fluid">
     <div class="row mb-4">
         <div class="col">
-            <h2>Ultrasound Examination Report</h2>
+            <h1 class="text-primary mb-0">Ultrasound Examination Report</h1>
+            <small class="text-muted">Case Number: {{ exam.case_number|default:"22-205" }}</small>
         </div>
-        <div class="col text-end">
-            {% if not exam.bill %}
-            <a href="{% url 'billing:create_bill' exam.pk %}" class="btn btn-success me-2">
+        <div class="col-auto text-end">
+            {% if not exam.bill_item %}
+            <a href="{% url 'billing:create_bill' exam.pk %}" class="btn btn-success btn-sm me-2">
                 <i class="fas fa-file-invoice-dollar me-2"></i>Create Bill
             </a>
             {% else %}
-            <a href="{% url 'billing:bill_detail' exam.bill.bill_number %}" class="btn btn-info me-2">
+            <a href="{% url 'billing:bill_detail' exam.bill_item.bill.bill_number %}" class="btn btn-info btn-sm me-2">
                 <i class="fas fa-file-invoice-dollar me-2"></i>View Bill
             </a>
             {% endif %}
-            <a href="{% url 'download-ultrasound-docx' exam.pk %}" class="btn btn-primary me-2">
+            <a href="{% url 'download-ultrasound-docx' exam.pk %}" class="btn btn-primary btn-sm me-2">
                 <i class="fas fa-download me-2"></i>Download DOCX
             </a>
-            <a href="{% url 'exam-update' exam.pk %}" class="btn btn-warning me-2">
+            <a href="{% url 'exam-update' exam.pk %}" class="btn btn-warning btn-sm me-2">
                 <i class="fas fa-edit me-2"></i>Edit Exam
             </a>
-            <a href="{% url 'patient-detail' exam.patient.pk %}" class="btn btn-secondary">
+            <a href="{% url 'patient-detail' exam.patient.pk %}" class="btn btn-secondary btn-sm">
                 <i class="fas fa-arrow-left me-2"></i>Back to Patient
             </a>
         </div>
     </div>
 
-    <div class="card shadow-sm">
+    <div class="card shadow">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0"><i class="fas fa-file-medical-alt me-2"></i>Examination Details</h5>
+        </div>
         <div class="card-body">
-            <pre style="font-family: 'Courier New', Courier, monospace; font-size: 12pt; border: none; background: none; margin: 0; padding: 0;">CASE NUMBER	  :      {{ exam.case_number|default:"22- 205" }}		            DATE:  {{ exam.exam_date|date:"F d, Y"|default:"JANUARY 4, 2023"|upper }}
-NAME OF PATIENT	:      {{ exam.patient.last_name }}, {{ exam.patient.first_name }}
-AGE	             		:       {{ exam.patient.age|default:"29" }}
-GENDER	               :     {{ exam.patient.get_sex_display|default:"FEMALE" }}
-MARITAL STATUS             :     {{ exam.patient.marital_status|default:"" }}
-EXAMINATION PERFORMED:                       		{{ exam.procedure_type.name|default:"PELVIC" }}	 ULTRASOUND         
-		              O.R.				             AMOUNT PAID:
-REQUESTING PHYSICIAN:					WARD:    {{ exam.patient.get_patient_status_display|default:"OPD" }}
-											      
-RADIOLOGICAL FINDINGS:
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Patient Information</h6>
+                    <table class="table table-borderless table-sm">
+                        <tbody>
+                            <tr>
+                                <td class="fw-bold text-end" style="width: 40%;">Name:</td>
+                                <td>{{ exam.patient.last_name }}, {{ exam.patient.first_name }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-end">Age:</td>
+                                <td>{{ exam.patient.age|default:"N/A" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-end">Gender:</td>
+                                <td>{{ exam.patient.get_sex_display|default:"N/A" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-end">Marital Status:</td>
+                                <td>{{ exam.patient.marital_status|default:"N/A" }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Examination Information</h6>
+                    <table class="table table-borderless table-sm">
+                        <tbody>
+                            <tr>
+                                <td class="fw-bold text-end" style="width: 40%;">Date:</td>
+                                <td>{{ exam.exam_date|date:"F d, Y"|default:"N/A"|upper }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-end">Procedure:</td>
+                                <td>{{ exam.procedure_type.name|default:"N/A" }} Ultrasound</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-end">Ward:</td>
+                                <td>{{ exam.patient.get_patient_status_display|default:"OPD" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-end">Requesting Physician:</td>
+                                <td>N/A</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-{{ exam.findings|default:"" }}
+            <hr>
 
-IMPRESSION:
+            <div class="row">
+                <div class="col-12">
+                    <h6 class="text-muted mb-3"><i class="fas fa-stethoscope me-2"></i>Radiological Findings</h6>
+                    <div class="border-start border-primary border-3 ps-3">
+                        <p class="mb-0" style="white-space: pre-line;">{{ exam.findings|default:"No findings recorded." }}</p>
+                    </div>
+                </div>
+            </div>
 
-{{ exam.impression|default:"" }}</pre>
+            <hr>
+
+            <div class="row">
+                <div class="col-12">
+                    <h6 class="text-muted mb-3"><i class="fas fa-brain me-2"></i>Impression</h6>
+                    <div class="border-start border-success border-3 ps-3">
+                        <p class="mb-0" style="white-space: pre-line;">{{ exam.impression|default:"No impression recorded." }}</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <style>
 @media print {
-    .btn, .container > .row:first-child {
+    .btn, .container-fluid > .row:first-child {
         display: none !important;
     }
     .card {
-        border: none;
-        box-shadow: none;
+        border: none !important;
+        box-shadow: none !important;
     }
-    pre {
-        margin: 0;
-        padding: 0;
+    .card-header {
+        background: white !important;
+        border-bottom: 1px solid #dee2e6 !important;
+    }
+    .table td {
+        border: none !important;
+        padding: 0.25rem 0 !important;
+    }
+    .border-start {
+        border-left: 3px solid #007bff !important;
     }
 }
 </style>
-{% endblock %} 
+{% endblock %}

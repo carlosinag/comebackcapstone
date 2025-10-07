@@ -10,7 +10,7 @@ SECRET_KEY = 'django-insecure-your-secret-key-here'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['https://msratestwebsite.pythonanywhere.com/', '127.0.0.1', ]
 
 # Application definition
 INSTALLED_APPS = [
@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap4',
     'widget_tweaks',
+    'channels',
     'patients',
     'billing',
 ]
@@ -35,6 +36,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'patients.middleware.NavigationControlMiddleware',
 ]
 
 ROOT_URLCONF = 'ultrasound_clinic.urls'
@@ -56,6 +58,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'ultrasound_clinic.wsgi.application'
+ASGI_APPLICATION = 'ultrasound_clinic.asgi.application'
 
 DATABASES = {
     'default': {
@@ -109,7 +112,25 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'carlosinagx@gmail.com'  
 EMAIL_HOST_PASSWORD = 'dqmq bhcs kvcu tasv'  
 
+# Messages Framework Configuration
+from django.contrib.messages import constants as messages
+
+MESSAGE_TAGS = {
+    messages.DEBUG: 'debug',
+    messages.INFO: 'info',
+    messages.SUCCESS: 'success',
+    messages.WARNING: 'warning',
+    messages.ERROR: 'danger',
+}
+
 # Clinic Information
 CLINIC_NAME = 'MSRA Services'
 CLINIC_PHONE = '09614764302'  # Replace with your clinic's phone number
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER 
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# Channels Configuration
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+} 

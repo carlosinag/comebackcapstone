@@ -8,5 +8,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('patients.urls')),
     path('billing/', include('billing.urls')),
-    path('custom-admin/logout/', LogoutView.as_view(next_page='admin_login'), name='admin_logout'),
+    path('custom-admin/logout/', LogoutView.as_view(next_page='landing'), name='admin_logout'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) 

@@ -3,30 +3,98 @@ from django.contrib import messages
 from django.views.generic import ListView, DetailView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
-from django.http import JsonResponse, HttpResponseRedirect, HttpResponse
+from django.http import JsonResponse, HttpResponseRedirect, HttpResponse, Http404
 from django.views.decorators.http import require_http_methods
 from django.db import models, transaction
 from .models import Patient, UltrasoundExam, UltrasoundImage, FamilyGroup, Appointment
-from .forms import PatientForm, UltrasoundExamForm, PatientPasswordChangeForm, PatientProfileForm, PatientUserForm, AppointmentForm, AppointmentUpdateForm
+from .forms import PatientForm, UltrasoundExamForm, PatientPasswordChangeForm, PatientProfileForm, PatientUserForm, AppointmentForm, AppointmentUpdateForm, PatientRegistrationForm
 from django.db.models import Count, Sum
 from django.db.models.functions import ExtractWeek
 from django.utils import timezone
 from datetime import timedelta
 from billing.models import Bill, ServiceType
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.models import User
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, AccessMixin
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import REDIRECT_FIELD_NAME
 from docx import Document
 from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from functools import wraps
 
-class PatientListView(ListView):
+def custom_staff_member_required(view_func):
+    """
+    Custom decorator that requires staff membership and redirects to forbidden page
+    instead of Django admin login.
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('forbidden')
+        if not request.user.is_staff:
+            return redirect('forbidden')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+class CustomStaffRequiredMixin(AccessMixin):
+    """
+    Custom mixin that requires staff membership and redirects to forbidden page
+    instead of Django admin login.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('forbidden')
+        if not request.user.is_staff:
+            return redirect('forbidden')
+        return super().dispatch(request, *args, **kwargs)
+
+def require_valid_navigation(view_func):
+    """
+    Decorator to ensure views are accessed through proper navigation flow.
+    Redirects to forbidden page if accessed directly via URL.
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        # Check if request has proper referrer
+        referer = request.META.get('HTTP_REFERER', '')
+        
+        # Allow POST requests (form submissions)
+        if request.method == 'POST':
+            return view_func(request, *args, **kwargs)
+        
+        # Allow if referrer is from the same domain and a valid page
+        if referer and referer.startswith(request.build_absolute_uri('/')):
+            # Check if referrer is from a valid page
+            valid_referrer_patterns = [
+                '/',
+                '/patients/',
+                '/patient/',
+                '/custom-admin/',
+                '/patient-portal/',
+                '/patient-appointments/',
+                '/staff/appointments/',
+                '/home/',
+                '/dashboard/',
+            ]
+            
+            for pattern in valid_referrer_patterns:
+                if pattern in referer:
+                    return view_func(request, *args, **kwargs)
+        
+        # If no valid referrer, redirect to forbidden page
+        return redirect('forbidden')
+    
+    return wrapper
+
+class PatientListView(CustomStaffRequiredMixin, ListView):
     model = Patient
     template_name = 'patients/patient_list.html'
     context_object_name = 'patients'
     ordering = ['-created_at']
+    paginate_by = 10
 
     def get_queryset(self):
         queryset = super().get_queryset().filter(is_archived=False)
@@ -163,7 +231,7 @@ class PatientListView(ListView):
         }
         return context
 
-class PatientDetailView(DetailView):
+class PatientDetailView(CustomStaffRequiredMixin, DetailView):
     model = Patient
     template_name = 'patients/patient_detail.html'
     context_object_name = 'patient'
@@ -174,7 +242,7 @@ class PatientDetailView(DetailView):
         context['exams'] = self.object.ultrasound_exams.all().order_by('-exam_date', '-exam_time')
         return context
 
-class PatientCreateView(CreateView):
+class PatientCreateView(CustomStaffRequiredMixin, CreateView):
     model = Patient
     form_class = PatientForm
     template_name = 'patients/patient_form.html'
@@ -184,6 +252,8 @@ class PatientCreateView(CreateView):
         messages.success(self.request, 'Patient record created successfully.')
         return super().form_valid(form)
 
+@method_decorator(custom_staff_member_required, name='dispatch')
+@method_decorator(require_valid_navigation, name='dispatch')
 class PatientUpdateView(UpdateView):
     model = Patient
     form_class = PatientForm
@@ -203,6 +273,8 @@ class PatientUpdateView(UpdateView):
             return redirect('patient-detail', pk=patient.pk)
         return super().dispatch(request, *args, **kwargs)
 
+@method_decorator(custom_staff_member_required, name='dispatch')
+@method_decorator(require_valid_navigation, name='dispatch')
 class PatientDeleteView(LoginRequiredMixin, DeleteView):
     model = Patient
     template_name = 'patients/patient_confirm_delete.html'
@@ -247,7 +319,7 @@ class ArchivedPatientListView(ListView):
             )
         return queryset
 
-@staff_member_required
+@custom_staff_member_required
 def unarchive_patient(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
     patient.is_archived = False
@@ -256,6 +328,8 @@ def unarchive_patient(request, pk):
     messages.success(request, 'Patient restored from archive.')
     return redirect('archived-patient-list')
 
+@method_decorator(staff_member_required, name='dispatch')
+@method_decorator(require_valid_navigation, name='dispatch')
 class UltrasoundExamCreateView(CreateView):
     model = UltrasoundExam
     form_class = UltrasoundExamForm
@@ -303,6 +377,8 @@ class UltrasoundExamCreateView(CreateView):
     def get_success_url(self):
         return reverse_lazy('patient-detail', kwargs={'pk': self.object.patient.pk})
 
+@method_decorator(staff_member_required, name='dispatch')
+@method_decorator(require_valid_navigation, name='dispatch')
 class UltrasoundExamUpdateView(UpdateView):
     model = UltrasoundExam
     form_class = UltrasoundExamForm
@@ -331,12 +407,12 @@ class UltrasoundExamUpdateView(UpdateView):
     def get_success_url(self):
         return reverse_lazy('patient-detail', kwargs={'pk': self.object.patient.pk})
 
-class UltrasoundExamDetailView(DetailView):
+class UltrasoundExamDetailView(CustomStaffRequiredMixin, DetailView):
     model = UltrasoundExam
     template_name = 'patients/ultrasound_detail.html'
     context_object_name = 'exam'
 
-class ImageAnnotationView(DetailView):
+class ImageAnnotationView(CustomStaffRequiredMixin, DetailView):
     model = Patient
     template_name = 'patients/image_annotation.html'
     context_object_name = 'patient'
@@ -363,6 +439,8 @@ class ImageAnnotationView(DetailView):
         context['procedure_types'] = ServiceType.objects.filter(is_active=True)
         return context
 
+@custom_staff_member_required
+@require_valid_navigation
 @require_http_methods(["POST"])
 def exam_image_upload(request, patient_id):
     patient = get_object_or_404(Patient, pk=patient_id)
@@ -395,6 +473,7 @@ def exam_image_upload(request, patient_id):
     
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
 
+@custom_staff_member_required
 @require_http_methods(["POST"])
 def delete_ultrasound_image(request, image_id):
     if not request.user.is_authenticated:
@@ -407,6 +486,7 @@ def delete_ultrasound_image(request, image_id):
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
+@custom_staff_member_required
 def dashboard(request):
     try:
         today = timezone.now().date()
@@ -468,7 +548,13 @@ def dashboard(request):
         # Findings Distribution
         findings = UltrasoundExam.objects.values('recommendations').annotate(count=Count('id'))
         context['findings_distribution_data'] = [f['count'] for f in findings]
-        context['findings_distribution_labels'] = [dict(UltrasoundExam.RECOMMENDATION_CHOICES)[f['recommendations']] for f in findings]
+        
+        # Safe mapping of recommendations with fallback
+        recommendation_map = dict(UltrasoundExam.RECOMMENDATION_CHOICES)
+        context['findings_distribution_labels'] = [
+            recommendation_map.get(f['recommendations'], f['recommendations']) 
+            for f in findings
+        ]
 
         # Monthly Revenue
         monthly_revenue = Bill.objects.filter(
@@ -540,13 +626,122 @@ def dashboard(request):
         context['top_patients_labels'] = [f"{t['patient__first_name']} {t['patient__last_name']}".strip() for t in top_revenue]
         context['top_patients_revenue'] = [float(t['total']) if t['total'] else 0 for t in top_revenue]
 
+        # Revenue by Procedure Type
+        from billing.models import BillItem
+        procedure_revenue = (
+            BillItem.objects.filter(
+                bill__status__in=['PAID', 'PARTIAL']
+            )
+            .values('service__name')
+            .annotate(
+                total_revenue=Sum('amount'),
+                procedure_count=Count('id')
+            )
+            .order_by('-total_revenue')
+        )
+        
+        context['procedure_revenue_labels'] = [p['service__name'] for p in procedure_revenue]
+        context['procedure_revenue_values'] = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in procedure_revenue]
+        context['procedure_revenue_counts'] = [p['procedure_count'] for p in procedure_revenue]
+
+        # Revenue by Location (Region)
+        location_revenue = (
+            Bill.objects.filter(
+                status__in=['PAID', 'PARTIAL']
+            )
+            .values('patient__region')
+            .annotate(
+                total_revenue=Sum('total_amount'),
+                patient_count=Count('patient', distinct=True)
+            )
+            .order_by('-total_revenue')
+        )
+        context['location_revenue_labels'] = [l['patient__region'] for l in location_revenue]
+        context['location_revenue_values'] = [float(l['total_revenue']) if l['total_revenue'] else 0 for l in location_revenue]
+        context['location_patient_counts'] = [l['patient_count'] for l in location_revenue]
+
+        # Revenue by City
+        city_revenue = (
+            Bill.objects.filter(
+                status__in=['PAID', 'PARTIAL']
+            )
+            .values('patient__city')
+            .annotate(
+                total_revenue=Sum('total_amount'),
+                patient_count=Count('patient', distinct=True)
+            )
+            .order_by('-total_revenue')[:10]  # Top 10 cities
+        )
+        context['city_revenue_labels'] = [c['patient__city'] for c in city_revenue]
+        context['city_revenue_values'] = [float(c['total_revenue']) if c['total_revenue'] else 0 for c in city_revenue]
+        context['city_patient_counts'] = [c['patient_count'] for c in city_revenue]
+
+        # Revenue by Payment Method
+        payment_method_revenue = (
+            Bill.objects.filter(
+                status__in=['PAID', 'PARTIAL']
+            )
+            .values('payments__payment_method')
+            .annotate(
+                total_revenue=Sum('total_amount'),
+                payment_count=Count('payments')
+            )
+            .filter(payments__payment_method__isnull=False)
+            .order_by('-total_revenue')
+        )
+        context['payment_method_labels'] = [p['payments__payment_method'] for p in payment_method_revenue]
+        context['payment_method_values'] = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in payment_method_revenue]
+        context['payment_method_counts'] = [p['payment_count'] for p in payment_method_revenue]
+
+        # Revenue by Patient Type
+        patient_type_revenue = (
+            Bill.objects.filter(
+                status__in=['PAID', 'PARTIAL']
+            )
+            .values('patient__patient_type')
+            .annotate(
+                total_revenue=Sum('total_amount'),
+                patient_count=Count('patient', distinct=True)
+            )
+            .order_by('-total_revenue')
+        )
+        patient_type_map = dict(Patient.PATIENT_TYPE_CHOICES)
+        context['patient_type_revenue_labels'] = [patient_type_map.get(p['patient__patient_type'], p['patient__patient_type']) for p in patient_type_revenue]
+        context['patient_type_revenue_values'] = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in patient_type_revenue]
+        context['patient_type_revenue_counts'] = [p['patient_count'] for p in patient_type_revenue]
+
+        # Monthly Revenue Trends (Last 12 months)
+        monthly_trends = []
+        for i in range(12):
+            month_date = today.replace(day=1) - timedelta(days=30*i)
+            month_revenue = Bill.objects.filter(
+                bill_date__year=month_date.year,
+                bill_date__month=month_date.month,
+                status__in=['PAID', 'PARTIAL']
+            ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+            monthly_trends.append({
+                'month': month_date.strftime('%b %Y'),
+                'revenue': float(month_revenue)
+            })
+        monthly_trends.reverse()
+        context['monthly_trend_labels'] = [m['month'] for m in monthly_trends]
+        context['monthly_trend_values'] = [m['revenue'] for m in monthly_trends]
+
         return render(request, 'dashboard.html', context)
         
     except Exception as e:
         messages.error(request, f'Error loading dashboard: {str(e)}')
         return render(request, 'dashboard.html', {'error': str(e)})
 
+@custom_staff_member_required
 def home_dashboard(request):
+    from django.db.models import Sum, Count
+    from datetime import timedelta
+    from billing.models import Bill
+    from .models import Appointment
+    import json
+    from collections import defaultdict
+    
     # Get search parameter
     patient_search = request.GET.get('patient_search', '')
     
@@ -554,26 +749,137 @@ def home_dashboard(request):
     if patient_search:
         searched_patients = Patient.objects.filter(is_archived=False).filter(
             models.Q(first_name__icontains=patient_search) |
-            models.Q(last_name__icontains=patient_search)
-        ).order_by('-created_at')[:5]
+            models.Q(last_name__icontains=patient_search) |
+            models.Q(contact_number__icontains=patient_search) |
+            models.Q(id_number__icontains=patient_search)
+        ).order_by('-created_at')[:10]  # Show more results for search
     else:
         searched_patients = None
 
-    # Get recent patients (when not searching)
-    recent_patients = Patient.objects.filter(is_archived=False).order_by('-created_at')[:5]
+    # Calculate KPIs
+    today = timezone.now().date()
     
-    # Get recent procedures
-    recent_exams = UltrasoundExam.objects.select_related('patient').order_by('-exam_date', '-exam_time')[:5]
+    # Basic counts
+    total_patients = Patient.objects.filter(is_archived=False).count()
+    total_procedures = UltrasoundExam.objects.count()
+    
+    # Revenue calculations
+    total_revenue = Bill.objects.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    pending_bills = Bill.objects.filter(status='PENDING').count()
+    
+    # Appointment counts
+    pending_appointments = Appointment.objects.filter(status='PENDING').count()
+    today_appointments = Appointment.objects.filter(appointment_date=today).count()
+    
+    # Advanced KPIs
+    ninety_days_ago = today - timedelta(days=90)
+    six_months_ago = today - timedelta(days=180)
+    month_start = today.replace(day=1)
+
+    # Active patients in last 90 days
+    active_patients_qs = UltrasoundExam.objects.filter(
+        exam_date__gte=ninety_days_ago
+    ).values('patient').distinct()
+    active_patients_90d = active_patients_qs.count()
+
+    # New patients this month
+    new_patients_month = Patient.objects.filter(
+        is_archived=False,
+        created_at__date__gte=month_start
+    ).count()
+
+    # Average procedures per patient (lifetime)
+    distinct_patients_with_exam = UltrasoundExam.objects.values('patient').distinct().count()
+    avg_procs = (total_procedures / distinct_patients_with_exam) if distinct_patients_with_exam else 0
+    avg_procedures_per_patient = f"{avg_procs:.2f}"
+
+    # Returning patient rate (last 6 months)
+    recent_exam_counts = (
+        UltrasoundExam.objects.filter(exam_date__gte=six_months_ago)
+        .values('patient')
+        .annotate(num_exams=Count('id'))
+    )
+    num_recent_unique = recent_exam_counts.count()
+    num_returning = sum(1 for r in recent_exam_counts if r['num_exams'] >= 2)
+    returning_rate = (num_returning / num_recent_unique * 100) if num_recent_unique else 0
+    returning_rate_percent = f"{returning_rate:.1f}"
+
+    # Chart Data
+    # Monthly Revenue Data (Last 6 months)
+    monthly_revenue_data = []
+    monthly_revenue_labels = []
+    for i in range(6):
+        month_date = today.replace(day=1) - timedelta(days=30*i)
+        month_revenue = Bill.objects.filter(
+            bill_date__year=month_date.year,
+            bill_date__month=month_date.month,
+            status__in=['PAID', 'PARTIAL']
+        ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        monthly_revenue_data.append(float(month_revenue))
+        monthly_revenue_labels.append(month_date.strftime('%b %Y'))
+    
+    monthly_revenue_data.reverse()
+    monthly_revenue_labels.reverse()
+
+    # Procedure Distribution Data
+    procedure_data = []
+    procedure_labels = []
+    procedures = UltrasoundExam.objects.values('procedure_type__name').annotate(count=Count('id')).order_by('-count')[:8]
+    for proc in procedures:
+        procedure_data.append(proc['count'])
+        procedure_labels.append(proc['procedure_type__name'] or 'Unknown')
+
+    # Monthly Activity Data (Last 6 months)
+    activity_labels = []
+    activity_procedures = []
+    activity_patients = []
+    
+    for i in range(6):
+        month_date = today.replace(day=1) - timedelta(days=30*i)
+        month_procedures = UltrasoundExam.objects.filter(
+            exam_date__year=month_date.year,
+            exam_date__month=month_date.month
+        ).count()
+        month_patients = Patient.objects.filter(
+            is_archived=False,
+            created_at__year=month_date.year,
+            created_at__month=month_date.month
+        ).count()
+        
+        activity_labels.append(month_date.strftime('%b'))
+        activity_procedures.append(month_procedures)
+        activity_patients.append(month_patients)
+    
+    activity_labels.reverse()
+    activity_procedures.reverse()
+    activity_patients.reverse()
     
     context = {
-        'recent_patients': recent_patients,
         'searched_patients': searched_patients,
-        'recent_exams': recent_exams,
         'search_term': patient_search,
+        'total_patients': total_patients,
+        'total_procedures': total_procedures,
+        'total_revenue': f"{total_revenue:,.2f}",
+        'pending_bills': pending_bills,
+        'active_patients_90d': active_patients_90d,
+        'new_patients_month': new_patients_month,
+        'avg_procedures_per_patient': avg_procedures_per_patient,
+        'returning_rate_percent': returning_rate_percent,
+        'pending_appointments': pending_appointments,
+        'today_appointments': today_appointments,
+        # Chart data
+        'monthly_revenue_labels': json.dumps(monthly_revenue_labels),
+        'monthly_revenue_data': json.dumps(monthly_revenue_data),
+        'procedure_labels': json.dumps(procedure_labels),
+        'procedure_data': json.dumps(procedure_data),
+        'activity_labels': json.dumps(activity_labels),
+        'activity_procedures': json.dumps(activity_procedures),
+        'activity_patients': json.dumps(activity_patients),
     }
     
     return render(request, 'home_dashboard.html', context)
 
+@require_valid_navigation
 def admin_login(request):
     # Clear all messages
     storage = messages.get_messages(request)
@@ -586,6 +892,7 @@ def admin_login(request):
         
         if user is not None and user.is_staff:
             login(request, user)
+            messages.success(request, f'Welcome back, {user.username}! You have been successfully logged in.')
             next_url = request.POST.get('next') or request.GET.get('next')
             if next_url:
                 return redirect(next_url)
@@ -596,11 +903,13 @@ def admin_login(request):
     
     return render(request, 'admin_login.html')
 
+@custom_staff_member_required
 def confirm_family_relationship(request, last_name):
     # This feature has been removed. Redirect back to patient creation.
     messages.info(request, 'Family confirmation step is no longer required.')
     return redirect('patient-create')
 
+@custom_staff_member_required
 def family_medical_history(request, family_group_id):
     family_group = get_object_or_404(FamilyGroup, id=family_group_id)
     family_members = family_group.family_members.all()
@@ -671,6 +980,7 @@ def get_recommendation_stats(exams):
         recommendations[rec] = recommendations.get(rec, 0) + 1
     return recommendations
 
+@custom_staff_member_required
 def generate_report(request, exam_id):
     exam = get_object_or_404(UltrasoundExam, id=exam_id)
     
@@ -717,6 +1027,15 @@ def generate_report(request, exam_id):
 class LandingView(TemplateView):
     template_name = 'landing.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        try:
+            # Active service types for pricing list
+            context['service_types'] = ServiceType.objects.filter(is_active=True).order_by('name')
+        except Exception:
+            context['service_types'] = []
+        return context
+
 def patient_login(request):
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -725,6 +1044,7 @@ def patient_login(request):
         
         if user is not None and hasattr(user, 'patient'):
             login(request, user)
+            messages.success(request, f'Welcome back, {user.username}! You have been successfully logged in.')
             return redirect('patient-portal')
         else:
             messages.error(request, 'Invalid username or password.')
@@ -750,6 +1070,11 @@ def patient_logout(request):
     messages.success(request, 'You have been successfully logged out.')
     return redirect('landing')
 
+def staff_logout(request):
+    logout(request)
+    messages.success(request, 'You have been successfully logged out.')
+    return redirect('staff_login')
+
 def staff_login(request):
     # Clear all messages
     storage = messages.get_messages(request)
@@ -762,6 +1087,7 @@ def staff_login(request):
         
         if user is not None and user.is_staff and not user.is_superuser:
             login(request, user)
+            messages.success(request, f'Welcome back, {user.username}! You have been successfully logged in.')
             next_url = request.POST.get('next') or request.GET.get('next')
             if next_url:
                 return redirect(next_url)
@@ -777,20 +1103,26 @@ def patient_view_exam(request, exam_id):
     if not hasattr(request.user, 'patient'):
         messages.error(request, 'Access denied. This portal is for patients only.')
         return redirect('landing')
-    
+
     exam = get_object_or_404(UltrasoundExam, id=exam_id)
-    
+
     # Security check: ensure the patient can only view their own exams
     if exam.patient != request.user.patient:
         messages.error(request, 'Access denied. You can only view your own examinations.')
         return redirect('patient-portal')
-    
+
+    # Get bill information for payment status
+    from billing.models import Bill
+    bill = Bill.objects.filter(items__exam=exam).first()
+
     context = {
         'exam': exam,
-        'patient': request.user.patient
+        'patient': request.user.patient,
+        'bill': bill
     }
     return render(request, 'patients/patient_exam_detail.html', context)
 
+@custom_staff_member_required
 def download_ultrasound_docx(request, pk):
     exam = get_object_or_404(UltrasoundExam, pk=pk)
     
@@ -1094,6 +1426,11 @@ def patient_book_appointment(request):
             appointment = form.save(commit=False)
             appointment.patient = request.user.patient
             appointment.save()
+            
+            # Send real-time notification to all staff members
+            from .notification_utils import notify_staff_new_appointment
+            notify_staff_new_appointment(appointment)
+            
             messages.success(request, 'Appointment booked successfully! We will contact you to confirm.')
             return redirect('patient-appointments')
         else:
@@ -1165,15 +1502,18 @@ def patient_cancel_appointment(request, appointment_id):
     }
     return render(request, 'patients/patient_cancel_appointment.html', context) 
 
-@staff_member_required
+@custom_staff_member_required
 def staff_appointments(request):
     """Staff view to manage all appointments."""
     # Get filter parameters
     status_filter = request.GET.get('status', '')
     date_filter = request.GET.get('date', '')
     
-    # Base queryset
-    appointments = Appointment.objects.select_related('patient').order_by('appointment_date', 'appointment_time')
+    # Base queryset - newest booked first (by creation time)
+    appointments = (
+        Appointment.objects.select_related('patient')
+        .order_by('-created_at', '-appointment_date', '-appointment_time')
+    )
     
     # Apply filters
     if status_filter:
@@ -1199,7 +1539,7 @@ def staff_appointments(request):
     }
     return render(request, 'patients/staff_appointments.html', context)
 
-@staff_member_required
+@custom_staff_member_required
 def staff_appointment_detail(request, appointment_id):
     """Staff view to see appointment details and manage status."""
     appointment = get_object_or_404(Appointment, id=appointment_id)
@@ -1217,7 +1557,7 @@ def staff_appointment_detail(request, appointment_id):
     }
     return render(request, 'patients/staff_appointment_detail.html', context)
 
-@staff_member_required
+@custom_staff_member_required
 def staff_confirm_appointment(request, appointment_id):
     """Staff view to confirm an appointment."""
     appointment = get_object_or_404(Appointment, id=appointment_id)
@@ -1225,6 +1565,11 @@ def staff_confirm_appointment(request, appointment_id):
     if request.method == 'POST':
         appointment.status = 'CONFIRMED'
         appointment.save()
+        
+        # Send real-time notification to patient
+        from .notification_utils import notify_patient_appointment_update
+        notify_patient_appointment_update(appointment, 'confirmed')
+        
         messages.success(request, f'Appointment for {appointment.patient.first_name} {appointment.patient.last_name} has been confirmed.')
         return redirect('staff-appointments')
     
@@ -1233,7 +1578,7 @@ def staff_confirm_appointment(request, appointment_id):
     }
     return render(request, 'patients/staff_confirm_appointment.html', context)
 
-@staff_member_required
+@custom_staff_member_required
 def staff_cancel_appointment(request, appointment_id):
     """Staff view to cancel an appointment."""
     appointment = get_object_or_404(Appointment, id=appointment_id)
@@ -1241,6 +1586,11 @@ def staff_cancel_appointment(request, appointment_id):
     if request.method == 'POST':
         appointment.status = 'CANCELLED'
         appointment.save()
+        
+        # Send real-time notification to patient
+        from .notification_utils import notify_patient_appointment_update
+        notify_patient_appointment_update(appointment, 'cancelled')
+        
         messages.success(request, f'Appointment for {appointment.patient.first_name} {appointment.patient.last_name} has been cancelled.')
         return redirect('staff-appointments')
     
@@ -1249,7 +1599,7 @@ def staff_cancel_appointment(request, appointment_id):
     }
     return render(request, 'patients/staff_cancel_appointment.html', context)
 
-@staff_member_required
+@custom_staff_member_required
 def staff_complete_appointment(request, appointment_id):
     """Staff view to mark an appointment as completed."""
     appointment = get_object_or_404(Appointment, id=appointment_id)
@@ -1263,4 +1613,67 @@ def staff_complete_appointment(request, appointment_id):
     context = {
         'appointment': appointment,
     }
-    return render(request, 'patients/staff_complete_appointment.html', context) 
+    return render(request, 'patients/staff_complete_appointment.html', context)
+
+def forbidden_page(request):
+    """Custom forbidden page for invalid navigation attempts"""
+    return render(request, 'forbidden.html')
+
+def patient_register(request):
+    """Patient registration view."""
+    # Check if user is already logged in and has a patient account
+    if request.user.is_authenticated and hasattr(request.user, 'patient'):
+        messages.info(request, 'You already have a patient account. You are already logged in.')
+        return redirect('patient-portal')
+    
+    if request.method == 'POST':
+        form = PatientRegistrationForm(request.POST)
+        if form.is_valid():
+            try:
+                # Create user account
+                user = User.objects.create_user(
+                    username=form.cleaned_data['username'],
+                    password=form.cleaned_data['password1'],
+                    first_name=form.cleaned_data['first_name'],
+                    last_name=form.cleaned_data['last_name'],
+                    email=form.cleaned_data.get('email', '')
+                )
+                
+                # Create patient profile
+                patient = Patient.objects.create(
+                    user=user,
+                    first_name=form.cleaned_data['first_name'],
+                    last_name=form.cleaned_data['last_name'],
+                    birthday=form.cleaned_data['birthday'],
+                    sex=form.cleaned_data['sex'],
+                    marital_status=form.cleaned_data.get('marital_status'),
+                    patient_type=form.cleaned_data['patient_type'],
+                    id_number=form.cleaned_data.get('id_number', ''),
+                    region=form.cleaned_data['region'],
+                    province=form.cleaned_data['province'],
+                    city=form.cleaned_data['city'],
+                    barangay=form.cleaned_data['barangay'],
+                    street_address=form.cleaned_data['street_address'],
+                    contact_number=form.cleaned_data['contact_number'],
+                    email=form.cleaned_data.get('email', '')
+                )
+                
+                # Log the user in
+                login(request, user)
+                messages.success(request, f'Welcome {user.first_name}! Your patient account has been created successfully.')
+                return redirect('patient-portal')
+                
+            except Exception as e:
+                messages.error(request, f'An error occurred during registration: {str(e)}')
+                # Clean up user if patient creation failed
+                if 'user' in locals():
+                    user.delete()
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = PatientRegistrationForm()
+    
+    context = {
+        'form': form,
+    }
+    return render(request, 'patient_register.html', context) 

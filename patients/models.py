@@ -232,6 +232,10 @@ class UltrasoundExam(models.Model):
     followup_duration = models.CharField(max_length=50, blank=True, null=True)
     specialist_referral = models.CharField(max_length=100, blank=True, null=True)
     
+    # Additional fields
+    technician = models.CharField(max_length=100, blank=True, null=True, help_text="Technician who performed the exam")
+    notes = models.TextField(blank=True, null=True, help_text="Additional notes about the examination")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -287,4 +291,27 @@ class Appointment(models.Model):
     @property
     def is_today(self):
         from django.utils import timezone
-        return self.appointment_date == timezone.now().date() 
+        return self.appointment_date == timezone.now().date()
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('APPOINTMENT_BOOKED', 'New Appointment Booked'),
+        ('APPOINTMENT_CONFIRMED', 'Appointment Confirmed'),
+        ('APPOINTMENT_CANCELLED', 'Appointment Cancelled'),
+        ('APPOINTMENT_UPDATED', 'Appointment Updated'),
+        ('GENERAL', 'General Notification'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.CharField(max_length=25, choices=NOTIFICATION_TYPES)
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.title} - {self.user.username}" 

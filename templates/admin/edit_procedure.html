@@ -1,0 +1,339 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Edit Procedure{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .form-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    .form-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 0.375rem 0.375rem 0 0 !important;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+
+    .form-control[readonly] {
+        background-color: #f8f9fa;
+        opacity: 1;
+    }
+
+    .btn-save {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-save:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-cancel {
+        background: #6c757d;
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-cancel:hover {
+        background: #5a6268;
+        transform: translateY(-1px);
+    }
+
+    .procedure-icon {
+        color: #667eea;
+        margin-right: 0.5rem;
+    }
+
+    .form-section {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+    }
+
+    .help-text {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+
+    .field-wrapper {
+        position: relative;
+    }
+
+    .field-wrapper .form-control {
+        padding-right: 3rem;
+    }
+
+    .field-icon {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+        z-index: 10;
+    }
+
+    .textarea-wrapper {
+        position: relative;
+    }
+
+    .textarea-wrapper textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .price-wrapper .input-group-text {
+        background: #e9ecef;
+        border-color: #ced4da;
+        color: #495057;
+    }
+
+    .price-wrapper .form-control:focus {
+        border-color: #667eea;
+    }
+
+    .alert {
+        border: none;
+        border-radius: 0.375rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-edit procedure-icon"></i>
+            Edit Procedure
+        </h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'admin_prices' %}">Prices</a></li>
+                <li class="breadcrumb-item active">Edit Procedure</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <div class="card form-card">
+                <div class="card-header form-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-stethoscope"></i>
+                        Procedure Information
+                    </h5>
+                </div>
+
+                <div class="card-body">
+                    <form method="POST" action="{% url 'edit_procedure' procedure.id %}" id="procedureForm">
+                        {% csrf_token %}
+
+                        <div class="form-section">
+                            <h6 class="mb-3">
+                                <i class="fas fa-info-circle"></i>
+                                Basic Information
+                            </h6>
+
+                            <div class="mb-3">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">
+                                    <i class="fas fa-tag"></i>
+                                    {{ form.name.label }}
+                                </label>
+                                <div class="field-wrapper">
+                                    {{ form.name }}
+                                    <small class="form-text text-muted">Current: {{ procedure.name }}</small>
+                                </div>
+                                {% if form.name.help_text %}
+                                    <div class="help-text">{{ form.name.help_text }}</div>
+                                {% endif %}
+                                {% if form.name.errors %}
+                                    <div class="alert alert-danger py-2 mt-1">
+                                        <small><i class="fas fa-exclamation-triangle"></i> {{ form.name.errors.0 }}</small>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">
+                                    <i class="fas fa-align-left"></i>
+                                    {{ form.description.label }}
+                                </label>
+                                <div class="textarea-wrapper">
+                                    {{ form.description }}
+                                    <small class="form-text text-muted">Current: {{ procedure.description|default:"No description" }}</small>
+                                </div>
+                                {% if form.description.help_text %}
+                                    <div class="help-text">{{ form.description.help_text }}</div>
+                                {% endif %}
+                                {% if form.description.errors %}
+                                    <div class="alert alert-danger py-2 mt-1">
+                                        <small><i class="fas fa-exclamation-triangle"></i> {{ form.description.errors.0 }}</small>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.base_price.id_for_label }}" class="form-label">
+                                    <i class="fas fa-peso-sign"></i>
+                                    {{ form.base_price.label }}
+                                </label>
+                                <div class="price-wrapper">
+                                    <div class="input-group">
+                                        <span class="input-group-text">₱</span>
+                                        {{ form.base_price }}
+                                        <i class="fas fa-peso-sign field-icon"></i>
+                                    </div>
+                                    <small class="form-text text-muted">Current: ₱{{ procedure.base_price }}</small>
+                                </div>
+                                {% if form.base_price.help_text %}
+                                    <div class="help-text">{{ form.base_price.help_text }}</div>
+                                {% endif %}
+                                {% if form.base_price.errors %}
+                                    <div class="alert alert-danger py-2 mt-1">
+                                        <small><i class="fas fa-exclamation-triangle"></i> {{ form.base_price.errors.0 }}</small>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.is_active.id_for_label }}" class="form-label">
+                                    <i class="fas fa-toggle-on"></i>
+                                    {{ form.is_active.label }}
+                                </label>
+                                <div class="field-wrapper">
+                                    {{ form.is_active }}
+                                </div>
+                                <small class="form-text text-muted">Current: {% if procedure.is_active %}Active{% else %}Inactive{% endif %}</small>
+                                {% if form.is_active.help_text %}
+                                    <div class="help-text">{{ form.is_active.help_text }}</div>
+                                {% endif %}
+                                {% if form.is_active.errors %}
+                                    <div class="alert alert-danger py-2 mt-1">
+                                        <small><i class="fas fa-exclamation-triangle"></i> {{ form.is_active.errors.0 }}</small>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between gap-3 mt-4">
+                            <a href="{% url 'admin_prices' %}" class="btn btn-cancel">
+                                <i class="fas fa-times"></i>
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-save">
+                                <i class="fas fa-save"></i>
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('procedureForm');
+
+    // Initialize toastr options
+    toastr.options = {
+        "closeButton": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "timeOut": "3000"
+    };
+
+    // Add form validation feedback
+    form.addEventListener('submit', function(e) {
+        const submitBtn = form.querySelector('.btn-save');
+        const originalText = submitBtn.innerHTML;
+
+        // Disable button and show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+        // Show loading notification
+        toastr.info('Saving procedure changes...');
+
+        // Re-enable button after 3 seconds as fallback
+        setTimeout(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }, 3000);
+    });
+
+    // Add visual feedback for form fields
+    const formInputs = form.querySelectorAll('input, textarea, select');
+    formInputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.closest('.field-wrapper, .textarea-wrapper, .price-wrapper').classList.add('focused');
+        });
+
+        input.addEventListener('blur', function() {
+            this.closest('.field-wrapper, .textarea-wrapper, .price-wrapper').classList.remove('focused');
+        });
+    });
+
+    // Price input formatting
+    const priceInput = form.querySelector('input[type="number"]');
+    if (priceInput) {
+        priceInput.addEventListener('input', function() {
+            const value = parseFloat(this.value);
+            if (value < 0) {
+                this.value = 0;
+                toastr.warning('Price cannot be negative');
+            }
+            if (value > 999999) {
+                this.value = 999999;
+                toastr.warning('Price cannot exceed ₱999,999');
+            }
+        });
+    }
+
+    // Form validation on input
+    form.addEventListener('input', function(e) {
+        const field = e.target;
+        const errorDiv = field.closest('.mb-3').querySelector('.alert-danger');
+
+        if (field.checkValidity()) {
+            if (errorDiv) {
+                errorDiv.remove();
+            }
+        }
+    });
+
+    // Handle Django messages with toastr
+});
+</script>
+{% endblock %}
