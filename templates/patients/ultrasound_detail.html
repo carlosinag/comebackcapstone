@@ -106,9 +106,70 @@
                     </div>
                 </div>
             </div>
+
+            <hr>
+
+            <div class="row">
+                <div class="col-12">
+                    <h6 class="text-muted mb-3"><i class="fas fa-images me-2"></i>Ultrasound Images</h6>
+                    {% for image in exam.images.all %}
+                    <div class="mb-4">
+                        <h7 class="fw-bold">{{ image.caption|default:"Ultrasound Image" }}</h7>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <img src="{{ image.image.url }}" class="img-fluid border" alt="Original Image" style="max-height: 400px; width: 100%; object-fit: contain; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#imageModal" data-image-src="{{ image.image.url }}" data-caption="{{ image.caption|default:'Original Ultrasound Image' }}">
+                                <p class="text-center mt-2"><small class="text-muted">Original Image</small></p>
+                            </div>
+                            <div class="col-md-6">
+                                {% if image.annotated_image %}
+                                <img src="{{ image.annotated_image.url }}" class="img-fluid border" alt="Annotated Image" style="max-height: 400px; width: 100%; object-fit: contain; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#imageModal" data-image-src="{{ image.annotated_image.url }}" data-caption="{{ image.caption|default:'Annotated Ultrasound Image' }}">
+                                <p class="text-center mt-2"><small class="text-muted">Annotated Image</small></p>
+                                {% else %}
+                                <div class="d-flex align-items-center justify-content-center border" style="height: 400px;">
+                                    <small class="text-muted">Image not yet annotated</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No images available for this examination.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageModalLabel">Ultrasound Image</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="modalImage" src="" class="img-fluid" alt="Ultrasound Image">
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var imageModal = document.getElementById('imageModal');
+    imageModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var imageSrc = button.getAttribute('data-image-src');
+        var caption = button.getAttribute('data-caption');
+        var modalImage = document.getElementById('modalImage');
+        var modalTitle = document.getElementById('imageModalLabel');
+        modalImage.src = imageSrc;
+        modalTitle.textContent = caption;
+    });
+});
+</script>
 
 <style>
 @media print {

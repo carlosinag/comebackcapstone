@@ -23,6 +23,8 @@ from django.contrib.auth import REDIRECT_FIELD_NAME
 from docx import Document
 from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+import os
+from django.conf import settings
 from functools import wraps
 
 def custom_staff_member_required(view_func):
@@ -359,7 +361,7 @@ class UltrasoundExamCreateView(CreateView):
             with transaction.atomic():
                 # Save the exam first
                 self.object = form.save()
-                
+
                 # Handle multiple image uploads
                 files = self.request.FILES.getlist('images[]')
                 for file in files:
@@ -367,7 +369,11 @@ class UltrasoundExamCreateView(CreateView):
                         exam=self.object,
                         image=file
                     )
-                
+
+                # Send notification to staff about new exam
+                from .notification_utils import notify_staff_new_exam
+                notify_staff_new_exam(self.object)
+
                 messages.success(self.request, 'Ultrasound examination record created successfully.')
                 return super().form_valid(form)
         except Exception as e:
@@ -387,9 +393,12 @@ class UltrasoundExamUpdateView(UpdateView):
     def form_valid(self, form):
         try:
             with transaction.atomic():
+                # Get the old exam instance to check for status changes
+                old_exam = UltrasoundExam.objects.get(pk=self.object.pk)
+
                 # Save the exam first
                 self.object = form.save()
-                
+
                 # Handle multiple image uploads
                 files = self.request.FILES.getlist('images[]')
                 for file in files:
@@ -397,7 +406,16 @@ class UltrasoundExamUpdateView(UpdateView):
                         exam=self.object,
                         image=file
                     )
-                
+
+                # Check if status changed to completed and send notification
+                if old_exam.status != 'COMPLETED' and self.object.status == 'COMPLETED':
+                    from .notification_utils import notify_patient_exam_completed
+                    notify_patient_exam_completed(self.object)
+
+                # Send notification to staff about exam update
+                from .notification_utils import notify_staff_exam_updated
+                notify_staff_exam_updated(self.object)
+
                 messages.success(self.request, 'Ultrasound examination record updated successfully.')
                 return super().form_valid(form)
         except Exception as e:
@@ -1125,55 +1143,179 @@ def patient_view_exam(request, exam_id):
 @custom_staff_member_required
 def download_ultrasound_docx(request, pk):
     exam = get_object_or_404(UltrasoundExam, pk=pk)
-    
-    # Create a new document
-    doc = Document()
-    
-    # Set font to Courier New and remove any default paragraph spacing
-    style = doc.styles['Normal']
-    style.font.name = 'Courier New'
-    style.font.size = Pt(12)
-    style.paragraph_format.space_before = Pt(0)
-    style.paragraph_format.space_after = Pt(0)
-    style.paragraph_format.line_spacing = 1.0
-    
-    # Add content with exact spacing using tabs
-    doc.add_paragraph(f"CASE NUMBER\t:\t{str(exam.id).zfill(3)}\t\tDATE: {exam.exam_date.strftime('%B %d, %Y').upper()}")
-    doc.add_paragraph(f"NAME OF PATIENT\t:\t{exam.patient.last_name}, {exam.patient.first_name}")
-    doc.add_paragraph(f"AGE\t\t:\t{exam.patient.age}")
-    doc.add_paragraph(f"GENDER\t\t:\t{exam.patient.get_sex_display()}")
-    doc.add_paragraph(f"MARITAL STATUS\t:\t{exam.patient.get_marital_status_display() or ''}")
-    doc.add_paragraph(f"EXAMINATION PERFORMED:\t{exam.procedure_type.name} ULTRASOUND")
-    doc.add_paragraph(f"\t\tO.R.\t\t\tAMOUNT PAID:")
-    doc.add_paragraph(f"REQUESTING PHYSICIAN:\t\t\t\tWARD: {exam.patient.get_patient_status_display()}")
-    doc.add_paragraph()
-    doc.add_paragraph("RADIOLOGICAL FINDINGS:")
-    doc.add_paragraph()
-    doc.add_paragraph(exam.findings)
-    
-    if exam.procedure_type.name == 'OBSTETRIC':
+
+    # Load the template document from static
+    doc = Document(os.path.join(settings.BASE_DIR, 'static', 'test.docx'))
+
+    # Function to replace text in document
+    def replace_text_in_doc(doc, old_text, new_text):
+        for p in doc.paragraphs:
+            if old_text in p.text:
+                p.text = p.text.replace(old_text, new_text)
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for p in cell.paragraphs:
+                        if old_text in p.text:
+                            p.text = p.text.replace(old_text, new_text)
+
+    # Replace date
+    replace_text_in_doc(doc, "JANUARY 4, 2023", exam.exam_date.strftime('%B %d, %Y').upper())
+
+    # Replace examination performed
+    replace_text_in_doc(doc, "PELVIC	 ULTRASOUND", f"{exam.procedure_type.name}	 ULTRASOUND".upper())
+
+    # Replace ward
+    replace_text_in_doc(doc, "OPD", exam.patient.get_patient_status_display().upper())
+
+    # Replace case number
+    for p in doc.paragraphs:
+        if "CASE NUMBER" in p.text:
+            p.text = p.text.replace("CASE NUMBER	  :      		           ", f"CASE NUMBER	  : {str(exam.id).zfill(3)}            ")
+
+    # Name
+    for p in doc.paragraphs:
+        if "NAME OF PATIENT" in p.text:
+            p.text = p.text.replace("NAME OF PATIENT	:      ", f"NAME OF PATIENT	: {exam.patient.last_name}, {exam.patient.first_name}")
+
+    # Age
+    for p in doc.paragraphs:
+        if "AGE" in p.text:
+            p.text = p.text.replace("AGE	             		:       ", f"AGE	             		: {exam.patient.age or 'N/A'}")
+
+    # Gender
+    for p in doc.paragraphs:
+        if "GENDER" in p.text:
+            p.text = p.text.replace("GENDER	               :     ", exam.patient.get_sex_display())
+
+    # Marital status
+    for p in doc.paragraphs:
+        if "MARITAL STATUS" in p.text:
+            p.text = p.text.replace("MARITAL STATUS             :", f"MARITAL STATUS             : {exam.patient.get_marital_status_display() if exam.patient.marital_status else ''}")
+
+    # Requesting physician
+    for p in doc.paragraphs:
+        if "REQUESTING PHYSICIAN:" in p.text:
+            p.text = p.text.replace("REQUESTING PHYSICIAN:					", f"REQUESTING PHYSICIAN: {exam.referring_physician or 'N/A'}				")
+
+    # Amount paid
+    for p in doc.paragraphs:
+        if "AMOUNT PAID:" in p.text:
+            bill = Bill.objects.filter(items__exam=exam).first()
+            amount = bill.total_amount if bill else 0
+            p.text = p.text.replace("AMOUNT PAID:", f"AMOUNT PAID: {amount}")
+
+    # Findings
+    findings_index = None
+    for i, p in enumerate(doc.paragraphs):
+        if "RADIOLOGICAL FINDINGS:" in p.text:
+            findings_index = i
+            break
+    if findings_index is not None and findings_index + 1 < len(doc.paragraphs):
+        doc.paragraphs[findings_index + 1].text = exam.findings or "No specific findings recorded."
+
+    # Impression
+    impression_index = None
+    for i, p in enumerate(doc.paragraphs):
+        if "IMPRESSION:" in p.text:
+            impression_index = i
+            break
+    if impression_index is not None and impression_index + 1 < len(doc.paragraphs):
+        doc.paragraphs[impression_index + 1].text = exam.impression or "No impression recorded."
+
+    # Add recommendations if any
+    if exam.recommendations or exam.followup_duration or exam.specialist_referral:
+        rec_heading = doc.add_paragraph()
+        rec_heading_run = rec_heading.add_run('RECOMMENDATIONS')
+        rec_heading_run.font.bold = True
+        rec_heading_run.font.size = Pt(12)
+        rec_para = doc.add_paragraph()
+        rec_para.add_run(f"Recommendation: {exam.get_recommendations_display()}")
+        if exam.followup_duration:
+            rec_para.add_run(f"\nFollow-up Duration: {exam.followup_duration}")
+        if exam.specialist_referral:
+            rec_para.add_run(f"\nSpecialist Referral: {exam.specialist_referral}")
         doc.add_paragraph()
-        doc.add_paragraph(f"FETAL HEART RATE - {exam.fetal_heart_rate} bpm")
-        doc.add_paragraph("ADEQUATE AMNIOTIC FLUID")
-        doc.add_paragraph("ANTERIOR PLACENTA, GRADE I")
-        doc.add_paragraph(f"FETAL SEX --- {exam.fetal_sex or 'UNDETERMINED'}")
-        doc.add_paragraph(f"EDD ---- {exam.edd.strftime('%m/%d/%Y') if exam.edd else ''}")
-        doc.add_paragraph(f"EFW ---- {exam.estimated_fetal_weight or ''} gms")
-    
-    doc.add_paragraph()
-    doc.add_paragraph("IMPRESSION:")
-    doc.add_paragraph()
-    doc.add_paragraph(exam.impression)
-    
-    # Create the response
+
+    # Additional Notes
+    if exam.notes:
+        notes_heading = doc.add_paragraph()
+        notes_heading_run = notes_heading.add_run('ADDITIONAL NOTES')
+        notes_heading_run.font.bold = True
+        notes_heading_run.font.size = Pt(12)
+        notes_para = doc.add_paragraph()
+        notes_para.add_run(exam.notes)
+        doc.add_paragraph()
+
+    # Technician
+    if exam.technician:
+        tech_heading = doc.add_paragraph()
+        tech_heading_run = tech_heading.add_run('TECHNICIAN')
+        tech_heading_run.font.bold = True
+        tech_heading_run.font.size = Pt(12)
+        tech_para = doc.add_paragraph()
+        tech_para.add_run(f"Performed by: {exam.technician}")
+        doc.add_paragraph()
+
+    # Images
+    if exam.images.exists():
+        images_heading = doc.add_paragraph()
+        images_heading_run = images_heading.add_run('ULTRASOUND IMAGES')
+        images_heading_run.font.bold = True
+        images_heading_run.font.size = Pt(12)
+        for image in exam.images.all():
+            if image.caption:
+                caption_para = doc.add_paragraph()
+                caption_run = caption_para.add_run(f"Image: {image.caption}")
+                caption_run.font.italic = True
+                caption_run.font.size = Pt(10)
+            try:
+                img_path = image.image.path
+                img_para = doc.add_paragraph()
+                img_run = img_para.add_run()
+                img_run.add_picture(img_path, width=Inches(4.0))
+                img_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                original_caption = doc.add_paragraph()
+                original_caption_run = original_caption.add_run("Original Ultrasound Image")
+                original_caption_run.font.size = Pt(9)
+                original_caption_run.font.italic = True
+                original_caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            except Exception as e:
+                doc.add_paragraph("Original image could not be loaded.")
+            if image.annotated_image:
+                try:
+                    annotated_path = image.annotated_image.path
+                    annotated_img_para = doc.add_paragraph()
+                    annotated_img_run = annotated_img_para.add_run()
+                    annotated_img_run.add_picture(annotated_path, width=Inches(4.0))
+                    annotated_img_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    annotated_caption = doc.add_paragraph()
+                    annotated_caption_run = annotated_caption.add_run("Annotated Ultrasound Image")
+                    annotated_caption_run.font.size = Pt(9)
+                    annotated_caption_run.font.italic = True
+                    annotated_caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                except Exception as e:
+                    doc.add_paragraph("Annotated image could not be loaded.")
+            doc.add_paragraph()
+
+    # Footer
+    footer_para = doc.add_paragraph()
+    footer_run = footer_para.add_run(
+        f"This report was generated on {timezone.localtime().strftime('%B %d, %Y at %I:%M %p')} by MSRA Ultrasound Clinic Management System.\n\n"
+        "IMPORTANT MEDICAL DISCLAIMER: This ultrasound examination report contains preliminary findings and should be interpreted "
+        "by a qualified healthcare professional. The final diagnosis and treatment recommendations must be provided by the "
+        "attending physician. This report is for medical records purposes only and should not be used as the sole basis "
+        "for medical decision-making."
+    )
+    footer_run.font.size = Pt(8)
+    footer_run.font.italic = True
+    footer_para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+    # Response
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     response['Content-Disposition'] = f'attachment; filename=ultrasound_report_{exam.exam_date.strftime("%Y%m%d")}_{exam.patient.last_name}.docx'
-    
-    # Save the document
     doc.save(response)
-    
-    return response 
-
+    return response
 @login_required
 def patient_settings(request):
     """Patient settings page."""
@@ -1258,88 +1400,172 @@ def patient_download_exam(request, exam_id):
         messages.error(request, 'Access denied. You can only download your own examinations.')
         return redirect('patient-portal')
     
-    # Create a new document
-    doc = Document()
-    
-    # Set font to Arial and formatting
-    style = doc.styles['Normal']
-    style.font.name = 'Arial'
-    style.font.size = Pt(11)
-    style.paragraph_format.space_before = Pt(0)
-    style.paragraph_format.space_after = Pt(0)
-    style.paragraph_format.line_spacing = 1.15
-    
-    # Add clinic header
-    doc.add_heading('ULTRASOUND EXAMINATION REPORT', 0)
-    doc.add_paragraph('MSRA Services')
-    doc.add_paragraph('Patient Portal Report')
-    doc.add_paragraph()
-    
-    # Add patient information
-    doc.add_heading('PATIENT INFORMATION', level=1)
-    doc.add_paragraph(f'Name: {exam.patient.last_name}, {exam.patient.first_name}')
-    doc.add_paragraph(f'Age: {exam.patient.age} years old')
-    doc.add_paragraph(f'Sex: {exam.patient.get_sex_display()}')
-    doc.add_paragraph(f'Contact Number: {exam.patient.contact_number}')
-    doc.add_paragraph()
-    
-    # Add examination details
-    doc.add_heading('EXAMINATION DETAILS', level=1)
-    doc.add_paragraph(f'Examination Date: {exam.exam_date.strftime("%B %d, %Y")}')
-    doc.add_paragraph(f'Examination Time: {exam.exam_time.strftime("%I:%M %p")}')
-    doc.add_paragraph(f'Procedure Type: {exam.procedure_type.name} ULTRASOUND')
-    doc.add_paragraph(f'Referring Physician: {exam.referring_physician}')
-    doc.add_paragraph()
-    
-    # Add clinical findings
-    if exam.findings:
-        doc.add_heading('RADIOLOGICAL FINDINGS', level=1)
-        doc.add_paragraph(exam.findings)
+     # Load the template document from static
+    doc = Document(os.path.join(settings.BASE_DIR, 'static', 'test.docx'))
+
+    # Function to replace text in document
+    def replace_text_in_doc(doc, old_text, new_text):
+        for p in doc.paragraphs:
+            if old_text in p.text:
+                p.text = p.text.replace(old_text, new_text)
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for p in cell.paragraphs:
+                        if old_text in p.text:
+                            p.text = p.text.replace(old_text, new_text)
+
+    # Replace date
+    replace_text_in_doc(doc, "JANUARY 4, 2023", exam.exam_date.strftime('%B %d, %Y').upper())
+
+    # Replace examination performed
+    replace_text_in_doc(doc, "PELVIC	 ULTRASOUND", f"{exam.procedure_type.name}	 ULTRASOUND".upper())
+
+    # Replace ward
+    replace_text_in_doc(doc, "OPD", exam.patient.get_patient_status_display().upper())
+
+    # Replace case number
+    for p in doc.paragraphs:
+        if "CASE NUMBER" in p.text:
+            p.text = p.text.replace("CASE NUMBER	  :      		           ", f"CASE NUMBER	  : {str(exam.id).zfill(3)}            ")
+
+    # Name
+    for p in doc.paragraphs:
+        if "NAME OF PATIENT" in p.text:
+            p.text = p.text.replace("NAME OF PATIENT	:      ", f"NAME OF PATIENT	: {exam.patient.last_name}, {exam.patient.first_name}")
+
+    # Age
+    for p in doc.paragraphs:
+        if "AGE" in p.text:
+            p.text = p.text.replace("AGE	             		:       ", f"AGE	             		: {exam.patient.age or 'N/A'}")
+
+    # Gender
+    for p in doc.paragraphs:
+        if "GENDER" in p.text:
+            p.text = p.text.replace("GENDER	               :     ", exam.patient.get_sex_display())
+
+    # Marital status
+    for p in doc.paragraphs:
+        if "MARITAL STATUS" in p.text:
+            p.text = p.text.replace("MARITAL STATUS             :", f"MARITAL STATUS             : {exam.patient.get_marital_status_display() if exam.patient.marital_status else ''}")
+
+    # Requesting physician
+    for p in doc.paragraphs:
+        if "REQUESTING PHYSICIAN:" in p.text:
+            p.text = p.text.replace("REQUESTING PHYSICIAN:					", f"REQUESTING PHYSICIAN: {exam.referring_physician or 'N/A'}				")
+
+    # Amount paid
+    for p in doc.paragraphs:
+        if "AMOUNT PAID:" in p.text:
+            bill = Bill.objects.filter(items__exam=exam).first()
+            amount = bill.total_amount if bill else 0
+            p.text = p.text.replace("AMOUNT PAID:", f"AMOUNT PAID: {amount}")
+
+    # Findings
+    findings_index = None
+    for i, p in enumerate(doc.paragraphs):
+        if "RADIOLOGICAL FINDINGS:" in p.text:
+            findings_index = i
+            break
+    if findings_index is not None and findings_index + 1 < len(doc.paragraphs):
+        doc.paragraphs[findings_index + 1].text = exam.findings or "No specific findings recorded."
+
+    # Impression
+    impression_index = None
+    for i, p in enumerate(doc.paragraphs):
+        if "IMPRESSION:" in p.text:
+            impression_index = i
+            break
+    if impression_index is not None and impression_index + 1 < len(doc.paragraphs):
+        doc.paragraphs[impression_index + 1].text = exam.impression or "No impression recorded."
+
+    # Add recommendations if any
+    if exam.recommendations or exam.followup_duration or exam.specialist_referral:
+        rec_heading = doc.add_paragraph()
+        rec_heading_run = rec_heading.add_run('RECOMMENDATIONS')
+        rec_heading_run.font.bold = True
+        rec_heading_run.font.size = Pt(12)
+        rec_para = doc.add_paragraph()
+        rec_para.add_run(f"Recommendation: {exam.get_recommendations_display()}")
+        if exam.followup_duration:
+            rec_para.add_run(f"\nFollow-up Duration: {exam.followup_duration}")
+        if exam.specialist_referral:
+            rec_para.add_run(f"\nSpecialist Referral: {exam.specialist_referral}")
         doc.add_paragraph()
-    
-    # Add impression
-    if exam.impression:
-        doc.add_heading('IMPRESSION', level=1)
-        doc.add_paragraph(exam.impression)
+
+    # Additional Notes
+    if exam.notes:
+        notes_heading = doc.add_paragraph()
+        notes_heading_run = notes_heading.add_run('ADDITIONAL NOTES')
+        notes_heading_run.font.bold = True
+        notes_heading_run.font.size = Pt(12)
+        notes_para = doc.add_paragraph()
+        notes_para.add_run(exam.notes)
         doc.add_paragraph()
-    
-    # Add recommendations
-    doc.add_heading('RECOMMENDATIONS', level=1)
-    doc.add_paragraph(f'Recommendation: {exam.get_recommendations_display()}')
-    if exam.followup_duration:
-        doc.add_paragraph(f'Follow-up Duration: {exam.followup_duration}')
-    if exam.specialist_referral:
-        doc.add_paragraph(f'Specialist Referral: {exam.specialist_referral}')
-    doc.add_paragraph()
-    
-    # Add images information
+
+    # Technician
+    if exam.technician:
+        tech_heading = doc.add_paragraph()
+        tech_heading_run = tech_heading.add_run('TECHNICIAN')
+        tech_heading_run.font.bold = True
+        tech_heading_run.font.size = Pt(12)
+        tech_para = doc.add_paragraph()
+        tech_para.add_run(f"Performed by: {exam.technician}")
+        doc.add_paragraph()
+
+    # Images
     if exam.images.exists():
-        doc.add_heading('IMAGES', level=1)
-        doc.add_paragraph(f'Total Images: {exam.images.count()}')
-        annotated_count = exam.images.filter(annotated_image__isnull=False).count()
-        if annotated_count > 0:
-            doc.add_paragraph(f'Annotated Images: {annotated_count}')
-        doc.add_paragraph()
-    
-    # Add medical disclaimer
-    doc.add_heading('MEDICAL DISCLAIMER', level=1)
-    disclaimer_text = """
-    The information provided in this ultrasound examination report is intended for educational and informational purposes only. This report represents a preliminary analysis and should not be considered as a final medical diagnosis.
+        images_heading = doc.add_paragraph()
+        images_heading_run = images_heading.add_run('ULTRASOUND IMAGES')
+        images_heading_run.font.bold = True
+        images_heading_run.font.size = Pt(12)
+        for image in exam.images.all():
+            if image.caption:
+                caption_para = doc.add_paragraph()
+                caption_run = caption_para.add_run(f"Image: {image.caption}")
+                caption_run.font.italic = True
+                caption_run.font.size = Pt(10)
+            try:
+                img_path = image.image.path
+                img_para = doc.add_paragraph()
+                img_run = img_para.add_run()
+                img_run.add_picture(img_path, width=Inches(4.0))
+                img_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                original_caption = doc.add_paragraph()
+                original_caption_run = original_caption.add_run("Original Ultrasound Image")
+                original_caption_run.font.size = Pt(9)
+                original_caption_run.font.italic = True
+                original_caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            except Exception as e:
+                doc.add_paragraph("Original image could not be loaded.")
+            if image.annotated_image:
+                try:
+                    annotated_path = image.annotated_image.path
+                    annotated_img_para = doc.add_paragraph()
+                    annotated_img_run = annotated_img_para.add_run()
+                    annotated_img_run.add_picture(annotated_path, width=Inches(4.0))
+                    annotated_img_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    annotated_caption = doc.add_paragraph()
+                    annotated_caption_run = annotated_caption.add_run("Annotated Ultrasound Image")
+                    annotated_caption_run.font.size = Pt(9)
+                    annotated_caption_run.font.italic = True
+                    annotated_caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                except Exception as e:
+                    doc.add_paragraph("Annotated image could not be loaded.")
+            doc.add_paragraph()
 
-    IMPORTANT NOTICE:
-    • The final diagnosis and treatment recommendations must be provided by your attending physician or qualified healthcare provider.
-    • This report should be reviewed in conjunction with your complete medical history and other diagnostic tests.
-    • Please consult with your healthcare provider for proper interpretation and medical decision-making.
-    • For medical emergencies, contact emergency services immediately or visit the nearest emergency department.
-
-    This report was generated from the patient portal and is for your personal medical records.
-    """
-    doc.add_paragraph(disclaimer_text)
-    
-    # Add footer
-    doc.add_paragraph()
-    doc.add_paragraph(f'Report Generated: {timezone.now().strftime("%B %d, %Y at %I:%M %p")}')
-    doc.add_paragraph('MSRA Services - Patient Portal')
+    # Footer
+    footer_para = doc.add_paragraph()
+    footer_run = footer_para.add_run(
+        f"This report was generated on {timezone.localtime().strftime('%B %d, %Y at %I:%M %p')} by MSRA Ultrasound Clinic Management System.\n\n"
+        "IMPORTANT MEDICAL DISCLAIMER: This ultrasound examination report contains preliminary findings and should be interpreted "
+        "by a qualified healthcare professional. The final diagnosis and treatment recommendations must be provided by the "
+        "attending physician. This report is for medical records purposes only and should not be used as the sole basis "
+        "for medical decision-making."
+    )
+    footer_run.font.size = Pt(8)
+    footer_run.font.italic = True
+    footer_para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     
     # Create the response
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')

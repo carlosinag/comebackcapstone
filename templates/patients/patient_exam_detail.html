@@ -228,6 +228,48 @@
         </div>
     </div>
 </div>
+
+<!-- Print-only content -->
+<div class="print-only">
+CASE NUMBER	  :      	{{ exam.id|stringformat:"03d" }}           	DATE:  {{ exam.exam_date|date:"F j, Y"|upper }}
+
+NAME OF PATIENT	:      {{ patient.last_name }}, {{ patient.first_name }}
+
+AGE	             		:       {{ patient.age|default:"N/A" }}
+
+GENDER	               :     {{ patient.get_sex_display }}
+
+MARITAL STATUS             : {{ patient.get_marital_status_display|default:"" }}
+
+EXAMINATION PERFORMED:                       	{{ exam.procedure_type.name }}	 ULTRASOUND
+
+		              O.R.				             AMOUNT PAID: {{ bill.total_amount|default:0 }}
+
+REQUESTING PHYSICIAN:					{{ exam.referring_physician|default:"N/A" }}		WARD:    {{ patient.get_patient_status_display }}
+
+
+RADIOLOGICAL FINDINGS:
+
+{{ exam.findings|default:"No specific findings recorded." }}
+
+
+IMPRESSION:
+
+{{ exam.impression|default:"No impression recorded." }}
+
+{% if exam.images.exists %}
+ULTRASOUND IMAGES:
+
+{% for image in exam.images.all %}
+Image {{ forloop.counter }}:
+<img src="{{ image.image.url }}" alt="Original Ultrasound Image" style="max-width: 100%; height: auto;">
+{% if image.annotated_image %}
+Annotated Image {{ forloop.counter }}:
+<img src="{{ image.annotated_image.url }}" alt="Annotated Ultrasound Image" style="max-width: 100%; height: auto;">
+{% endif %}
+{% endfor %}
+{% endif %}
+</div>
 {% endblock %}
 
 {% block extra_css %}
@@ -235,69 +277,51 @@
     .card {
         transition: transform 0.2s;
     }
-    
+
     .card:hover {
         transform: translateY(-2px);
     }
-    
+
     .modal-body img {
         max-height: 70vh;
         object-fit: contain;
     }
-    
+
     .badge {
         font-size: 0.75rem;
     }
-    
+
+    /* Print-only content */
+    .print-only {
+        display: none;
+    }
+
     @media print {
-        /* Hide navigation and buttons */
-        .btn, .modal, .card-header, .d-flex.gap-2 {
+        /* Hide web content */
+        .container, .card, .btn, .modal, .card-header, .d-flex.gap-2, .print-only-hide {
             display: none !important;
         }
-        
-        /* Clean up cards for printing */
-        .card {
-            border: 1px solid #000 !important;
-            box-shadow: none !important;
-            margin-bottom: 20px !important;
+
+        /* Show print-only content */
+        .print-only {
+            display: block !important;
+            font-family: 'Courier New', monospace;
+            font-size: 12pt;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            margin: 0;
+            padding: 0;
         }
-        
-        .card-body {
-            padding: 15px !important;
-        }
-        
-        /* Ensure text is readable */
-        body {
-            font-size: 12pt !important;
-            line-height: 1.4 !important;
-        }
-        
-        /* Make images print properly */
-        img {
-            max-width: 100% !important;
-            height: auto !important;
-        }
-        
-        /* Ensure proper page breaks */
-        .row {
-            page-break-inside: avoid;
-        }
-        
-        /* Add page margins */
+
+        /* Ensure proper page margins */
         @page {
             margin: 1in;
         }
-        
-        /* Hide download options card when printing */
-        .card.border-success {
-            display: none !important;
-        }
-        
-        /* Make disclaimer more prominent in print */
-        .card.border-warning {
-            border: 2px solid #000 !important;
-            background-color: #fff3cd !important;
+
+        body {
+            margin: 0;
+            padding: 0;
         }
     }
 </style>
-{% endblock %} 
+{% endblock %}

@@ -299,6 +299,9 @@ class Notification(models.Model):
         ('APPOINTMENT_CONFIRMED', 'Appointment Confirmed'),
         ('APPOINTMENT_CANCELLED', 'Appointment Cancelled'),
         ('APPOINTMENT_UPDATED', 'Appointment Updated'),
+        ('EXAM_CREATED', 'New Exam Created'),
+        ('EXAM_UPDATED', 'Exam Updated'),
+        ('EXAM_COMPLETED', 'Exam Completed'),
         ('GENERAL', 'General Notification'),
     ]
     
