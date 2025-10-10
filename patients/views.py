@@ -1145,7 +1145,7 @@ def download_ultrasound_docx(request, pk):
     exam = get_object_or_404(UltrasoundExam, pk=pk)
 
     # Load the template document from static
-    doc = Document(os.path.join(settings.BASE_DIR, 'static', 'test.docx'))
+    doc = Document(os.path.join(settings.BASE_DIR, 'static', 'docxtemplate.docx'))
 
     # Function to replace text in document
     def replace_text_in_doc(doc, old_text, new_text):
@@ -1160,10 +1160,10 @@ def download_ultrasound_docx(request, pk):
                             p.text = p.text.replace(old_text, new_text)
 
     # Replace date
-    replace_text_in_doc(doc, "JANUARY 4, 2023", exam.exam_date.strftime('%B %d, %Y').upper())
+    replace_text_in_doc(doc, "OCTOBER 09, 2025", exam.exam_date.strftime('%B %d, %Y').upper())
 
     # Replace examination performed
-    replace_text_in_doc(doc, "PELVIC	 ULTRASOUND", f"{exam.procedure_type.name}	 ULTRASOUND".upper())
+    replace_text_in_doc(doc, "KUB ULTRASOUND", f"{exam.procedure_type.name} ULTRASOUND".upper())
 
     # Replace ward
     replace_text_in_doc(doc, "OPD", exam.patient.get_patient_status_display().upper())
@@ -1171,32 +1171,32 @@ def download_ultrasound_docx(request, pk):
     # Replace case number
     for p in doc.paragraphs:
         if "CASE NUMBER" in p.text:
-            p.text = p.text.replace("CASE NUMBER	  :      		           ", f"CASE NUMBER	  : {str(exam.id).zfill(3)}            ")
+            p.text = p.text.replace("CASE NUMBER	:                                            ", f"CASE NUMBER	: {str(exam.id).zfill(3)}")
 
     # Name
     for p in doc.paragraphs:
         if "NAME OF PATIENT" in p.text:
-            p.text = p.text.replace("NAME OF PATIENT	:      ", f"NAME OF PATIENT	: {exam.patient.last_name}, {exam.patient.first_name}")
+            p.text = p.text.replace("NAME OF PATIENT      : ", f"NAME OF PATIENT      : {exam.patient.last_name}, {exam.patient.first_name}")
 
     # Age
     for p in doc.paragraphs:
         if "AGE" in p.text:
-            p.text = p.text.replace("AGE	             		:       ", f"AGE	             		: {exam.patient.age or 'N/A'}")
+            p.text = p.text.replace("AGE	                	: ", f"AGE	                	: {exam.patient.age or 'N/A'}")
 
     # Gender
     for p in doc.paragraphs:
         if "GENDER" in p.text:
-            p.text = p.text.replace("GENDER	               :     ", exam.patient.get_sex_display())
+            p.text = p.text.replace("GENDER	             : ", exam.patient.get_sex_display())
 
     # Marital status
     for p in doc.paragraphs:
         if "MARITAL STATUS" in p.text:
-            p.text = p.text.replace("MARITAL STATUS             :", f"MARITAL STATUS             : {exam.patient.get_marital_status_display() if exam.patient.marital_status else ''}")
+            p.text = p.text.replace("MARITAL STATUS        :", f"MARITAL STATUS        : {exam.patient.get_marital_status_display() if exam.patient.marital_status else ''}")
 
     # Requesting physician
     for p in doc.paragraphs:
-        if "REQUESTING PHYSICIAN:" in p.text:
-            p.text = p.text.replace("REQUESTING PHYSICIAN:					", f"REQUESTING PHYSICIAN: {exam.referring_physician or 'N/A'}				")
+        if "REQUESTING PHYSICIAN" in p.text:
+            p.text = p.text.replace("REQUESTING PHYSICIAN : ", f"REQUESTING PHYSICIAN : {exam.referring_physician or 'N/A'}")
 
     # Amount paid
     for p in doc.paragraphs:
@@ -1208,7 +1208,7 @@ def download_ultrasound_docx(request, pk):
     # Findings
     findings_index = None
     for i, p in enumerate(doc.paragraphs):
-        if "RADIOLOGICAL FINDINGS:" in p.text:
+        if "ULTRASOUND REPORT:" in p.text:
             findings_index = i
             break
     if findings_index is not None and findings_index + 1 < len(doc.paragraphs):
@@ -1217,7 +1217,7 @@ def download_ultrasound_docx(request, pk):
     # Impression
     impression_index = None
     for i, p in enumerate(doc.paragraphs):
-        if "IMPRESSION:" in p.text:
+        if "IMPRESSION :" in p.text:
             impression_index = i
             break
     if impression_index is not None and impression_index + 1 < len(doc.paragraphs):
@@ -1313,7 +1313,9 @@ def download_ultrasound_docx(request, pk):
 
     # Response
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-    response['Content-Disposition'] = f'attachment; filename=ultrasound_report_{exam.exam_date.strftime("%Y%m%d")}_{exam.patient.last_name}.docx'
+    patient_name = f"{exam.patient.first_name}_{exam.patient.last_name}"
+    procedure = exam.procedure_type.name.replace(" ", "_")
+    response['Content-Disposition'] = f'attachment; filename={patient_name}-{procedure}.docx'
     doc.save(response)
     return response
 @login_required
@@ -1401,7 +1403,7 @@ def patient_download_exam(request, exam_id):
         return redirect('patient-portal')
     
      # Load the template document from static
-    doc = Document(os.path.join(settings.BASE_DIR, 'static', 'test.docx'))
+    doc = Document(os.path.join(settings.BASE_DIR, 'static', 'docxtemplate.docx'))
 
     # Function to replace text in document
     def replace_text_in_doc(doc, old_text, new_text):
@@ -1416,10 +1418,10 @@ def patient_download_exam(request, exam_id):
                             p.text = p.text.replace(old_text, new_text)
 
     # Replace date
-    replace_text_in_doc(doc, "JANUARY 4, 2023", exam.exam_date.strftime('%B %d, %Y').upper())
+    replace_text_in_doc(doc, "OCTOBER 09, 2025", exam.exam_date.strftime('%B %d, %Y').upper())
 
     # Replace examination performed
-    replace_text_in_doc(doc, "PELVIC	 ULTRASOUND", f"{exam.procedure_type.name}	 ULTRASOUND".upper())
+    replace_text_in_doc(doc, "KUB ULTRASOUND", f"{exam.procedure_type.name} ULTRASOUND".upper())
 
     # Replace ward
     replace_text_in_doc(doc, "OPD", exam.patient.get_patient_status_display().upper())
@@ -1427,32 +1429,32 @@ def patient_download_exam(request, exam_id):
     # Replace case number
     for p in doc.paragraphs:
         if "CASE NUMBER" in p.text:
-            p.text = p.text.replace("CASE NUMBER	  :      		           ", f"CASE NUMBER	  : {str(exam.id).zfill(3)}            ")
+            p.text = p.text.replace("CASE NUMBER	:                                            ", f"CASE NUMBER	: {str(exam.id).zfill(3)}")
 
     # Name
     for p in doc.paragraphs:
         if "NAME OF PATIENT" in p.text:
-            p.text = p.text.replace("NAME OF PATIENT	:      ", f"NAME OF PATIENT	: {exam.patient.last_name}, {exam.patient.first_name}")
+            p.text = p.text.replace("NAME OF PATIENT      : ", f"NAME OF PATIENT      : {exam.patient.last_name}, {exam.patient.first_name}")
 
     # Age
     for p in doc.paragraphs:
         if "AGE" in p.text:
-            p.text = p.text.replace("AGE	             		:       ", f"AGE	             		: {exam.patient.age or 'N/A'}")
+            p.text = p.text.replace("AGE	                	: ", f"AGE	                	: {exam.patient.age or 'N/A'}")
 
     # Gender
     for p in doc.paragraphs:
         if "GENDER" in p.text:
-            p.text = p.text.replace("GENDER	               :     ", exam.patient.get_sex_display())
+            p.text = p.text.replace("GENDER	             : ", exam.patient.get_sex_display())
 
     # Marital status
     for p in doc.paragraphs:
         if "MARITAL STATUS" in p.text:
-            p.text = p.text.replace("MARITAL STATUS             :", f"MARITAL STATUS             : {exam.patient.get_marital_status_display() if exam.patient.marital_status else ''}")
+            p.text = p.text.replace("MARITAL STATUS        :", f"MARITAL STATUS        : {exam.patient.get_marital_status_display() if exam.patient.marital_status else ''}")
 
     # Requesting physician
     for p in doc.paragraphs:
-        if "REQUESTING PHYSICIAN:" in p.text:
-            p.text = p.text.replace("REQUESTING PHYSICIAN:					", f"REQUESTING PHYSICIAN: {exam.referring_physician or 'N/A'}				")
+        if "REQUESTING PHYSICIAN" in p.text:
+            p.text = p.text.replace("REQUESTING PHYSICIAN : ", f"REQUESTING PHYSICIAN : {exam.referring_physician or 'N/A'}")
 
     # Amount paid
     for p in doc.paragraphs:
@@ -1464,7 +1466,7 @@ def patient_download_exam(request, exam_id):
     # Findings
     findings_index = None
     for i, p in enumerate(doc.paragraphs):
-        if "RADIOLOGICAL FINDINGS:" in p.text:
+        if "ULTRASOUND REPORT:" in p.text:
             findings_index = i
             break
     if findings_index is not None and findings_index + 1 < len(doc.paragraphs):
@@ -1473,7 +1475,7 @@ def patient_download_exam(request, exam_id):
     # Impression
     impression_index = None
     for i, p in enumerate(doc.paragraphs):
-        if "IMPRESSION:" in p.text:
+        if "IMPRESSION :" in p.text:
             impression_index = i
             break
     if impression_index is not None and impression_index + 1 < len(doc.paragraphs):
