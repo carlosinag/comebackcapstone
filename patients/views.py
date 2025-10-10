@@ -506,250 +506,7 @@ def delete_ultrasound_image(request, image_id):
 
 @custom_staff_member_required
 def dashboard(request):
-    try:
-        today = timezone.now().date()
-        
-        # Get total counts
-        context = {
-            'total_patients': Patient.objects.count(),
-            'total_procedures': UltrasoundExam.objects.count(),
-        }
-        
-        # Calculate weekly revenue
-        week_start = today - timedelta(days=today.weekday())
-        weekly_bills = Bill.objects.filter(
-            bill_date__gte=week_start,
-            status__in=['PAID', 'PARTIAL']
-        )
-        weekly_total = weekly_bills.aggregate(Sum('total_amount'))['total_amount__sum']
-        context['weekly_revenue'] = "{:,.2f}".format(weekly_total if weekly_total else 0)
-
-        # Advanced KPIs
-        ninety_days_ago = today - timedelta(days=90)
-        six_months_ago = today - timedelta(days=180)
-        month_start = today.replace(day=1)
-
-        # Active patients in last 90 days
-        active_patients_qs = UltrasoundExam.objects.filter(
-            exam_date__gte=ninety_days_ago
-        ).values('patient').distinct()
-        context['active_patients_90d'] = active_patients_qs.count()
-
-        # New patients this month
-        context['new_patients_month'] = Patient.objects.filter(created_at__date__gte=month_start).count()
-
-        # Average procedures per patient (lifetime)
-        total_exams = UltrasoundExam.objects.count()
-        distinct_patients_with_exam = UltrasoundExam.objects.values('patient').distinct().count()
-        avg_procs = (total_exams / distinct_patients_with_exam) if distinct_patients_with_exam else 0
-        context['avg_procedures_per_patient'] = f"{avg_procs:.2f}"
-
-        # Returning patient rate (last 6 months)
-        recent_exam_counts = (
-            UltrasoundExam.objects.filter(exam_date__gte=six_months_ago)
-            .values('patient')
-            .annotate(num_exams=Count('id'))
-        )
-        num_recent_unique = recent_exam_counts.count()
-        num_returning = sum(1 for r in recent_exam_counts if r['num_exams'] >= 2)
-        returning_rate = (num_returning / num_recent_unique * 100) if num_recent_unique else 0
-        context['returning_rate_percent'] = f"{returning_rate:.1f}"
-
-        # Procedure Distribution
-        procedures = UltrasoundExam.objects.values(
-            'procedure_type__name'
-        ).annotate(count=Count('id'))
-        
-        context['procedure_distribution_data'] = [p['count'] for p in procedures]
-        context['procedure_distribution_labels'] = [p['procedure_type__name'] for p in procedures]
-
-        # Findings Distribution
-        findings = UltrasoundExam.objects.values('recommendations').annotate(count=Count('id'))
-        context['findings_distribution_data'] = [f['count'] for f in findings]
-        
-        # Safe mapping of recommendations with fallback
-        recommendation_map = dict(UltrasoundExam.RECOMMENDATION_CHOICES)
-        context['findings_distribution_labels'] = [
-            recommendation_map.get(f['recommendations'], f['recommendations']) 
-            for f in findings
-        ]
-
-        # Monthly Revenue
-        monthly_revenue = Bill.objects.filter(
-            bill_date__gte=six_months_ago,
-            status__in=['PAID', 'PARTIAL']
-        ).values('bill_date').annotate(
-            total=Sum('total_amount')
-        ).order_by('bill_date')
-        
-        context['monthly_revenue_dates'] = [entry['bill_date'].strftime('%Y-%m-%d') for entry in monthly_revenue]
-        context['monthly_revenue_values'] = [float(entry['total']) for entry in monthly_revenue]
-
-        # Weekly Procedures
-        week_procedures = UltrasoundExam.objects.filter(
-            exam_date__gte=week_start
-        ).values('exam_date').annotate(
-            count=Count('id')
-        ).order_by('exam_date')
-        
-        context['week_procedures_dates'] = [entry['exam_date'].strftime('%Y-%m-%d') for entry in week_procedures]
-        context['week_procedures_counts'] = [entry['count'] for entry in week_procedures]
-
-        # Demographics: Gender distribution
-        gender_counts = Patient.objects.values('sex').annotate(count=Count('id'))
-        gender_label_map = dict(Patient.GENDER_CHOICES)
-        context['gender_distribution_labels'] = [gender_label_map.get(g['sex'], g['sex']) for g in gender_counts]
-        context['gender_distribution_values'] = [g['count'] for g in gender_counts]
-
-        # Demographics: Patient type distribution
-        type_counts = Patient.objects.values('patient_type').annotate(count=Count('id'))
-        type_label_map = dict(Patient.PATIENT_TYPE_CHOICES)
-        context['patient_type_labels'] = [type_label_map.get(t['patient_type'], t['patient_type']) for t in type_counts]
-        context['patient_type_values'] = [t['count'] for t in type_counts]
-
-        # Age buckets (computed in Python for simplicity)
-        age_buckets = {'0-17': 0, '18-29': 0, '30-44': 0, '45-59': 0, '60+': 0}
-        for p in Patient.objects.exclude(birthday__isnull=True).only('birthday'):
-            try:
-                age = today.year - p.birthday.year - ((today.month, today.day) < (p.birthday.month, p.birthday.day))
-                if age is None:
-                    continue
-                if age < 18:
-                    age_buckets['0-17'] += 1
-                elif age < 30:
-                    age_buckets['18-29'] += 1
-                elif age < 45:
-                    age_buckets['30-44'] += 1
-                elif age < 60:
-                    age_buckets['45-59'] += 1
-                else:
-                    age_buckets['60+'] += 1
-            except Exception:
-                continue
-        context['age_bucket_labels'] = list(age_buckets.keys())
-        context['age_bucket_values'] = list(age_buckets.values())
-
-        # Procedures per patient distribution (histogram data)
-        per_patient_counts = (
-            UltrasoundExam.objects.values('patient').annotate(num=Count('id')).values_list('num', flat=True)
-        )
-        context['procedures_per_patient_counts'] = list(per_patient_counts)
-
-        # Top patients by revenue
-        top_revenue = (
-            Bill.objects.values('patient__first_name', 'patient__last_name')
-            .annotate(total=Sum('total_amount'))
-            .order_by('-total')[:10]
-        )
-        context['top_patients_labels'] = [f"{t['patient__first_name']} {t['patient__last_name']}".strip() for t in top_revenue]
-        context['top_patients_revenue'] = [float(t['total']) if t['total'] else 0 for t in top_revenue]
-
-        # Revenue by Procedure Type
-        from billing.models import BillItem
-        procedure_revenue = (
-            BillItem.objects.filter(
-                bill__status__in=['PAID', 'PARTIAL']
-            )
-            .values('service__name')
-            .annotate(
-                total_revenue=Sum('amount'),
-                procedure_count=Count('id')
-            )
-            .order_by('-total_revenue')
-        )
-        
-        context['procedure_revenue_labels'] = [p['service__name'] for p in procedure_revenue]
-        context['procedure_revenue_values'] = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in procedure_revenue]
-        context['procedure_revenue_counts'] = [p['procedure_count'] for p in procedure_revenue]
-
-        # Revenue by Location (Region)
-        location_revenue = (
-            Bill.objects.filter(
-                status__in=['PAID', 'PARTIAL']
-            )
-            .values('patient__region')
-            .annotate(
-                total_revenue=Sum('total_amount'),
-                patient_count=Count('patient', distinct=True)
-            )
-            .order_by('-total_revenue')
-        )
-        context['location_revenue_labels'] = [l['patient__region'] for l in location_revenue]
-        context['location_revenue_values'] = [float(l['total_revenue']) if l['total_revenue'] else 0 for l in location_revenue]
-        context['location_patient_counts'] = [l['patient_count'] for l in location_revenue]
-
-        # Revenue by City
-        city_revenue = (
-            Bill.objects.filter(
-                status__in=['PAID', 'PARTIAL']
-            )
-            .values('patient__city')
-            .annotate(
-                total_revenue=Sum('total_amount'),
-                patient_count=Count('patient', distinct=True)
-            )
-            .order_by('-total_revenue')[:10]  # Top 10 cities
-        )
-        context['city_revenue_labels'] = [c['patient__city'] for c in city_revenue]
-        context['city_revenue_values'] = [float(c['total_revenue']) if c['total_revenue'] else 0 for c in city_revenue]
-        context['city_patient_counts'] = [c['patient_count'] for c in city_revenue]
-
-        # Revenue by Payment Method
-        payment_method_revenue = (
-            Bill.objects.filter(
-                status__in=['PAID', 'PARTIAL']
-            )
-            .values('payments__payment_method')
-            .annotate(
-                total_revenue=Sum('total_amount'),
-                payment_count=Count('payments')
-            )
-            .filter(payments__payment_method__isnull=False)
-            .order_by('-total_revenue')
-        )
-        context['payment_method_labels'] = [p['payments__payment_method'] for p in payment_method_revenue]
-        context['payment_method_values'] = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in payment_method_revenue]
-        context['payment_method_counts'] = [p['payment_count'] for p in payment_method_revenue]
-
-        # Revenue by Patient Type
-        patient_type_revenue = (
-            Bill.objects.filter(
-                status__in=['PAID', 'PARTIAL']
-            )
-            .values('patient__patient_type')
-            .annotate(
-                total_revenue=Sum('total_amount'),
-                patient_count=Count('patient', distinct=True)
-            )
-            .order_by('-total_revenue')
-        )
-        patient_type_map = dict(Patient.PATIENT_TYPE_CHOICES)
-        context['patient_type_revenue_labels'] = [patient_type_map.get(p['patient__patient_type'], p['patient__patient_type']) for p in patient_type_revenue]
-        context['patient_type_revenue_values'] = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in patient_type_revenue]
-        context['patient_type_revenue_counts'] = [p['patient_count'] for p in patient_type_revenue]
-
-        # Monthly Revenue Trends (Last 12 months)
-        monthly_trends = []
-        for i in range(12):
-            month_date = today.replace(day=1) - timedelta(days=30*i)
-            month_revenue = Bill.objects.filter(
-                bill_date__year=month_date.year,
-                bill_date__month=month_date.month,
-                status__in=['PAID', 'PARTIAL']
-            ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-            monthly_trends.append({
-                'month': month_date.strftime('%b %Y'),
-                'revenue': float(month_revenue)
-            })
-        monthly_trends.reverse()
-        context['monthly_trend_labels'] = [m['month'] for m in monthly_trends]
-        context['monthly_trend_values'] = [m['revenue'] for m in monthly_trends]
-
-        return render(request, 'dashboard.html', context)
-        
-    except Exception as e:
-        messages.error(request, f'Error loading dashboard: {str(e)}')
-        return render(request, 'dashboard.html', {'error': str(e)})
+    return redirect('admin_dashboard')
 
 @custom_staff_member_required
 def home_dashboard(request):
@@ -1646,11 +1403,23 @@ def patient_book_appointment(request):
         messages.error(request, 'Access denied. This portal is for patients only.')
         return redirect('landing')
     
+    # Prevent booking if the patient already has a pending appointment
+    patient = request.user.patient
+    has_pending = Appointment.objects.filter(patient=patient, status='PENDING').exists()
+    if has_pending and request.method == 'GET':
+        messages.warning(request, 'You already have a pending appointment. Please complete or cancel it before booking a new one.')
+        return redirect('patient-appointments')
+    
     if request.method == 'POST':
         form = AppointmentForm(request.POST)
         if form.is_valid():
+            # Double-check on POST to avoid race conditions / bypass
+            if Appointment.objects.filter(patient=patient, status='PENDING').exists():
+                messages.warning(request, 'You already have a pending appointment. Please complete or cancel it before booking a new one.')
+                return redirect('patient-appointments')
+
             appointment = form.save(commit=False)
-            appointment.patient = request.user.patient
+            appointment.patient = patient
             appointment.save()
             
             # Send real-time notification to all staff members
@@ -1666,7 +1435,7 @@ def patient_book_appointment(request):
     
     context = {
         'form': form,
-        'patient': request.user.patient,
+        'patient': patient,
     }
     return render(request, 'patients/patient_book_appointment.html', context)
 
