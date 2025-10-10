@@ -144,4 +144,270 @@
         </div>
     </div>
 </div>
+    <!-- Analytics Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Weekly Revenue</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₱{{ weekly_revenue }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-peso-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Active Patients (90d)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_patients_90d }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-secondary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">New Patients (Month)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ new_patients_month }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-plus fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-dark shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Avg Procedures / Patient</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ avg_procedures_per_patient }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="row">
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Procedure Type Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <div id="procedureDistributionChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Findings Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <div id="findingsDistributionChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="row">
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Monthly Revenue (Last 6 Months)</h6>
+                </div>
+                <div class="card-body">
+                    <div id="monthlyRevenueChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Daily Procedures (This Week)</h6>
+                </div>
+                <div class="card-body">
+                    <div id="weekProceduresChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 3: Demographics -->
+    <div class="row">
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Gender Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <div id="genderDistributionChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Patient Type Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <div id="patientTypeChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 4: Age and Top Patients -->
+    <div class="row">
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Age Buckets</h6>
+                </div>
+                <div class="card-body">
+                    <div id="ageBucketChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Top Patients by Revenue</h6>
+                </div>
+                <div class="card-body">
+                    <div id="topPatientsRevenueChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 5: Revenue by Procedure Type -->
+    <div class="row">
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Revenue by Procedure Type</h6>
+                </div>
+                <div class="card-body">
+                    <div id="procedureRevenueChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Procedure Count vs Revenue</h6>
+                </div>
+                <div class="card-body">
+                    <div id="procedureCountRevenueChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 6: Revenue by Location -->
+    <div class="row">
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Revenue by Region</h6>
+                </div>
+                <div class="card-body">
+                    <div id="locationRevenueChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Revenue by City (Top 10)</h6>
+                </div>
+                <div class="card-body">
+                    <div id="cityRevenueChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 7: Payment Method and Patient Type Revenue -->
+    <div class="row">
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Revenue by Payment Method</h6>
+                </div>
+                <div class="card-body">
+                    <div id="paymentMethodChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Revenue by Patient Type</h6>
+                </div>
+                <div class="card-body">
+                    <div id="patientTypeRevenueChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 8: Monthly Revenue Trends -->
+    <div class="row">
+        <div class="col-xl-12 col-lg-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Monthly Revenue Trends (Last 12 Months)</h6>
+                </div>
+                <div class="card-body">
+                    <div id="monthlyTrendChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% block extra_js %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+    /* eslint-disable */
+    Plotly.newPlot('procedureDistributionChart', [{ values: {{ procedure_distribution_data|safe }}, labels: {{ procedure_distribution_labels|safe }}, type: 'pie', hole: 0.4 }], { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: true, legend: { orientation: 'h', y: -0.1 } });
+    Plotly.newPlot('findingsDistributionChart', [{ values: {{ findings_distribution_data|safe }}, labels: {{ findings_distribution_labels|safe }}, type: 'pie' }], { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: true, legend: { orientation: 'h', y: -0.1 } });
+    Plotly.newPlot('monthlyRevenueChart', [{ x: {{ monthly_revenue_dates|safe }}, y: {{ monthly_revenue_values|safe }}, type: 'scatter', mode: 'lines+markers' }], { margin: { t: 20, b: 40, l: 60, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, showlegend: false });
+    Plotly.newPlot('weekProceduresChart', [{ x: {{ week_procedures_dates|safe }}, y: {{ week_procedures_counts|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Number of Procedures', dtick: 1 }, showlegend: false });
+    Plotly.newPlot('genderDistributionChart', [{ values: {{ gender_distribution_values|safe }}, labels: {{ gender_distribution_labels|safe }}, type: 'pie' }], { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: true, legend: { orientation: 'h', y: -0.1 } });
+    Plotly.newPlot('patientTypeChart', [{ values: {{ patient_type_values|safe }}, labels: {{ patient_type_labels|safe }}, type: 'pie' }], { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: true, legend: { orientation: 'h', y: -0.1 } });
+    Plotly.newPlot('ageBucketChart', [{ x: {{ age_bucket_labels|safe }}, y: {{ age_bucket_values|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Patients' }, showlegend: false });
+    Plotly.newPlot('topPatientsRevenueChart', [{ x: {{ top_patients_labels|safe }}, y: {{ top_patients_revenue|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, xaxis: { automargin: true } });
+    Plotly.newPlot('procedureRevenueChart', [{ values: {{ procedure_revenue_values|safe }}, labels: {{ procedure_revenue_labels|safe }}, type: 'pie', hole: 0.4 }], { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: true, legend: { orientation: 'h', y: -0.1 } });
+    Plotly.newPlot('procedureCountRevenueChart', [{ x: {{ procedure_revenue_counts|safe }}, y: {{ procedure_revenue_values|safe }}, mode: 'markers+text', type: 'scatter', text: {{ procedure_revenue_labels|safe }}, textposition: 'top center' }], { margin: { t: 20, b: 40, l: 60, r: 20 }, xaxis: { title: 'Number of Procedures' }, yaxis: { title: 'Total Revenue (₱)', tickformat: ',.0f' }, showlegend: false });
+    Plotly.newPlot('locationRevenueChart', [{ x: {{ location_revenue_labels|safe }}, y: {{ location_revenue_values|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, xaxis: { title: 'Region' }, showlegend: false });
+    Plotly.newPlot('cityRevenueChart', [{ x: {{ city_revenue_labels|safe }}, y: {{ city_revenue_values|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, xaxis: { title: 'City', automargin: true }, showlegend: false });
+    Plotly.newPlot('paymentMethodChart', [{ values: {{ payment_method_values|safe }}, labels: {{ payment_method_labels|safe }}, type: 'pie' }], { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: true, legend: { orientation: 'h', y: -0.1 } });
+    Plotly.newPlot('patientTypeRevenueChart', [{ x: {{ patient_type_revenue_labels|safe }}, y: {{ patient_type_revenue_values|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, xaxis: { title: 'Patient Type' }, showlegend: false });
+    Plotly.newPlot('monthlyTrendChart', [{ x: {{ monthly_trend_labels|safe }}, y: {{ monthly_trend_values|safe }}, type: 'scatter', mode: 'lines+markers' }], { margin: { t: 20, b: 40, l: 60, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, xaxis: { title: 'Month' }, showlegend: false });
+</script>
+{% endblock %}
 {% endblock %} 

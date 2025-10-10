@@ -28,6 +28,181 @@ def admin_dashboard(request):
     # Get recent bills
     recent_bills = Bill.objects.select_related('patient').order_by('-bill_date')[:5]
 
+    # ===== Analytics context (mirrors staff dashboard) =====
+    from datetime import timedelta
+    today = timezone.now().date()
+
+    # Weekly revenue
+    week_start = today - timedelta(days=today.weekday())
+    weekly_bills = Bill.objects.filter(
+        bill_date__gte=week_start,
+        status__in=['PAID', 'PARTIAL']
+    )
+    weekly_total = weekly_bills.aggregate(Sum('total_amount'))['total_amount__sum']
+    weekly_revenue = "{:,.2f}".format(weekly_total if weekly_total else 0)
+
+    # Active patients in last 90 days
+    ninety_days_ago = today - timedelta(days=90)
+    active_patients_qs = UltrasoundExam.objects.filter(
+        exam_date__gte=ninety_days_ago
+    ).values('patient').distinct()
+    active_patients_90d = active_patients_qs.count()
+
+    # New patients this month
+    month_start = today.replace(day=1)
+    new_patients_month = Patient.objects.filter(created_at__date__gte=month_start).count()
+
+    # Average procedures per patient (lifetime)
+    distinct_patients_with_exam = UltrasoundExam.objects.values('patient').distinct().count()
+    avg_procs = (total_exams / distinct_patients_with_exam) if distinct_patients_with_exam else 0
+    avg_procedures_per_patient = f"{avg_procs:.2f}"
+
+    # Returning patient rate (last 6 months)
+    six_months_ago = today - timedelta(days=180)
+    recent_exam_counts = (
+        UltrasoundExam.objects.filter(exam_date__gte=six_months_ago)
+        .values('patient')
+        .annotate(num=Count('id'))
+    )
+    num_recent_unique = recent_exam_counts.count()
+    num_returning = sum(1 for r in recent_exam_counts if r['num'] >= 2)
+    returning_rate = (num_returning / num_recent_unique * 100) if num_recent_unique else 0
+    returning_rate_percent = f"{returning_rate:.1f}"
+
+    # Procedure distribution
+    procedures = UltrasoundExam.objects.values('procedure_type__name').annotate(count=Count('id'))
+    procedure_distribution_data = [p['count'] for p in procedures]
+    procedure_distribution_labels = [p['procedure_type__name'] for p in procedures]
+
+    # Findings distribution (recommendations)
+    findings = UltrasoundExam.objects.values('recommendations').annotate(count=Count('id'))
+    recommendation_map = dict(UltrasoundExam.RECOMMENDATION_CHOICES)
+    findings_distribution_data = [f['count'] for f in findings]
+    findings_distribution_labels = [recommendation_map.get(f['recommendations'], f['recommendations']) for f in findings]
+
+    # Monthly revenue (last 6 months)
+    monthly_revenue = Bill.objects.filter(
+        bill_date__gte=six_months_ago,
+        status__in=['PAID', 'PARTIAL']
+    ).values('bill_date').annotate(total=Sum('total_amount')).order_by('bill_date')
+    monthly_revenue_dates = [entry['bill_date'].strftime('%Y-%m-%d') for entry in monthly_revenue]
+    monthly_revenue_values = [float(entry['total']) for entry in monthly_revenue]
+
+    # Weekly procedures (this week)
+    week_procedures = UltrasoundExam.objects.filter(
+        exam_date__gte=week_start
+    ).values('exam_date').annotate(count=Count('id')).order_by('exam_date')
+    week_procedures_dates = [entry['exam_date'].strftime('%Y-%m-%d') for entry in week_procedures]
+    week_procedures_counts = [entry['count'] for entry in week_procedures]
+
+    # Demographics
+    gender_counts = Patient.objects.values('sex').annotate(count=Count('id'))
+    gender_label_map = dict(Patient.GENDER_CHOICES)
+    gender_distribution_labels = [gender_label_map.get(g['sex'], g['sex']) for g in gender_counts]
+    gender_distribution_values = [g['count'] for g in gender_counts]
+
+    type_counts = Patient.objects.values('patient_type').annotate(count=Count('id'))
+    type_label_map = dict(Patient.PATIENT_TYPE_CHOICES)
+    patient_type_labels = [type_label_map.get(t['patient_type'], t['patient_type']) for t in type_counts]
+    patient_type_values = [t['count'] for t in type_counts]
+
+    # Age buckets (computed in Python)
+    age_buckets = {'0-17': 0, '18-29': 0, '30-44': 0, '45-59': 0, '60+': 0}
+    for p in Patient.objects.exclude(birthday__isnull=True).only('birthday'):
+        try:
+            age = today.year - p.birthday.year - ((today.month, today.day) < (p.birthday.month, p.birthday.day))
+            if age < 18:
+                age_buckets['0-17'] += 1
+            elif age < 30:
+                age_buckets['18-29'] += 1
+            elif age < 45:
+                age_buckets['30-44'] += 1
+            elif age < 60:
+                age_buckets['45-59'] += 1
+            else:
+                age_buckets['60+'] += 1
+        except Exception:
+            continue
+    age_bucket_labels = list(age_buckets.keys())
+    age_bucket_values = list(age_buckets.values())
+
+    # Top patients by revenue
+    top_revenue = (
+        Bill.objects.values('patient__first_name', 'patient__last_name')
+        .annotate(total=Sum('total_amount'))
+        .order_by('-total')[:10]
+    )
+    top_patients_labels = [f"{t['patient__first_name']} {t['patient__last_name']}``.strip('`')" for t in top_revenue]
+    top_patients_revenue = [float(t['total']) if t['total'] else 0 for t in top_revenue]
+
+    # Revenue by Procedure Type
+    from billing.models import BillItem
+    procedure_revenue = (
+        BillItem.objects.filter(bill__status__in=['PAID', 'PARTIAL'])
+        .values('service__name')
+        .annotate(total_revenue=Sum('amount'), procedure_count=Count('id'))
+        .order_by('-total_revenue')
+    )
+    procedure_revenue_labels = [p['service__name'] for p in procedure_revenue]
+    procedure_revenue_values = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in procedure_revenue]
+    procedure_revenue_counts = [p['procedure_count'] for p in procedure_revenue]
+
+    # Revenue by Region
+    location_revenue = (
+        Bill.objects.filter(status__in=['PAID', 'PARTIAL'])
+        .values('patient__region')
+        .annotate(total_revenue=Sum('total_amount'), patient_count=Count('patient', distinct=True))
+        .order_by('-total_revenue')
+    )
+    location_revenue_labels = [l['patient__region'] for l in location_revenue]
+    location_revenue_values = [float(l['total_revenue']) if l['total_revenue'] else 0 for l in location_revenue]
+
+    # Revenue by City (Top 10)
+    city_revenue = (
+        Bill.objects.filter(status__in=['PAID', 'PARTIAL'])
+        .values('patient__city')
+        .annotate(total_revenue=Sum('total_amount'), patient_count=Count('patient', distinct=True))
+        .order_by('-total_revenue')[:10]
+    )
+    city_revenue_labels = [c['patient__city'] for c in city_revenue]
+    city_revenue_values = [float(c['total_revenue']) if c['total_revenue'] else 0 for c in city_revenue]
+
+    # Revenue by Payment Method
+    payment_method_revenue = (
+        Bill.objects.filter(status__in=['PAID', 'PARTIAL'])
+        .values('payments__payment_method')
+        .annotate(total_revenue=Sum('total_amount'), payment_count=Count('payments'))
+        .filter(payments__payment_method__isnull=False)
+        .order_by('-total_revenue')
+    )
+    payment_method_labels = [p['payments__payment_method'] for p in payment_method_revenue]
+    payment_method_values = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in payment_method_revenue]
+
+    # Revenue by Patient Type
+    patient_type_revenue = (
+        Bill.objects.filter(status__in=['PAID', 'PARTIAL'])
+        .values('patient__patient_type')
+        .annotate(total_revenue=Sum('total_amount'), patient_count=Count('patient', distinct=True))
+        .order_by('-total_revenue')
+    )
+    patient_type_map = dict(Patient.PATIENT_TYPE_CHOICES)
+    patient_type_revenue_labels = [patient_type_map.get(p['patient__patient_type'], p['patient__patient_type']) for p in patient_type_revenue]
+    patient_type_revenue_values = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in patient_type_revenue]
+
+    # Monthly Revenue Trends (Last 12 months)
+    monthly_trends = []
+    for i in range(12):
+        month_date = today.replace(day=1) - timedelta(days=30*i)
+        month_revenue = Bill.objects.filter(
+            bill_date__year=month_date.year,
+            bill_date__month=month_date.month,
+            status__in=['PAID', 'PARTIAL']
+        ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        monthly_trends.append({'month': month_date.strftime('%b %Y'), 'revenue': float(month_revenue)})
+    monthly_trends.reverse()
+    monthly_trend_labels = [m['month'] for m in monthly_trends]
+    monthly_trend_values = [m['revenue'] for m in monthly_trends]
+
     context = {
         'total_patients': total_patients,
         'total_exams': total_exams,
@@ -35,6 +210,41 @@ def admin_dashboard(request):
         'pending_bills': pending_bills,
         'recent_patients': recent_patients,
         'recent_bills': recent_bills,
+        # analytics
+        'weekly_revenue': weekly_revenue,
+        'active_patients_90d': active_patients_90d,
+        'new_patients_month': new_patients_month,
+        'avg_procedures_per_patient': avg_procedures_per_patient,
+        'returning_rate_percent': returning_rate_percent,
+        'procedure_distribution_data': procedure_distribution_data,
+        'procedure_distribution_labels': procedure_distribution_labels,
+        'findings_distribution_data': findings_distribution_data,
+        'findings_distribution_labels': findings_distribution_labels,
+        'monthly_revenue_dates': monthly_revenue_dates,
+        'monthly_revenue_values': monthly_revenue_values,
+        'week_procedures_dates': week_procedures_dates,
+        'week_procedures_counts': week_procedures_counts,
+        'gender_distribution_labels': gender_distribution_labels,
+        'gender_distribution_values': gender_distribution_values,
+        'patient_type_labels': patient_type_labels,
+        'patient_type_values': patient_type_values,
+        'age_bucket_labels': age_bucket_labels,
+        'age_bucket_values': age_bucket_values,
+        'top_patients_labels': top_patients_labels,
+        'top_patients_revenue': top_patients_revenue,
+        'procedure_revenue_labels': procedure_revenue_labels,
+        'procedure_revenue_values': procedure_revenue_values,
+        'procedure_revenue_counts': procedure_revenue_counts,
+        'location_revenue_labels': location_revenue_labels,
+        'location_revenue_values': location_revenue_values,
+        'city_revenue_labels': city_revenue_labels,
+        'city_revenue_values': city_revenue_values,
+        'payment_method_labels': payment_method_labels,
+        'payment_method_values': payment_method_values,
+        'patient_type_revenue_labels': patient_type_revenue_labels,
+        'patient_type_revenue_values': patient_type_revenue_values,
+        'monthly_trend_labels': monthly_trend_labels,
+        'monthly_trend_values': monthly_trend_values,
     }
 
     return render(request, 'admin/dashboard.html', context)
