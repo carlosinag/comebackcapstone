@@ -141,7 +141,7 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{% url 'admin_dashboard' %}" class="{% if request.resolver_match.url_name == 'admin_dashboard' and request.path|slice:'-10:' != '/dashboard' %}active{% endif %}">
+                    <a href="{% url 'admin_analytics' %}" class="{% if request.resolver_match.url_name == 'admin_analytics' %}active{% endif %}">
                         <i class="fas fa-chart-bar"></i> Analytics
                     </a>
                 </li>
