@@ -110,12 +110,9 @@
                                     {{ bill.status }}
                                 </span>
                             </td>
-                            <td>{{ bill.payment_method|default:"N/A" }}</td>
+                            <td>{{ bill.payments.first.payment_method|default:"N/A" }}</td>
                             <td>
-                                <a href="{% url 'admin:billing_bill_change' bill.id %}" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <button class="btn btn-sm btn-info" onclick="viewDetails('{{ bill.id }}')">
+                                <button class="btn btn-sm btn-info" onclick="viewDetails('{{ bill.bill_number }}')">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </td>
@@ -468,8 +465,8 @@ function exportToExcel() {
     window.location.href = "{% url 'admin_billing_export' %}?" + new URLSearchParams(window.location.search);
 }
 
-function viewDetails(billId) {
-    window.location.href = "{% url 'admin:billing_bill_change' 0 %}".replace('0', billId);
+function viewDetails(billNumber) {
+    window.location.href = "{% url 'billing:bill_detail' 'PLACEHOLDER' %}".replace('PLACEHOLDER', billNumber);
 }
 
 function addExpense() {

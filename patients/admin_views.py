@@ -1,18 +1,39 @@
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, Subquery, OuterRef
 from django.utils import timezone
 from datetime import datetime, timedelta
 from .models import Patient, UltrasoundExam
-from billing.models import Bill, ServiceType
+from billing.models import Bill, ServiceType, Payment
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from decimal import Decimal
 from django.contrib.auth.models import User
 from django.contrib import messages
-from .forms import StaffUserForm, StaffPasswordChangeForm, ServiceForm
+from .forms import StaffUserForm, StaffPasswordChangeForm, ServiceForm, StaffUserCreationForm
 from .views import require_valid_navigation, custom_staff_member_required
 import json
+
+@custom_staff_member_required
+@require_valid_navigation
+def admin_add_user(request):
+    """Admin view for adding a new staff user"""
+    if request.method == 'POST':
+        form = StaffUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            messages.success(request, f'User {user.username} created successfully.')
+            return redirect('admin_users')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = StaffUserCreationForm()
+    
+    context = {
+        'form': form,
+    }
+    
+    return render(request, 'admin/add_user.html', context)
 
 @custom_staff_member_required
 def admin_analytics(request):
@@ -477,8 +498,21 @@ def admin_billing_report(request):
     min_amount = request.GET.get('min_amount', '')
     max_amount = request.GET.get('max_amount', '')
 
-    # Base queryset
-    bills = Bill.objects.select_related('patient').all()
+    # Base queryset for totals (all bills)
+    all_bills = Bill.objects.all()
+
+    # Calculate totals (on all bills, not filtered)
+    total_revenue = all_bills.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
+    pending_amount = all_bills.filter(status='PENDING').aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
+
+    # Get other expenses from session or default to 0
+    other_expenses = Decimal(str(request.session.get('other_expenses', '0')))
+
+    # Calculate net revenue
+    net_revenue = total_revenue - other_expenses
+
+    # Base queryset for display (filtered)
+    bills = Bill.objects.select_related('patient').prefetch_related('payments').all()
 
     # Apply filters
     if date_range:
@@ -504,16 +538,6 @@ def admin_billing_report(request):
             bills = bills.filter(total_amount__lte=Decimal(max_amount))
         except ValueError:
             pass
-
-    # Calculate totals (before pagination)
-    total_revenue = bills.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
-    pending_amount = bills.filter(status='PENDING').aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
-
-    # Get other expenses from session or default to 0
-    other_expenses = Decimal(str(request.session.get('other_expenses', '0')))
-
-    # Calculate net revenue
-    net_revenue = total_revenue - other_expenses
 
     # Pagination - 5 bills per page
     paginator = Paginator(bills.order_by('-bill_date'), 5)
@@ -638,7 +662,7 @@ def add_expense(request):
     try:
         description = request.POST.get('description', '').strip()
         amount = request.POST.get('amount', '0')
-        date = request.POST.get('date', '')
+        date = request.POST.get('date', '0')
         notes = request.POST.get('notes', '').strip()
 
         if not description:
@@ -778,108 +802,6 @@ def admin_patient_list(request):
     return render(request, 'admin/patient_list.html', context)
 
 @custom_staff_member_required
-def admin_examinations(request):
-    from django.core.paginator import Paginator
-    
-    # Get search query
-    search_query = request.GET.get('search', '').strip()
-    export = request.GET.get('export', '')
-
-    # Get all exams
-    exams = UltrasoundExam.objects.select_related('patient', 'procedure_type').all()
-
-    # Apply search filter if query is provided
-    if search_query:
-        exams = exams.filter(
-            Q(patient__first_name__icontains=search_query) |
-            Q(patient__last_name__icontains=search_query) |
-            Q(procedure_type__name__icontains=search_query) |
-            Q(technician__icontains=search_query) |
-            Q(notes__icontains=search_query)
-        )
-
-    # Calculate summary statistics (always show total counts, not filtered)
-    all_exams = UltrasoundExam.objects.all()
-    total_exams = all_exams.count()
-    completed_exams = all_exams.filter(status='COMPLETED').count()
-    pending_exams = all_exams.filter(status='PENDING').count()
-    today_exams = all_exams.filter(exam_date=timezone.now().date()).count()
-
-    # Handle export
-    if export == 'excel':
-        return admin_examinations_export(request, exams)
-
-    # Pagination - reset to page 1 if search is applied
-    if search_query:
-        page_number = 1  # Reset to first page when search is applied
-    else:
-        page_number = request.GET.get('page')
-    
-    paginator = Paginator(exams.order_by('-exam_date'), 25)  # 25 exams per page
-    page_obj = paginator.get_page(page_number)
-
-    context = {
-        'exams': page_obj,
-        'search_query': search_query,
-        'total_exams': total_exams,
-        'completed_exams': completed_exams,
-        'pending_exams': pending_exams,
-        'today_exams': today_exams,
-        'today': timezone.now().date(),
-    }
-
-    return render(request, 'admin/examinations.html', context)
-
-@custom_staff_member_required
-def admin_examinations_export(request, exams_queryset):
-    from django.http import HttpResponse
-    import xlsxwriter
-    from io import BytesIO
-
-    # Create an in-memory output file for the Excel workbook
-    output = BytesIO()
-    workbook = xlsxwriter.Workbook(output)
-    worksheet = workbook.add_worksheet()
-
-    # Add headers
-    headers = ['Exam ID', 'Patient Name', 'Patient ID', 'Exam Type', 'Date', 'Status', 'Technician', 'Notes']
-    for col, header in enumerate(headers):
-        worksheet.write(0, col, header)
-
-    # Write data rows
-    for row, exam in enumerate(exams_queryset, start=1):
-        worksheet.write(row, 0, exam.id)
-        worksheet.write(row, 1, f"{exam.patient.first_name} {exam.patient.last_name}")
-        worksheet.write(row, 2, exam.patient.id)
-        worksheet.write(row, 3, exam.procedure_type.name if exam.procedure_type else 'N/A')
-        worksheet.write(row, 4, exam.exam_date.strftime('%Y-%m-%d'))
-        worksheet.write(row, 5, exam.status)
-        worksheet.write(row, 6, exam.technician or 'N/A')
-        worksheet.write(row, 7, exam.notes or '')
-
-    # Add summary at the bottom
-    summary_row = len(exams_queryset) + 3
-    bold_format = workbook.add_format({'bold': True})
-    worksheet.write(summary_row, 0, 'Summary', bold_format)
-    worksheet.write(summary_row + 1, 0, 'Total Examinations:', bold_format)
-    worksheet.write(summary_row + 1, 1, len(exams_queryset))
-    worksheet.write(summary_row + 2, 0, 'Completed:', bold_format)
-    worksheet.write(summary_row + 2, 1, exams_queryset.filter(status='COMPLETED').count())
-    worksheet.write(summary_row + 3, 0, 'Pending:', bold_format)
-    worksheet.write(summary_row + 3, 1, exams_queryset.filter(status='PENDING').count())
-
-    workbook.close()
-
-    # Create the HttpResponse with Excel content type
-    response = HttpResponse(
-        output.getvalue(),
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    response['Content-Disposition'] = 'attachment; filename=examinations_report.xlsx'
-
-    return response
-
-@custom_staff_member_required
 def admin_prices(request):
     """Admin view for managing service prices"""
     services = ServiceType.objects.all().order_by('name')
@@ -937,6 +859,37 @@ def update_service_price(request):
             
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Error updating price: {str(e)}'})
+    
+    from .forms import ServiceForm
+
+@custom_staff_member_required
+@require_valid_navigation
+def add_procedure(request):
+    if request.method == 'POST':
+        form = ServiceForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Procedure added successfully.')
+            return redirect('admin_prices')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = ServiceForm()
+    return render(request, 'admin/add_procedure_new.html', {'form': form})
+
+@custom_staff_member_required
+@require_valid_navigation
+def edit_procedure(request, procedure_id):
+    procedure = get_object_or_404(ServiceType, id=procedure_id)
+    if request.method == 'POST':
+        form = ServiceForm(request.POST, instance=procedure)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Procedure "{procedure.name}" updated successfully.')
+            return redirect('admin_prices')
+    else:
+        form = ServiceForm(instance=procedure)
+    return render(request, 'admin/edit_procedure.html', {'form': form, 'procedure': procedure})
 
 @custom_staff_member_required
 def admin_users(request):
@@ -1008,30 +961,122 @@ def admin_change_user_password(request, user_id):
     
     return render(request, 'admin/change_user_password.html', context)
 
-from .forms import ServiceForm
+@custom_staff_member_required
+def admin_examinations(request):
+    from django.core.paginator import Paginator
+    
+    # Get search query
+    search_query = request.GET.get('search', '').strip()
+    export = request.GET.get('export', '')
+
+    # Get all exams
+    exams = UltrasoundExam.objects.select_related('patient', 'procedure_type').all()
+
+    # Apply search filter if query is provided
+    if search_query:
+        exams = exams.filter(
+            Q(patient__first_name__icontains=search_query) |
+            Q(patient__last_name__icontains=search_query) |
+            Q(procedure_type__name__icontains=search_query) |
+            Q(technician__icontains=search_query) |
+            Q(notes__icontains=search_query)
+        )
+
+    # Calculate summary statistics (always show total counts, not filtered)
+    all_exams = UltrasoundExam.objects.all()
+    total_exams = all_exams.count()
+    completed_exams = all_exams.filter(status='COMPLETED').count()
+    pending_exams = all_exams.filter(status='PENDING').count()
+    today_exams = all_exams.filter(exam_date=timezone.now().date()).count()
+
+    # Handle export
+    if export == 'excel':
+        return admin_examinations_export(request, exams)
+
+    # Pagination - reset to page 1 if search is applied
+    if search_query:
+        page_number = 1  # Reset to first page when search is applied
+    else:
+        page_number = request.GET.get('page')
+    
+    paginator = Paginator(exams.order_by('-exam_date'), 25)  # 25 exams per page
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'exams': page_obj,
+        'search_query': search_query,
+        'total_exams': total_exams,
+        'completed_exams': completed_exams,
+        'pending_exams': pending_exams,
+        'today_exams': today_exams,
+        'today': timezone.now().date(),
+    }
+
+    return render(request, 'admin/examinations.html', context)
 
 @custom_staff_member_required
-@require_valid_navigation
-def add_procedure(request):
-    if request.method == 'POST':
-        form = ServiceForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('admin_prices')
-    else:
-        form = ServiceForm()
-    return render(request, 'admin/add_procedure_new.html', {'form': form})
+def admin_archive_patient(request, pk):
+    patient = get_object_or_404(Patient, pk=pk)
+    patient.is_archived = True
+    patient.archived_at = timezone.now()
+    patient.save(update_fields=['is_archived', 'archived_at'])
+    messages.success(request, 'Patient archived successfully.')
+    return redirect('admin_patient_list')
 
 @custom_staff_member_required
-@require_valid_navigation
-def edit_procedure(request, procedure_id):
-    procedure = get_object_or_404(ServiceType, id=procedure_id)
-    if request.method == 'POST':
-        form = ServiceForm(request.POST, instance=procedure)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f'Procedure "{procedure.name}" updated successfully.')
-            return redirect('admin_prices')
-    else:
-        form = ServiceForm(instance=procedure)
-    return render(request, 'admin/edit_procedure.html', {'form': form, 'procedure': procedure})
+def admin_unarchive_patient(request, pk):
+    patient = get_object_or_404(Patient, pk=pk)
+    patient.is_archived = False
+    patient.archived_at = None
+    patient.save(update_fields=['is_archived', 'archived_at'])
+    messages.success(request, 'Patient restored from archive.')
+    return redirect('admin_patient_list')
+
+@custom_staff_member_required
+def admin_examinations_export(request, exams_queryset):
+    from django.http import HttpResponse
+    import xlsxwriter
+    from io import BytesIO
+
+    # Create an in-memory output file for the Excel workbook
+    output = BytesIO()
+    workbook = xlsxwriter.Workbook(output)
+    worksheet = workbook.add_worksheet()
+
+    # Add headers
+    headers = ['Exam ID', 'Patient Name', 'Patient ID', 'Exam Type', 'Date', 'Status', 'Technician', 'Notes']
+    for col, header in enumerate(headers):
+        worksheet.write(0, col, header)
+
+    # Write data rows
+    for row, exam in enumerate(exams_queryset, start=1):
+        worksheet.write(row, 0, exam.id)
+        worksheet.write(row, 1, f"{exam.patient.first_name} {exam.patient.last_name}")
+        worksheet.write(row, 2, exam.patient.id)
+        worksheet.write(row, 3, exam.procedure_type.name if exam.procedure_type else 'N/A')
+        worksheet.write(row, 4, exam.exam_date.strftime('%Y-%m-%d'))
+        worksheet.write(row, 5, exam.status)
+        worksheet.write(row, 6, exam.technician or 'N/A')
+        worksheet.write(row, 7, exam.notes or '')
+
+    # Add summary at the bottom
+    summary_row = len(exams_queryset) + 3
+    bold_format = workbook.add_format({'bold': True})
+    worksheet.write(summary_row, 0, 'Summary', bold_format)
+    worksheet.write(summary_row + 1, 0, 'Total Examinations:', bold_format)
+    worksheet.write(summary_row + 1, 1, len(exams_queryset))
+    worksheet.write(summary_row + 2, 0, 'Completed:', bold_format)
+    worksheet.write(summary_row + 2, 1, exams_queryset.filter(status='COMPLETED').count())
+    worksheet.write(summary_row + 3, 0, 'Pending:', bold_format)
+    worksheet.write(summary_row + 3, 1, exams_queryset.filter(status='PENDING').count())
+
+    workbook.close()
+
+    # Create the HttpResponse with Excel content type
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=examinations_report.xlsx'
+
+    return response

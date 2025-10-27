@@ -1,4 +1,4 @@
-{% extends 'admin_base.html' %}
+{% extends 'shared_base.html' %}
 
 {% block title %}Patient Management{% endblock %}
 
@@ -10,10 +10,10 @@
         color: #6c757d;
     }
     .status-archived {
-        color: #dc3545;
+        color: white;
     }
     .status-active {
-        color: #28a745;
+        color: white;
     }
 </style>
 {% endblock %}
@@ -23,7 +23,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3">Patient Management</h1>
         <div>
-            <a href="{% url 'admin:patients_patient_add' %}" class="btn btn-primary">
+            <a href="{% url 'patient-create' %}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Add New Patient
             </a>
         </div>
@@ -142,11 +142,11 @@
                                         <i class="fas fa-pen"></i>
                                     </a>
                                     {% if patient.is_archived %}
-                                        <a href="{% url 'admin:patients_patient_change' patient.id %}" class="btn btn-sm btn-warning" title="Restore">
+                                        <a href="{% url 'admin_unarchive_patient' patient.id %}" class="btn btn-sm btn-warning" title="Restore">
                                             <i class="fas fa-undo"></i>
                                         </a>
                                     {% else %}
-                                        <a href="{% url 'admin:patients_patient_change' patient.id %}" class="btn btn-sm btn-secondary" title="Archive">
+                                        <a href="{% url 'admin_archive_patient' patient.id %}" class="btn btn-sm btn-warning" title="Archive" onclick="return confirm('Are you sure you want to archive this patient?')">
                                             <i class="fas fa-archive"></i>
                                         </a>
                                     {% endif %}
@@ -209,6 +209,21 @@ document.addEventListener('DOMContentLoaded', function() {
         "positionClass": "toast-top-right",
         "timeOut": "3000"
     };
+
+    // Display Django messages using toastr
+    {% for message in messages %}
+        {% if message.tags == 'success' %}
+            toastr.success('{{ message }}');
+        {% elif message.tags == 'error' %}
+            toastr.error('{{ message }}');
+        {% elif message.tags == 'warning' %}
+            toastr.warning('{{ message }}');
+        {% elif message.tags == 'info' %}
+            toastr.info('{{ message }}');
+        {% else %}
+            toastr.info('{{ message }}');
+        {% endif %}
+    {% endfor %}
 });
 </script>
 {% endblock %}

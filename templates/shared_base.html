@@ -1,0 +1,343 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Ultrasound Clinic{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+    {% if user.is_authenticated %}
+    <meta name="user-id" content="{{ user.id }}">
+    {% endif %}
+    <style>
+        /* Input Capitalization */
+        input[type="text"]:not([class*="search"]):not([class*="username"]):not([class*="email"]):not([class*="password"]),
+        textarea:not([class*="no-caps"]) {
+            text-transform: capitalize;
+        }
+
+        /* Exclude email addresses from capitalization */
+        input[type="email"],
+        input[name*="email"],
+        input[id*="email"] {
+            text-transform: none !important;
+        }
+
+        :root {
+            --sidebar-width: 250px;
+        }
+
+        .wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        #sidebar {
+            width: var(--sidebar-width);
+            background: #2c3e50;
+            color: white;
+            transition: all 0.3s;
+            position: fixed;
+            height: 100vh;
+            z-index: 1000;
+        }
+
+        #sidebar .sidebar-header {
+            padding: 15px;
+            background: #1a2634;
+        }
+
+        #sidebar ul.components {
+            padding: 20px 0;
+        }
+
+        #sidebar ul li a {
+            padding: 15px 20px;
+            display: block;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        #sidebar ul li a:hover {
+            background: #34495e;
+        }
+
+        #sidebar ul li a.active {
+            background: #3498db;
+        }
+
+        #sidebar ul li a i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .logout-btn {
+            padding: 15px 20px;
+            display: block;
+            color: #dc3545 !important;
+            text-decoration: none;
+            transition: all 0.3s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-size: inherit;
+            cursor: pointer;
+        }
+
+        .logout-btn:hover {
+            background: #34495e !important;
+            color: #dc3545 !important;
+        }
+
+        .logout-btn i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        #content {
+            margin-left: var(--sidebar-width);
+            width: calc(100% - var(--sidebar-width));
+            padding: 20px;
+            min-height: 100vh;
+            transition: all 0.3s;
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                margin-left: calc(-1 * var(--sidebar-width));
+            }
+            #sidebar.active {
+                margin-left: 0;
+            }
+            #content {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
+
+        .sidebar-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar-toggle {
+                display: block;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <nav id="sidebar">
+            {% if user.is_superuser %}
+                <!-- Admin Sidebar -->
+                <div class="sidebar-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-shield"></i>
+                        <img src="{% static 'logo.png' %}" alt="Clinic Logo" style="height:1.4em; width:auto; margin:0 6px 0 0; vertical-align:middle;">
+                        Admin Dashboard
+                    </h5>
+                </div>
+
+                <ul class="list-unstyled components">
+                    <li>
+                        <a href="{% url 'admin_dashboard' %}" class="{% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'admin_analytics' %}" class="{% if request.resolver_match.url_name == 'admin_analytics' %}active{% endif %}">
+                            <i class="fas fa-chart-bar"></i> Analytics
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'admin_patient_list' %}" class="{% if request.resolver_match.url_name == 'admin_patient_list' %}active{% endif %}">
+                            <i class="fas fa-users"></i> Patients
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'admin-archived-patient-list' %}" class="{% if request.resolver_match.url_name == 'admin-archived-patient-list' %}active{% endif %}">
+                            <i class="fas fa-archive"></i> Archived Patients
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'admin_examinations' %}" class="{% if request.resolver_match.url_name == 'admin_examinations' %}active{% endif %}">
+                            <i class="fas fa-notes-medical"></i> Examinations
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'admin_billing_report' %}" class="{% if request.resolver_match.url_name == 'admin_billing_report' %}active{% endif %}">
+                            <i class="fas fa-file-invoice-dollar"></i> Billing Report
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'admin_prices' %}" class="{% if request.resolver_match.url_name == 'admin_prices' %}active{% endif %}">
+                            <i class="fas fa-tags"></i> Prices
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'admin_users' %}" class="{% if request.resolver_match.url_name == 'admin_users' %}active{% endif %}">
+                            <i class="fas fa-users-cog"></i> Users
+                        </a>
+                    </li>
+                    <li class="mt-auto">
+                        <a href="{% url 'home-dashboard' %}">
+                            <i class="fas fa-arrow-left"></i> Back to Site
+                        </a>
+                    </li>
+                    <li>
+                        <form method="post" action="{% url 'admin_logout' %}" style="margin: 0; padding: 0;">
+                            {% csrf_token %}
+                            <button type="submit" class="logout-btn">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            {% else %}
+                <!-- Staff Sidebar -->
+                <div class="sidebar-header">
+                    <h5 class="mb-0">
+                        <img src="{% static 'logo.png' %}" alt="Clinic Logo" style="height:2.5em; width: 2.5em; margin:0; vertical-align:middle;">
+                        MSRA Clinic
+                    </h5>
+                </div>
+
+                <ul class="list-unstyled components">
+                    <li>
+                        <a href="{% url 'home-dashboard' %}" class="{% if request.resolver_match.url_name == 'home-dashboard' %}active{% endif %}">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'patient-list' %}" class="{% if request.resolver_match.url_name == 'patient-list' and not request.GET.view %}active{% endif %}">
+                            <i class="fas fa-users"></i> Patient List
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'patient-list' %}?view=annotation" class="{% if request.resolver_match.url_name == 'patient-list' and request.GET.view == 'annotation' %}active{% endif %}">
+                            <i class="fas fa-draw-polygon"></i> Image Annotation
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'billing:bill_list' %}" class="{% if 'billing' in request.path %}active{% endif %}">
+                            <i class="fas fa-file-invoice-dollar"></i> Billing
+                        </a>
+                    </li>
+
+                    <li class="mt-auto">
+                        <a href="{% url 'admin_login' %}" class="{% if request.resolver_match.url_name == 'admin_login' %}active{% endif %}">
+                            <i class="fas fa-user-shield"></i> Admin Panel
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'staff_logout' %}" class="text-danger">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            {% endif %}
+        </nav>
+
+        <!-- Mobile Toggle Button -->
+        <button class="btn btn-primary sidebar-toggle" type="button">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Page Content -->
+        <div id="content">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="{% static 'js/notifications.js' %}"></script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script>
+        $(document).ready(function() {
+            const sidebarToggle = document.querySelector('.sidebar-toggle');
+            const sidebar = document.querySelector('#sidebar');
+
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+            });
+
+            // Wait a bit for the notification system to initialize
+            setTimeout(function() {
+                // Handle Django messages with Toastr
+                {% verbatim %}
+                {% if messages %}
+                    {% for message in messages %}
+                        {% if message.tags == 'success' %}
+                            if (typeof toastr !== 'undefined') {
+                                toastr.success('{{ message|escapejs }}');
+                            }
+                        {% elif message.tags == 'error' %}
+                            if (typeof toastr !== 'undefined') {
+                                toastr.error('{{ message|escapejs }}');
+                            }
+                        {% elif message.tags == 'warning' %}
+                            if (typeof toastr !== 'undefined') {
+                                toastr.warning('{{ message|escapejs }}');
+                            }
+                        {% elif message.tags == 'info' %}
+                            if (typeof toastr !== 'undefined') {
+                                toastr.info('{{ message|escapejs }}');
+                            }
+                        {% else %}
+                            if (typeof toastr !== 'undefined') {
+                                toastr.info('{{ message|escapejs }}');
+                            }
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% endverbatim %}
+            }, 100);
+        });
+
+        // Test function for notifications (remove after testing)
+        window.testNotification = function(type) {
+            if (typeof toastr !== 'undefined') {
+                switch(type) {
+                    case 'success':
+                        toastr.success('This is a test success notification!', 'Success');
+                        break;
+                    case 'error':
+                        toastr.error('This is a test error notification!', 'Error');
+                        break;
+                    case 'warning':
+                        toastr.warning('This is a test warning notification!', 'Warning');
+                        break;
+                    case 'info':
+                        toastr.info('This is a test info notification!', 'Info');
+                        break;
+                }
+            } else {
+                alert('Toastr is not loaded!');
+            }
+        };
+    </script>
+
+    <!-- Real-time Notifications -->
+    {% if user.is_authenticated %}
+    <script src="{% static 'js/realtime_notifications.js' %}"></script>
+    {% endif %}
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -280,29 +280,15 @@ class PatientUpdateView(UpdateView):
 class PatientDeleteView(LoginRequiredMixin, DeleteView):
     model = Patient
     template_name = 'patients/patient_confirm_delete.html'
-    success_url = reverse_lazy('patient-list')
-    
-    def get(self, request, *args, **kwargs):
-        patient = self.get_object()
-        if patient.is_archived:
-            messages.info(request, 'Patient is already archived.')
-            return redirect('patient-detail', pk=patient.pk)
-        return super().get(request, *args, **kwargs)
+
+    def get_success_url(self):
+        if 'custom-admin' in self.request.path:
+            return reverse_lazy('admin_patient_list')
+        return reverse_lazy('patient-list')
 
     def delete(self, request, *args, **kwargs):
-        try:
-            # Get the patient
-            patient = self.get_object()
-            
-            # Archive the patient instead of deleting
-            patient.is_archived = True
-            patient.archived_at = timezone.now()
-            patient.save(update_fields=['is_archived', 'archived_at'])
-            messages.success(request, 'Patient moved to archive.')
-            return HttpResponseRedirect(self.success_url)
-        except Exception as e:
-            messages.error(request, f'Error deleting patient: {str(e)}')
-            return HttpResponseRedirect(self.get_success_url())
+        messages.success(request, 'Patient archived successfully.')
+        return super().delete(request, *args, **kwargs)
 
 @method_decorator(staff_member_required, name='dispatch')
 class ArchivedPatientListView(ListView):
@@ -328,7 +314,7 @@ def unarchive_patient(request, pk):
     patient.archived_at = None
     patient.save(update_fields=['is_archived', 'archived_at'])
     messages.success(request, 'Patient restored from archive.')
-    return redirect('archived-patient-list')
+    return redirect('admin_patient_list')
 
 @method_decorator(staff_member_required, name='dispatch')
 @method_decorator(require_valid_navigation, name='dispatch')
@@ -854,14 +840,16 @@ def staff_login(request):
     # Clear all messages
     storage = messages.get_messages(request)
     storage.used = True
-    
+
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
-        
+
         if user is not None and user.is_staff and not user.is_superuser:
             login(request, user)
+            # Store this staff user as the last logged in staff user
+            request.session['last_staff_user_id'] = user.id
             messages.success(request, f'Welcome back, {user.username}! You have been successfully logged in.')
             next_url = request.POST.get('next') or request.GET.get('next')
             if next_url:
@@ -870,7 +858,7 @@ def staff_login(request):
         else:
             messages.error(request, 'Invalid credentials or insufficient permissions.')
             return redirect('staff_login')
-    
+
     return render(request, 'staff_login.html')
 
 @login_required

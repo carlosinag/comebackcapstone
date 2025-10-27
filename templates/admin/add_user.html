@@ -1,0 +1,239 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Add New Staff User{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+<style>
+    :root {
+        --primary-color: #3498db;
+        --primary-hover: #2980b9;
+        --neutral-dark: #2c3e50;
+        --neutral-grey: #6c757d;
+        --danger-color: #e74c3c;
+        --border-radius: 10px;
+        --transition: all 0.25s ease;
+    }
+
+    .card {
+        border: none;
+        border-radius: var(--border-radius);
+        box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.08);
+    }
+    .card-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+        color: #fff;
+        padding: 1.35rem 2rem;
+    }
+    .card-body {
+        padding: 2.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+    .form-label {
+        font-weight: 600;
+        color: var(--neutral-dark);
+        margin-bottom: 0.4rem;
+        display: block;
+    }
+
+    .form-control {
+        border: 2px solid #e5e7eb;
+        border-radius: var(--border-radius);
+        padding: 0.85rem;
+        font-size: 1rem;
+        transition: var(--transition);
+    }
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.2);
+    }
+
+    .help-text,
+    .error-message {
+        font-size: 0.83rem;
+        margin-top: 0.35rem;
+    }
+    .help-text {
+        color: var(--neutral-grey);
+    }
+    .error-message {
+        color: var(--danger-color);
+    }
+
+    .btn-submit,
+    .btn-cancel {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0.85rem 1.75rem;
+        width: 100%;
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: var(--border-radius);
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+    }
+    .btn-submit:hover {
+        box-shadow: 0px 6px 18px rgba(52, 152, 219, 0.35);
+        transform: translateY(-2px);
+    }
+
+    .btn-cancel {
+        background: var(--neutral-grey);
+        margin-top: 0.75rem;
+        text-decoration: none;
+    }
+    .btn-cancel:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+
+    .button-group {
+        margin-top: 1.5rem;
+    }
+</style>
+
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>Add New Staff User
+                    </h4>
+                </div>
+
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="form-group">
+                            <label for="{{ form.username.id_for_label }}" class="form-label">
+                                <i class="fas fa-user me-1"></i>Username *
+                            </label>
+                            {{ form.username }}
+                            {% if form.username.errors %}
+                                <div class="error-message">
+                                    {{ form.username.errors|striptags }}
+                                </div>
+                            {% endif %}
+                            {% if form.username.help_text %}
+                                <div class="help-text">{{ form.username.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-signature me-1"></i>First Name
+                                    </label>
+                                    {{ form.first_name }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-signature me-1"></i>Last Name
+                                    </label>
+                                    {{ form.last_name }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-envelope me-1"></i>Email Address</label>
+                            {{ form.email }}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label"><i class="fas fa-lock me-1"></i>Password *</label>
+                                    {{ form.password1 }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label"><i class="fas fa-lock me-1"></i>Confirm Password *</label>
+                                    {{ form.password2 }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="button-group">
+                            <button type="submit" class="btn-submit">
+                                <i class="fas fa-user-plus me-2"></i>Create Staff User
+                            </button>
+
+                            <a href="{% url 'admin_users' %}" class="btn-cancel">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize toastr
+    toastr.options = {
+        "closeButton": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "timeOut": "5000"
+    };
+
+    // Form validation enhancement
+    const form = document.querySelector('form');
+    const password1 = document.getElementById('{{ form.password1.id_for_label }}');
+    const password2 = document.getElementById('{{ form.password2.id_for_label }}');
+
+    // Real-time password confirmation validation
+    password2.addEventListener('input', function() {
+        if (password1.value !== password2.value) {
+            password2.setCustomValidity("Passwords don't match");
+        } else {
+            password2.setCustomValidity('');
+        }
+    });
+
+    // Form submission with loading state
+    form.addEventListener('submit', function(e) {
+        const submitBtn = form.querySelector('.btn-submit');
+        const originalText = submitBtn.innerHTML;
+
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating User...';
+        submitBtn.disabled = true;
+
+        // Re-enable after 10 seconds as fallback
+        setTimeout(function() {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }, 10000);
+    });
+});
+</script>
+{% endblock %}

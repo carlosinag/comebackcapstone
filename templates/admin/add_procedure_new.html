@@ -3,283 +3,256 @@
 {% block title %}Add New Procedure{% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4 py-4">
-    <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="h3 mb-0 text-gray-800">
-                        <i class="fas fa-plus-circle text-primary me-2"></i>
-                        Add New Procedure
-                    </h1>
-                    <p class="text-muted mt-1 mb-0">Create a new medical procedure for your clinic</p>
-                </div>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'admin_prices' %}">Prices</a></li>
-                        <li class="breadcrumb-item active">Add Procedure</li>
-                    </ol>
-                </nav>
-            </div>
-        </div>
+<div class="page-wrap px-3 py-4">
+
+  <!-- Header -->
+  <div class="page-header d-flex justify-content-between align-items-start mb-3">
+    <div>
+      <h1 class="title">
+        <span class="title-icon"> <i class="fas fa-plus-circle"></i> </span>
+        Add New Procedure
+      </h1>
+      <p class="subtitle">Create a new medical procedure for your clinic</p>
     </div>
 
-    <!-- Main Form Card -->
-    <div class="row justify-content-center">
-        <div class="col-xl-8 col-lg-10">
-            <div class="card shadow-lg border-0 rounded-lg">
-                <div class="card-header bg-gradient-primary text-white py-3">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-stethoscope me-2"></i>
-                        Procedure Information
-                    </h5>
-                </div>
+    <nav aria-label="breadcrumb" class="breadcrumb-wrap">
+      <ol class="breadcrumb small mb-0">
+        <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'admin_prices' %}">Prices</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Add Procedure</li>
+      </ol>
+    </nav>
+  </div>
 
-                <div class="card-body p-4">
-                    <form method="POST" action="{% url 'add_service' %}" novalidate>
-                        {% csrf_token %}
+  <!-- Main content area -->
+  <div class="d-flex justify-content-center">
+    <div class="main-card">
 
-                        <div class="row">
-                            <!-- Left Column -->
-                            <div class="col-md-6">
-                                <!-- Procedure Name -->
-                                <div class="form-group mb-4">
-                                    <label for="{{ form.name.id_for_label }}" class="form-label fw-bold">
-                                        <i class="fas fa-tag text-primary me-2"></i>
-                                        Procedure Name *
-                                    </label>
-                                    {{ form.name }}
-                                    {% if form.name.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.name.errors.0 }}
-                                        </div>
-                                    {% endif %}
-                                    <small class="form-text text-muted">
-                                        Enter a descriptive name for the medical procedure
-                                    </small>
-                                </div>
-
-                                <!-- Base Price -->
-                                <div class="form-group mb-4">
-                                    <label for="{{ form.base_price.id_for_label }}" class="form-label fw-bold">
-                                        <i class="fas fa-peso-sign text-success me-2"></i>
-                                        Base Price (₱) *
-                                    </label>
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-light">
-                                            <i class="fas fa-money-bill-wave"></i>
-                                        </span>
-                                        {{ form.base_price }}
-                                    </div>
-                                    {% if form.base_price.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.base_price.errors.0 }}
-                                        </div>
-                                    {% endif %}
-                                    <small class="form-text text-muted">
-                                        Set the standard price for this procedure
-                                    </small>
-                                </div>
-                            </div>
-
-                            <!-- Right Column -->
-                            <div class="col-md-6">
-                                <!-- Description -->
-                                <div class="form-group mb-4">
-                                    <label for="{{ form.description.id_for_label }}" class="form-label fw-bold">
-                                        <i class="fas fa-align-left text-info me-2"></i>
-                                        Description
-                                    </label>
-                                    {{ form.description }}
-                                    {% if form.description.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.description.errors.0 }}
-                                        </div>
-                                    {% endif %}
-                                    <small class="form-text text-muted">
-                                        Provide details about what this procedure involves
-                                    </small>
-                                </div>
-
-                                <!-- Active Status -->
-                                <div class="form-group mb-4">
-                                    <label for="{{ form.is_active.id_for_label }}" class="form-label fw-bold">
-                                        <i class="fas fa-toggle-on text-warning me-2"></i>
-                                        Status
-                                    </label>
-                                    <div class="form-check form-switch">
-                                        {{ form.is_active }}
-                                        <label class="form-check-label ms-2" for="{{ form.is_active.id_for_label }}">
-                                            <span class="badge bg-success-subtle text-success" id="status-text">
-                                                <i class="fas fa-check-circle me-1"></i>
-                                                Active
-                                            </span>
-                                        </label>
-                                    </div>
-                                    <small class="form-text text-muted">
-                                        Enable this procedure for patient bookings
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Form Actions -->
-                        <div class="row mt-4">
-                            <div class="col-12">
-                                <hr class="my-4">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <a href="{% url 'admin_prices' %}" class="btn btn-outline-secondary btn-lg">
-                                        <i class="fas fa-arrow-left me-2"></i>
-                                        Back to Prices
-                                    </a>
-
-                                    <div class="btn-group">
-                                        <button type="reset" class="btn btn-outline-warning btn-lg me-2">
-                                            <i class="fas fa-undo me-2"></i>
-                                            Reset Form
-                                        </button>
-
-                                        <button type="submit" class="btn btn-primary btn-lg">
-                                            <i class="fas fa-save me-2"></i>
-                                            Add Procedure
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
+      <!-- Card header -->
+      <div class="card-top">
+        <div class="card-top-left">
+          <i class="fas fa-stethoscope"></i>
+          <span class="card-title">Procedure Information</span>
         </div>
-    </div>
+      </div>
 
-    <!-- Help Section -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card border-info">
-                <div class="card-body">
-                    <h6 class="card-title text-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Tips for Adding Procedures
-                    </h6>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <ul class="list-unstyled mb-0">
-                                <li class="mb-2">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    Use clear, descriptive names
-                                </li>
-                                <li class="mb-2">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    Set competitive pricing
-                                </li>
-                            </ul>
-                        </div>
-                        <div class="col-md-4">
-                            <ul class="list-unstyled mb-0">
-                                <li class="mb-2">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    Provide detailed descriptions
-                                </li>
-                                <li class="mb-2">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    Keep procedures active for bookings
-                                </li>
-                            </ul>
-                        </div>
-                        <div class="col-md-4">
-                            <ul class="list-unstyled mb-0">
-                                <li class="mb-2">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    Review pricing regularly
-                                </li>
-                                <li class="mb-2">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    Update descriptions as needed
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+      <!-- Card body / Form -->
+      <div class="card-body">
+        <form method="POST" action="{% url 'add_service' %}" novalidate id="procedure-form">
+          {% csrf_token %}
+
+          <div class="row gx-3 gy-3">
+            <!-- Left column -->
+            <div class="col-md-6">
+              <label for="{{ form.name.id_for_label }}" class="field-label">
+                <i class="fas fa-tag field-icon"></i> Procedure Name <span class="req">*</span>
+              </label>
+              {{ form.name }}
+              {% if form.name.errors %}
+                <div class="invalid-feedback d-block small mt-1">{{ form.name.errors.0 }}</div>
+              {% endif %}
+              <div class="field-help small text-muted mt-1">Enter a descriptive name for the medical procedure</div>
             </div>
-        </div>
+
+            <!-- Right column -->
+            <div class="col-md-6">
+              <label for="{{ form.base_price.id_for_label }}" class="field-label">
+                <i class="fas fa-peso-sign field-icon"></i> Base Price (₱) <span class="req">*</span>
+              </label>
+
+              <div class="input-group compact">
+                <span class="input-group-prepend"><i class="fas fa-money-bill-wave"></i></span>
+                {{ form.base_price }}
+              </div>
+              {% if form.base_price.errors %}
+                <div class="invalid-feedback d-block small mt-1">{{ form.base_price.errors.0 }}</div>
+              {% endif %}
+              <div class="field-help small text-muted mt-1">Set the standard price for this procedure</div>
+            </div>
+
+            <!-- Description - full width -->
+            <div class="col-12">
+              <label for="{{ form.description.id_for_label }}" class="field-label">
+                <i class="fas fa-align-left field-icon"></i> Description
+              </label>
+              {{ form.description }}
+              {% if form.description.errors %}
+                <div class="invalid-feedback d-block small mt-1">{{ form.description.errors.0 }}</div>
+              {% endif %}
+              <div class="field-help small text-muted mt-1">Provide details about what this procedure involves</div>
+            </div>
+
+            <!-- Status / Toggle -->
+            <div class="col-12 d-flex align-items-center gap-3 mt-1">
+              <div class="form-check form-switch">
+                {{ form.is_active }}
+              </div>
+
+              <div>
+                <div class="d-flex align-items-center">
+                  <span id="status-bullet" class="status-bullet active"></span>
+                  <span id="status-text" class="status-label">Active</span>
+                </div>
+                <div class="field-help small text-muted mt-1">Enable this procedure for patient bookings</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Separator -->
+          <div class="divider"></div>
+
+          <!-- Action bar -->
+          <div class="action-row d-flex justify-content-between align-items-center">
+            <a href="{% url 'admin_prices' %}" class="btn btn-ghost">
+              <i class="fas fa-arrow-left me-2"></i> Back to Prices
+            </a>
+
+            <div class="action-buttons d-flex align-items-center gap-2">
+              <button type="reset" class="btn btn-outline-warning">
+                <i class="fas fa-undo"></i> Reset
+              </button>
+
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-2"></i> Add Procedure
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
     </div>
+  </div>
+
+  <!-- Tips -->
+  <div class="info-row d-flex justify-content-center mt-4">
+    <div class="tips-box">
+      <div class="tips-header"><i class="fas fa-info-circle me-2"></i> Tips for Adding Procedures</div>
+      <div class="tips-grid">
+        <div class="tip"><i class="fas fa-check-circle"></i> Use clear, descriptive names</div>
+        <div class="tip"><i class="fas fa-check-circle"></i> Set competitive pricing</div>
+        <div class="tip"><i class="fas fa-check-circle"></i> Provide detailed descriptions</div>
+        <div class="tip"><i class="fas fa-check-circle"></i> Keep procedures active for bookings</div>
+        <div class="tip"><i class="fas fa-check-circle"></i> Review pricing regularly</div>
+        <div class="tip"><i class="fas fa-check-circle"></i> Update descriptions as needed</div>
+      </div>
+    </div>
+  </div>
 </div>
 
+
+<!-- Styles -->
 <style>
-/* Custom styles for enhanced appearance */
-.card {
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
+  :root{
+    --blue-600: #1d60c7;
+    --blue-500: #3c89e8;
+    --bg: #fbfdff;
+    --muted: #6c757d;
+    --card-radius: 8px;
+    --card-shadow: 0 8px 22px rgba(15, 32, 63, 0.07);
+    --gap: 12px;
+    --control-border: #dce4ec;
+  }
 
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
-}
+  .page-wrap { max-width: 1200px; margin: 0 auto; color: #213547; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+  .page-header { margin-bottom: 8px; }
+  .title { font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--blue-600); display:flex; align-items:center; gap:8px; }
+  .title-icon { background: rgba(60,137,232,0.12); color: var(--blue-600); padding: 6px; border-radius: 6px; display:inline-flex; align-items:center; justify-content:center; }
+  .subtitle { font-size: .92rem; color: var(--muted); margin: 4px 0 0; }
 
-.form-control:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-}
+  .breadcrumb-wrap { align-self: center; }
+  .breadcrumb { background: transparent; padding:0; margin:0; }
 
-.input-group-text {
-    border-color: #ced4da;
-}
+  /* Main card */
+  .main-card { width: 100%; max-width: 920px; border-radius: var(--card-radius); overflow: hidden; box-shadow: var(--card-shadow); background: white; }
+  .card-top { background: linear-gradient(135deg, rgba(60,137,232,0.95), rgba(29,96,199,0.95)); color: #fff; padding: 12px 18px; display:flex; align-items:center; gap:12px; }
+  .card-top-left { display:flex; align-items:center; gap:10px; }
+  .card-top .fa-stethoscope { font-size: 1.05rem; opacity: 0.95; }
+  .card-title { font-weight: 600; font-size: 1rem; }
 
-.btn {
-    transition: all 0.2s ease-in-out;
-}
+  .card-body { padding: 18px; }
 
-.btn:hover {
-    transform: translateY(-1px);
-}
+  /* fields */
+  .field-label { font-size: .92rem; font-weight: 600; display:block; color:#26384a; margin-bottom:6px; }
+  .field-icon { color: var(--blue-500); margin-right:6px; opacity: .95; }
+  .req { color: #d9534f; margin-left:4px; font-weight:600; }
 
-.btn-primary {
-    background: linear-gradient(45deg, #0d6efd, #6610f2);
-    border: none;
-}
+  input[type="text"], input[type="number"], .form-control, textarea, select {
+    width:100%;
+    border-radius: 8px;
+    border: 1.5px solid var(--control-border);
+    padding: .55rem .65rem;
+    font-size: .95rem;
+    outline: none;
+    transition: box-shadow .15s ease, border-color .15s ease;
+    background: #fff;
+    color: #213547;
+    box-sizing: border-box;
+  }
 
-.btn-primary:hover {
-    background: linear-gradient(45deg, #0b5ed7, #5a0fc8);
-}
+  textarea { min-height: 150px; resize: vertical; padding-top: .7rem; }
 
-.bg-gradient-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
+  input:focus, textarea:focus {
+    border-color: var(--blue-500);
+    box-shadow: 0 0 0 6px rgba(60,137,232,0.07);
+  }
 
-.form-switch .form-check-input {
-    width: 3em;
-    height: 1.5em;
-    margin-left: 0;
-}
+  .input-group.compact { display:flex; align-items:center; gap:8px; }
+  .input-group-prepend { display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:6px; background:#f3f7fb; color: var(--muted); border:1px solid var(--control-border); }
+  .input-group-prepend .fa-money-bill-wave { font-size: .95rem; }
 
-.form-switch .form-check-input:checked {
-    background-color: #198754;
-    border-color: #198754;
-}
+  .field-help { color: var(--muted); }
 
-.badge {
-    font-size: 0.75em;
-}
+  /* switch & status */
+  .form-check.form-switch { --bs-switch-height: 22px; margin: 0; padding-right: 6px; }
+  .form-check-input { width: 2.6rem; height: 1.45rem; cursor:pointer; vertical-align: middle; background: #f0f3f7; border-radius: 999px; border: 1px solid #d0d7df; position: relative; }
+  .form-check-input:checked { background: #198754; border-color: #198754; }
+  .form-check-input::after { content:""; position:absolute; top: 2px; left: 2px; width: 12px; height: 12px; background: white; border-radius: 50%; transition: transform .12s ease; }
+  .form-check-input:checked::after { transform: translateX(14px); }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .card-body {
-        padding: 2rem 1rem !important;
-    }
+  .status-bullet { width:10px; height:10px; border-radius:50%; margin-right:8px; display:inline-block; background:#e9ecef; }
+  .status-bullet.active { background: #1db954; box-shadow: 0 0 0 4px rgba(29,185,84,0.06); }
+  .status-bullet.inactive { background: #d3dbe4; box-shadow:none; }
+  .status-label { font-weight:600; color:#2c3e50; margin-left:4px; }
 
-    .btn-group {
-        flex-direction: column;
-        width: 100%;
-    }
+  .divider { height:1px; background: linear-gradient(90deg, rgba(0,0,0,0.04), rgba(0,0,0,0.02)); margin: 16px 0; border-radius:2px; }
 
-    .btn-group .btn {
-        margin-bottom: 0.5rem;
-        width: 100%;
-    }
-}
+  /* action row */
+  .action-row { padding: 6px 0; }
+  .btn { border-radius: 8px; padding: 10px 14px; font-weight:600; font-size:.95rem; border: none; cursor: pointer; display:inline-flex; align-items:center; gap:10px; }
+  .btn:focus { outline: none; box-shadow: 0 0 0 6px rgba(60,137,232,0.06); }
+
+  .btn-ghost { background: #f7f9fb; color:#23394f; border:1px solid #e6eef6; }
+  .btn-ghost:hover { background:#f0f6fb; transform: translateY(-1px); box-shadow: 0 6px 14px rgba(19,48,69,0.04); }
+
+  .btn-outline-warning { background: transparent; border: 1.5px solid #f0b429; color:#7a5a02; }
+  .btn-outline-warning:hover { background:#fff5e6; transform: translateY(-1px); }
+
+  .btn-primary { background: linear-gradient(135deg, var(--blue-500), var(--blue-600)); color:#fff; box-shadow: 0 6px 18px rgba(29,96,199,0.14); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(29,96,199,0.16); }
+
+  .action-buttons .btn { min-width:120px; }
+
+  /* tips box */
+  .tips-box { background: #f8fbff; border: 1px solid #e6f0ff; padding: 14px 18px; border-radius:8px; width:100%; max-width:920px; }
+  .tips-header { font-weight:700; color:var(--blue-600); margin-bottom:10px; }
+  .tips-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; font-size:.92rem; color:#325063; }
+  .tip { display:flex; gap:8px; align-items:center; color:#23536b; }
+
+  .tip .fa-check-circle { color:#26a65b; font-size:.9rem; }
+
+  /* responsive */
+  @media (max-width: 900px) {
+    .tips-grid { grid-template-columns:repeat(2,1fr); }
+    .action-buttons { width:100%; justify-content:flex-end; gap:8px; }
+  }
+  @media (max-width: 640px) {
+    .title { font-size:1.18rem; }
+    .main-card { margin: 0 8px; }
+    .tips-grid { grid-template-columns:1fr; }
+    .action-row { flex-direction: column; gap:10px; align-items:stretch; }
+    .action-buttons { justify-content:flex-end; width:100%; }
+    .action-buttons .btn { width:48%; }
+  }
 </style>
 
 <script>
@@ -347,5 +320,55 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+</script>
+
+<!-- Small script: add classes to raw form fields & update status label -->
+<script>
+  (function(){
+    const form = document.getElementById('procedure-form');
+    if (!form) return;
+
+    // Add sane default classes to form inputs if not set in widgets
+    const inputs = form.querySelectorAll('input, textarea, select');
+    inputs.forEach(el => {
+      const t = el.tagName.toLowerCase();
+      if (el.classList.length === 0) {
+        if (t === 'input' && (el.type === 'checkbox' || el.type === 'radio')) {
+          el.classList.add('form-check-input');
+        } else {
+          el.classList.add('form-control');
+        }
+      }
+    });
+
+    // Find the status checkbox (is_active)
+    const statusCheckbox = form.querySelector('input[type="checkbox"], input[type="radio"]');
+    const statusText = document.getElementById('status-text');
+    const statusBullet = document.getElementById('status-bullet');
+
+    function updateStatusUI() {
+      if (!statusCheckbox) return;
+      const checked = statusCheckbox.checked;
+      if (checked) {
+        statusText.textContent = 'Active';
+        statusBullet.classList.remove('inactive');
+        statusBullet.classList.add('active');
+      } else {
+        statusText.textContent = 'Inactive';
+        statusBullet.classList.remove('active');
+        statusBullet.classList.add('inactive');
+      }
+    }
+
+    if (statusCheckbox) {
+      // ensure checkbox has appropriate class
+      if (!statusCheckbox.classList.contains('form-check-input')) {
+        statusCheckbox.classList.add('form-check-input');
+      }
+      statusCheckbox.addEventListener('change', updateStatusUI);
+      // initial
+      updateStatusUI();
+    }
+  })();
 </script>
 {% endblock %}

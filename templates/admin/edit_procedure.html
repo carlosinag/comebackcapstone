@@ -4,336 +4,359 @@
 
 {% block extra_css %}
 <style>
-    .form-card {
-        transition: all 0.3s ease;
-        border: none;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
+  :root{
+    --blue-600: #1d60c7;
+    --blue-500: #3c89e8;
+    --bg: #fbfdff;
+    --muted: #6c757d;
+    --card-radius: 8px;
+    --card-shadow: 0 8px 22px rgba(15, 32, 63, 0.07);
+    --gap: 12px;
+    --control-border: #dce4ec;
+  }
 
-    .form-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    }
+  .page-wrap { max-width: 1200px; margin: 0 auto; color: #213547; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+  .page-header { margin-bottom: 8px; }
+  .title { font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--blue-600); display:flex; align-items:center; gap:8px; }
+  .title-icon { background: rgba(60,137,232,0.12); color: var(--blue-600); padding: 6px; border-radius: 6px; display:inline-flex; align-items:center; justify-content:center; }
+  .subtitle { font-size: .92rem; color: var(--muted); margin: 4px 0 0; }
 
-    .form-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 0.375rem 0.375rem 0 0 !important;
-    }
+  .breadcrumb-wrap { align-self: center; }
+  .breadcrumb { background: transparent; padding:0; margin:0; }
 
-    .form-label {
-        font-weight: 600;
-        color: #2c3e50;
-        margin-bottom: 0.5rem;
-        display: block;
-    }
+  /* Main card */
+  .main-card { width: 100%; max-width: 920px; border-radius: var(--card-radius); overflow: hidden; box-shadow: var(--card-shadow); background: white; }
+  .card-top { background: linear-gradient(135deg, rgba(60,137,232,0.95), rgba(29,96,199,0.95)); color: #fff; padding: 12px 18px; display:flex; align-items:center; gap:12px; }
+  .card-top-left { display:flex; align-items:center; gap:10px; }
+  .card-top .fa-stethoscope { font-size: 1.05rem; opacity: 0.95; }
+  .card-title { font-weight: 600; font-size: 1rem; }
 
-    .form-control:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-    }
+  .card-body { padding: 18px; }
 
-    .form-control[readonly] {
-        background-color: #f8f9fa;
-        opacity: 1;
-    }
+  /* fields */
+  .field-label { font-size: .92rem; font-weight: 600; display:block; color:#26384a; margin-bottom:6px; }
+  .field-icon { color: var(--blue-500); margin-right:6px; opacity: .95; }
+  .req { color: #d9534f; margin-left:4px; font-weight:600; }
 
-    .btn-save {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        padding: 0.75rem 2rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
+  input[type="text"], input[type="number"], .form-control, textarea, select {
+    width:100%;
+    border-radius: 8px;
+    border: 1.5px solid var(--control-border);
+    padding: .55rem .65rem;
+    font-size: .95rem;
+    outline: none;
+    transition: box-shadow .15s ease, border-color .15s ease;
+    background: #fff;
+    color: #213547;
+    box-sizing: border-box;
+  }
 
-    .btn-save:hover {
-        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-    }
+  textarea { min-height: 150px; resize: vertical; padding-top: .7rem; }
 
-    .btn-cancel {
-        background: #6c757d;
-        border: none;
-        padding: 0.75rem 2rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
+  input:focus, textarea:focus {
+    border-color: var(--blue-500);
+    box-shadow: 0 0 0 6px rgba(60,137,232,0.07);
+  }
 
-    .btn-cancel:hover {
-        background: #5a6268;
-        transform: translateY(-1px);
-    }
+  .input-group.compact { display:flex; align-items:center; gap:8px; }
+  .input-group-prepend { display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:6px; background:#f3f7fb; color: var(--muted); border:1px solid var(--control-border); }
+  .input-group-prepend .fa-money-bill-wave { font-size: .95rem; }
 
-    .procedure-icon {
-        color: #667eea;
-        margin-right: 0.5rem;
-    }
+  .field-help { color: var(--muted); }
 
-    .form-section {
-        background: #f8f9fa;
-        padding: 1.5rem;
-        border-radius: 0.375rem;
-        margin-bottom: 1rem;
-    }
+  /* switch & status */
+  .form-check.form-switch { --bs-switch-height: 22px; margin: 0; padding-right: 6px; }
+  .form-check-input { width: 2.6rem; height: 1.45rem; cursor:pointer; vertical-align: middle; background: #f0f3f7; border-radius: 999px; border: 1px solid #d0d7df; position: relative; }
+  .form-check-input:checked { background: #198754; border-color: #198754; }
+  .form-check-input::after { content:""; position:absolute; top: 2px; left: 2px; width: 12px; height: 12px; background: white; border-radius: 50%; transition: transform .12s ease; }
+  .form-check-input:checked::after { transform: translateX(14px); }
 
-    .help-text {
-        font-size: 0.875rem;
-        color: #6c757d;
-        margin-top: 0.25rem;
-    }
+  .status-bullet { width:10px; height:10px; border-radius:50%; margin-right:8px; display:inline-block; background:#e9ecef; }
+  .status-bullet.active { background: #1db954; box-shadow: 0 0 0 4px rgba(29,185,84,0.06); }
+  .status-bullet.inactive { background: #d3dbe4; box-shadow:none; }
+  .status-label { font-weight:600; color:#2c3e50; margin-left:4px; }
 
-    .field-wrapper {
-        position: relative;
-    }
+  .divider { height:1px; background: linear-gradient(90deg, rgba(0,0,0,0.04), rgba(0,0,0,0.02)); margin: 16px 0; border-radius:2px; }
 
-    .field-wrapper .form-control {
-        padding-right: 3rem;
-    }
+  /* action row */
+  .action-row { padding: 6px 0; }
+  .btn { border-radius: 8px; padding: 10px 14px; font-weight:600; font-size:.95rem; border: none; cursor: pointer; display:inline-flex; align-items:center; gap:10px; }
+  .btn:focus { outline: none; box-shadow: 0 0 0 6px rgba(60,137,232,0.06); }
 
-    .field-icon {
-        position: absolute;
-        right: 0.75rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #6c757d;
-        z-index: 10;
-    }
+  .btn-ghost { background: #f7f9fb; color:#23394f; border:1px solid #e6eef6; }
+  .btn-ghost:hover { background:#f0f6fb; transform: translateY(-1px); box-shadow: 0 6px 14px rgba(19,48,69,0.04); }
 
-    .textarea-wrapper {
-        position: relative;
-    }
+  .btn-outline-warning { background: transparent; border: 1.5px solid #f0b429; color:#7a5a02; }
+  .btn-outline-warning:hover { background:#fff5e6; transform: translateY(-1px); }
 
-    .textarea-wrapper textarea {
-        resize: vertical;
-        min-height: 100px;
-    }
+  .btn-primary { background: linear-gradient(135deg, var(--blue-500), var(--blue-600)); color:#fff; box-shadow: 0 6px 18px rgba(29,96,199,0.14); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(29,96,199,0.16); }
 
-    .price-wrapper .input-group-text {
-        background: #e9ecef;
-        border-color: #ced4da;
-        color: #495057;
-    }
+  .action-buttons .btn { min-width:120px; }
 
-    .price-wrapper .form-control:focus {
-        border-color: #667eea;
-    }
+  /* tips box */
+  .tips-box { background: #f8fbff; border: 1px solid #e6f0ff; padding: 14px 18px; border-radius:8px; width:100%; max-width:920px; }
+  .tips-header { font-weight:700; color:var(--blue-600); margin-bottom:10px; }
+  .tips-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; font-size:.92rem; color:#325063; }
+  .tip { display:flex; gap:8px; align-items:center; color:#23536b; }
 
-    .alert {
-        border: none;
-        border-radius: 0.375rem;
-    }
+  .tip .fa-check-circle { color:#26a65b; font-size:.9rem; }
+
+  /* responsive */
+  @media (max-width: 900px) {
+    .tips-grid { grid-template-columns:repeat(2,1fr); }
+    .action-buttons { width:100%; justify-content:flex-end; gap:8px; }
+  }
+  @media (max-width: 640px) {
+    .title { font-size:1.18rem; }
+    .main-card { margin: 0 8px; }
+    .tips-grid { grid-template-columns:1fr; }
+    .action-row { flex-direction: column; gap:10px; align-items:stretch; }
+    .action-buttons { justify-content:flex-end; width:100%; }
+    .action-buttons .btn { width:48%; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0">
-            <i class="fas fa-edit procedure-icon"></i>
-            Edit Procedure
-        </h1>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'admin_prices' %}">Prices</a></li>
-                <li class="breadcrumb-item active">Edit Procedure</li>
-            </ol>
-        </nav>
+<div class="page-wrap px-3 py-4">
+
+  <!-- Header -->
+  <div class="page-header d-flex justify-content-between align-items-start mb-3">
+    <div>
+      <h1 class="title">
+        <span class="title-icon"> <i class="fas fa-edit"></i> </span>
+        Edit Procedure
+      </h1>
+      <p class="subtitle">Modify the details of this medical procedure</p>
     </div>
 
-    <div class="row justify-content-center">
-        <div class="col-lg-8 col-xl-6">
-            <div class="card form-card">
-                <div class="card-header form-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-stethoscope"></i>
-                        Procedure Information
-                    </h5>
-                </div>
+    <nav aria-label="breadcrumb" class="breadcrumb-wrap">
+      <ol class="breadcrumb small mb-0">
+        <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'admin_prices' %}">Prices</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Edit Procedure</li>
+      </ol>
+    </nav>
+  </div>
 
-                <div class="card-body">
-                    <form method="POST" action="{% url 'edit_procedure' procedure.id %}" id="procedureForm">
-                        {% csrf_token %}
+  <!-- Main content area -->
+  <div class="d-flex justify-content-center">
+    <div class="main-card">
 
-                        <div class="form-section">
-                            <h6 class="mb-3">
-                                <i class="fas fa-info-circle"></i>
-                                Basic Information
-                            </h6>
-
-                            <div class="mb-3">
-                                <label for="{{ form.name.id_for_label }}" class="form-label">
-                                    <i class="fas fa-tag"></i>
-                                    {{ form.name.label }}
-                                </label>
-                                <div class="field-wrapper">
-                                    {{ form.name }}
-                                    <small class="form-text text-muted">Current: {{ procedure.name }}</small>
-                                </div>
-                                {% if form.name.help_text %}
-                                    <div class="help-text">{{ form.name.help_text }}</div>
-                                {% endif %}
-                                {% if form.name.errors %}
-                                    <div class="alert alert-danger py-2 mt-1">
-                                        <small><i class="fas fa-exclamation-triangle"></i> {{ form.name.errors.0 }}</small>
-                                    </div>
-                                {% endif %}
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="{{ form.description.id_for_label }}" class="form-label">
-                                    <i class="fas fa-align-left"></i>
-                                    {{ form.description.label }}
-                                </label>
-                                <div class="textarea-wrapper">
-                                    {{ form.description }}
-                                    <small class="form-text text-muted">Current: {{ procedure.description|default:"No description" }}</small>
-                                </div>
-                                {% if form.description.help_text %}
-                                    <div class="help-text">{{ form.description.help_text }}</div>
-                                {% endif %}
-                                {% if form.description.errors %}
-                                    <div class="alert alert-danger py-2 mt-1">
-                                        <small><i class="fas fa-exclamation-triangle"></i> {{ form.description.errors.0 }}</small>
-                                    </div>
-                                {% endif %}
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="{{ form.base_price.id_for_label }}" class="form-label">
-                                    <i class="fas fa-peso-sign"></i>
-                                    {{ form.base_price.label }}
-                                </label>
-                                <div class="price-wrapper">
-                                    <div class="input-group">
-                                        <span class="input-group-text">₱</span>
-                                        {{ form.base_price }}
-                                        <i class="fas fa-peso-sign field-icon"></i>
-                                    </div>
-                                    <small class="form-text text-muted">Current: ₱{{ procedure.base_price }}</small>
-                                </div>
-                                {% if form.base_price.help_text %}
-                                    <div class="help-text">{{ form.base_price.help_text }}</div>
-                                {% endif %}
-                                {% if form.base_price.errors %}
-                                    <div class="alert alert-danger py-2 mt-1">
-                                        <small><i class="fas fa-exclamation-triangle"></i> {{ form.base_price.errors.0 }}</small>
-                                    </div>
-                                {% endif %}
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="{{ form.is_active.id_for_label }}" class="form-label">
-                                    <i class="fas fa-toggle-on"></i>
-                                    {{ form.is_active.label }}
-                                </label>
-                                <div class="field-wrapper">
-                                    {{ form.is_active }}
-                                </div>
-                                <small class="form-text text-muted">Current: {% if procedure.is_active %}Active{% else %}Inactive{% endif %}</small>
-                                {% if form.is_active.help_text %}
-                                    <div class="help-text">{{ form.is_active.help_text }}</div>
-                                {% endif %}
-                                {% if form.is_active.errors %}
-                                    <div class="alert alert-danger py-2 mt-1">
-                                        <small><i class="fas fa-exclamation-triangle"></i> {{ form.is_active.errors.0 }}</small>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-between gap-3 mt-4">
-                            <a href="{% url 'admin_prices' %}" class="btn btn-cancel">
-                                <i class="fas fa-times"></i>
-                                Cancel
-                            </a>
-                            <button type="submit" class="btn btn-save">
-                                <i class="fas fa-save"></i>
-                                Save Changes
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+      <!-- Card header -->
+      <div class="card-top">
+        <div class="card-top-left">
+          <i class="fas fa-stethoscope"></i>
+          <span class="card-title">Procedure Information</span>
         </div>
+      </div>
+
+      <!-- Card body / Form -->
+      <div class="card-body">
+        <form method="POST" action="{% url 'edit_procedure' procedure.id %}" novalidate id="procedure-form">
+          {% csrf_token %}
+
+          <div class="row gx-3 gy-3">
+            <!-- Left column -->
+            <div class="col-md-6">
+              <label for="{{ form.name.id_for_label }}" class="field-label">
+                <i class="fas fa-tag field-icon"></i> Procedure Name <span class="req">*</span>
+              </label>
+              {{ form.name }}
+              {% if form.name.errors %}
+                <div class="invalid-feedback d-block small mt-1">{{ form.name.errors.0 }}</div>
+              {% endif %}
+              <div class="field-help small text-muted mt-1">Enter a descriptive name for the medical procedure</div>
+            </div>
+
+            <!-- Right column -->
+            <div class="col-md-6">
+              <label for="{{ form.base_price.id_for_label }}" class="field-label">
+                <i class="fas fa-peso-sign field-icon"></i> Base Price (₱) <span class="req">*</span>
+              </label>
+
+              <div class="input-group compact">
+                <span class="input-group-prepend"><i class="fas fa-money-bill-wave"></i></span>
+                {{ form.base_price }}
+              </div>
+              {% if form.base_price.errors %}
+                <div class="invalid-feedback d-block small mt-1">{{ form.base_price.errors.0 }}</div>
+              {% endif %}
+              <div class="field-help small text-muted mt-1">Set the standard price for this procedure</div>
+            </div>
+
+            <!-- Description - full width -->
+            <div class="col-12">
+              <label for="{{ form.description.id_for_label }}" class="field-label">
+                <i class="fas fa-align-left field-icon"></i> Description
+              </label>
+              {{ form.description }}
+              {% if form.description.errors %}
+                <div class="invalid-feedback d-block small mt-1">{{ form.description.errors.0 }}</div>
+              {% endif %}
+              <div class="field-help small text-muted mt-1">Provide details about what this procedure involves</div>
+            </div>
+
+            <!-- Status / Toggle -->
+            <div class="col-12 d-flex align-items-center gap-3 mt-1">
+              <div class="form-check form-switch">
+                {{ form.is_active }}
+              </div>
+
+              <div>
+                <div class="d-flex align-items-center">
+                  <span id="status-bullet" class="status-bullet active"></span>
+                  <span id="status-text" class="status-label">Active</span>
+                </div>
+                <div class="field-help small text-muted mt-1">Enable this procedure for patient bookings</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Separator -->
+          <div class="divider"></div>
+
+          <!-- Action bar -->
+          <div class="action-row d-flex justify-content-between align-items-center">
+            <a href="{% url 'admin_prices' %}" class="btn btn-ghost">
+              <i class="fas fa-arrow-left me-2"></i> Back to Prices
+            </a>
+
+            <div class="action-buttons d-flex align-items-center gap-2">
+              <button type="reset" class="btn btn-outline-warning">
+                <i class="fas fa-undo"></i> Reset
+              </button>
+
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-2"></i> Save Changes
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
     </div>
+  </div>
+
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// Enhanced form interactions
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('procedureForm');
+    // Status toggle animation
+    const statusToggle = document.getElementById('{{ form.is_active.id_for_label }}');
+    const statusText = document.getElementById('status-text');
 
-    // Initialize toastr options
-    toastr.options = {
-        "closeButton": true,
-        "progressBar": true,
-        "positionClass": "toast-top-right",
-        "timeOut": "3000"
-    };
-
-    // Add form validation feedback
-    form.addEventListener('submit', function(e) {
-        const submitBtn = form.querySelector('.btn-save');
-        const originalText = submitBtn.innerHTML;
-
-        // Disable button and show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-
-        // Show loading notification
-        toastr.info('Saving procedure changes...');
-
-        // Re-enable button after 3 seconds as fallback
-        setTimeout(() => {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalText;
-        }, 3000);
-    });
-
-    // Add visual feedback for form fields
-    const formInputs = form.querySelectorAll('input, textarea, select');
-    formInputs.forEach(input => {
-        input.addEventListener('focus', function() {
-            this.closest('.field-wrapper, .textarea-wrapper, .price-wrapper').classList.add('focused');
-        });
-
-        input.addEventListener('blur', function() {
-            this.closest('.field-wrapper, .textarea-wrapper, .price-wrapper').classList.remove('focused');
-        });
-    });
-
-    // Price input formatting
-    const priceInput = form.querySelector('input[type="number"]');
-    if (priceInput) {
-        priceInput.addEventListener('input', function() {
-            const value = parseFloat(this.value);
-            if (value < 0) {
-                this.value = 0;
-                toastr.warning('Price cannot be negative');
-            }
-            if (value > 999999) {
-                this.value = 999999;
-                toastr.warning('Price cannot exceed ₱999,999');
+    if (statusToggle) {
+        statusToggle.addEventListener('change', function() {
+            if (this.checked) {
+                statusText.innerHTML = '<i class="fas fa-check-circle me-1"></i> Active';
+                statusText.className = 'badge bg-success-subtle text-success';
+            } else {
+                statusText.innerHTML = '<i class="fas fa-times-circle me-1"></i> Inactive';
+                statusText.className = 'badge bg-danger-subtle text-danger';
             }
         });
     }
 
-    // Form validation on input
-    form.addEventListener('input', function(e) {
-        const field = e.target;
-        const errorDiv = field.closest('.mb-3').querySelector('.alert-danger');
+    // Form validation enhancement
+    const form = document.querySelector('form');
+    const requiredFields = form.querySelectorAll('[required]');
 
-        if (field.checkValidity()) {
-            if (errorDiv) {
-                errorDiv.remove();
+    requiredFields.forEach(field => {
+        field.addEventListener('blur', function() {
+            if (this.value.trim() === '') {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
             }
-        }
+        });
+
+        field.addEventListener('input', function() {
+            if (this.classList.contains('is-invalid') && this.value.trim() !== '') {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
     });
 
-    // Handle Django messages with toastr
+    // Price input formatting
+    const priceField = document.getElementById('{{ form.base_price.id_for_label }}');
+    if (priceField) {
+        priceField.addEventListener('input', function(e) {
+            // Allow only numbers and decimal point
+            let value = e.target.value.replace(/[^0-9.]/g, '');
+            // Ensure only one decimal point
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            e.target.value = value;
+        });
+    }
+
+    // Auto-resize textarea
+    const textareas = document.querySelectorAll('textarea');
+    textareas.forEach(textarea => {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+    });
 });
+</script>
+
+<!-- Small script: add classes to raw form fields & update status label -->
+<script>
+  (function(){
+    const form = document.getElementById('procedure-form');
+    if (!form) return;
+
+    // Add sane default classes to form inputs if not set in widgets
+    const inputs = form.querySelectorAll('input, textarea, select');
+    inputs.forEach(el => {
+      const t = el.tagName.toLowerCase();
+      if (el.classList.length === 0) {
+        if (t === 'input' && (el.type === 'checkbox' || el.type === 'radio')) {
+          el.classList.add('form-check-input');
+        } else {
+          el.classList.add('form-control');
+        }
+      }
+    });
+
+    // Find the status checkbox (is_active)
+    const statusCheckbox = form.querySelector('input[type="checkbox"], input[type="radio"]');
+    const statusText = document.getElementById('status-text');
+    const statusBullet = document.getElementById('status-bullet');
+
+    function updateStatusUI() {
+      if (!statusCheckbox) return;
+      const checked = statusCheckbox.checked;
+      if (checked) {
+        statusText.textContent = 'Active';
+        statusBullet.classList.remove('inactive');
+        statusBullet.classList.add('active');
+      } else {
+        statusText.textContent = 'Inactive';
+        statusBullet.classList.remove('active');
+        statusBullet.classList.add('inactive');
+      }
+    }
+
+    if (statusCheckbox) {
+      // ensure checkbox has appropriate class
+      if (!statusCheckbox.classList.contains('form-check-input')) {
+        statusCheckbox.classList.add('form-check-input');
+      }
+      statusCheckbox.addEventListener('change', updateStatusUI);
+      // initial
+      updateStatusUI();
+    }
+  })();
 </script>
 {% endblock %}

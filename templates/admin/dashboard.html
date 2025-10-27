@@ -1,4 +1,4 @@
-{% extends 'admin_base.html' %}
+{% extends 'shared_base.html' %}
 
 {% block title %}Admin Dashboard{% endblock %}
 
@@ -94,8 +94,8 @@
                                     <td>{{ patient.first_name }} {{ patient.last_name }}</td>
                                     <td>{{ patient.created_at|date:"M d, Y" }}</td>
                                     <td>
-                                        <a href="{% url 'admin:patients_patient_change' patient.id %}" class="btn btn-sm btn-primary">
-                                            <i class="fas fa-edit"></i>
+                                        <a href="{% url 'patient-detail' patient.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i>
                                         </a>
                                     </td>
                                 </tr>

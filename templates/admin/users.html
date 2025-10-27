@@ -10,10 +10,10 @@
         color: #6c757d;
     }
     .status-active {
-        color: #28a745;
+        color: white;
     }
     .status-inactive {
-        color: #dc3545;
+        color: white;
     }
     .superuser-badge {
         background: linear-gradient(45deg, #ff6b6b, #ffa500);
@@ -27,7 +27,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3">User Management</h1>
         <div>
-            <a href="{% url 'admin:auth_user_add' %}" class="btn btn-primary">
+            <a href="{% url 'admin_add_user' %}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Add New User
             </a>
         </div>
@@ -136,11 +136,6 @@
                                     <a href="{% url 'admin_change_user_password' user.id %}" class="btn btn-sm btn-warning" title="Change Password">
                                         <i class="fas fa-key"></i>
                                     </a>
-                                    {% if not user.is_superuser %}
-                                        <a href="{% url 'admin:auth_user_change' user.id %}" class="btn btn-sm btn-info" title="Advanced Settings">
-                                            <i class="fas fa-cog"></i>
-                                        </a>
-                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
