@@ -40,6 +40,7 @@ urlpatterns = [
     path('home/', views.home_dashboard, name='home-dashboard'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('patients/', views.PatientListView.as_view(), name='patient-list'),
+    path('patients/export-excel/', views.patient_list_export_excel, name='patient-export-excel'),
     path('patients/archived/', views.ArchivedPatientListView.as_view(), name='archived-patient-list'),
     path('custom-admin/patients/archived/', views.ArchivedPatientListView.as_view(template_name='admin/archived_patient_list.html'), name='admin-archived-patient-list'),
     path('patient/new/', views.PatientCreateView.as_view(), name='patient-create'),
@@ -87,4 +88,6 @@ urlpatterns = [
 
     # Forbidden page for invalid navigation
     path('forbidden/', views.forbidden_page, name='forbidden'),
+    path('custom-admin/elevate/', views.elevate_to_admin, name='elevate_to_admin'),
+    path('custom-admin/revert/', views.revert_from_admin, name='revert_from_admin'),
 ]

@@ -27,6 +27,180 @@ import os
 from django.conf import settings
 from functools import wraps
 
+def generate_ultrasound_docx(exam):
+    """
+    Helper function to generate ultrasound DOCX report.
+    Returns the configured Document object.
+    """
+    # Load the template document from static
+    doc = Document(os.path.join(settings.BASE_DIR, 'static', 'docxtemplate.docx'))
+
+    # Function to replace text in document
+    def replace_text_in_doc(doc, old_text, new_text):
+        for p in doc.paragraphs:
+            if old_text in p.text:
+                p.text = p.text.replace(old_text, new_text)
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for p in cell.paragraphs:
+                        if old_text in p.text:
+                            p.text = p.text.replace(old_text, new_text)
+
+    # Replace date
+    replace_text_in_doc(doc, "OCTOBER 09, 2025", exam.exam_date.strftime('%B %d, %Y').upper())
+
+    # Replace examination performed
+    replace_text_in_doc(doc, "KUB ULTRASOUND", f"{exam.procedure_type.name} ULTRASOUND".upper())
+
+    # Replace ward
+    replace_text_in_doc(doc, "OPD", exam.patient.get_patient_status_display().upper())
+
+    # Replace case number
+    for p in doc.paragraphs:
+        if "CASE NUMBER" in p.text:
+            p.text = p.text.replace("CASE NUMBER	:                                            ", f"CASE NUMBER	: {str(exam.id).zfill(3)}")
+
+    # Name
+    for p in doc.paragraphs:
+        if "NAME OF PATIENT" in p.text:
+            p.text = p.text.replace("NAME OF PATIENT      : ", f"NAME OF PATIENT      : {exam.patient.last_name}, {exam.patient.first_name}")
+
+    # Age
+    for p in doc.paragraphs:
+        if "AGE" in p.text:
+            p.text = p.text.replace("AGE	                	: ", f"AGE	                	: {exam.patient.age or 'N/A'}")
+
+    # Gender
+    for p in doc.paragraphs:
+        if "GENDER" in p.text:
+            p.text = p.text.replace("GENDER	             : ", exam.patient.get_sex_display())
+
+    # Marital status
+    for p in doc.paragraphs:
+        if "MARITAL STATUS" in p.text:
+            p.text = p.text.replace("MARITAL STATUS        :", f"MARITAL STATUS        : {exam.patient.get_marital_status_display() if exam.patient.marital_status else ''}")
+
+    # Requesting physician
+    for p in doc.paragraphs:
+        if "REQUESTING PHYSICIAN" in p.text:
+            p.text = p.text.replace("REQUESTING PHYSICIAN : ", f"REQUESTING PHYSICIAN : {exam.referring_physician or 'N/A'}")
+
+    # Amount paid
+    for p in doc.paragraphs:
+        if "AMOUNT PAID:" in p.text:
+            bill = Bill.objects.filter(items__exam=exam).first()
+            amount = bill.total_amount if bill else 0
+            p.text = p.text.replace("AMOUNT PAID:", f"AMOUNT PAID: {amount}")
+
+    # Findings
+    findings_index = None
+    for i, p in enumerate(doc.paragraphs):
+        if "ULTRASOUND REPORT:" in p.text:
+            findings_index = i
+            break
+    if findings_index is not None and findings_index + 1 < len(doc.paragraphs):
+        doc.paragraphs[findings_index + 1].text = exam.findings or "No specific findings recorded."
+
+    # Impression
+    impression_index = None
+    for i, p in enumerate(doc.paragraphs):
+        if "IMPRESSION :" in p.text:
+            impression_index = i
+            break
+    if impression_index is not None and impression_index + 1 < len(doc.paragraphs):
+        doc.paragraphs[impression_index + 1].text = exam.impression or "No impression recorded."
+
+    # Add recommendations if any
+    if exam.recommendations or exam.followup_duration or exam.specialist_referral:
+        rec_heading = doc.add_paragraph()
+        rec_heading_run = rec_heading.add_run('RECOMMENDATIONS')
+        rec_heading_run.font.bold = True
+        rec_heading_run.font.size = Pt(12)
+        rec_para = doc.add_paragraph()
+        rec_para.add_run(f"Recommendation: {exam.get_recommendations_display()}")
+        if exam.followup_duration:
+            rec_para.add_run(f"\nFollow-up Duration: {exam.followup_duration}")
+        if exam.specialist_referral:
+            rec_para.add_run(f"\nSpecialist Referral: {exam.specialist_referral}")
+        doc.add_paragraph()
+
+    # Additional Notes
+    if exam.notes:
+        notes_heading = doc.add_paragraph()
+        notes_heading_run = notes_heading.add_run('ADDITIONAL NOTES')
+        notes_heading_run.font.bold = True
+        notes_heading_run.font.size = Pt(12)
+        notes_para = doc.add_paragraph()
+        notes_para.add_run(exam.notes)
+        doc.add_paragraph()
+
+    # Technician
+    if exam.technician:
+        tech_heading = doc.add_paragraph()
+        tech_heading_run = tech_heading.add_run('TECHNICIAN')
+        tech_heading_run.font.bold = True
+        tech_heading_run.font.size = Pt(12)
+        tech_para = doc.add_paragraph()
+        tech_para.add_run(f"Performed by: {exam.technician}")
+        doc.add_paragraph()
+
+    # Images
+    if exam.images.exists():
+        images_heading = doc.add_paragraph()
+        images_heading_run = images_heading.add_run('ULTRASOUND IMAGES')
+        images_heading_run.font.bold = True
+        images_heading_run.font.size = Pt(12)
+        for image in exam.images.all():
+            if image.caption:
+                caption_para = doc.add_paragraph()
+                caption_run = caption_para.add_run(f"Image: {image.caption}")
+                caption_run.font.italic = True
+                caption_run.font.size = Pt(10)
+            try:
+                img_path = image.image.path
+                img_para = doc.add_paragraph()
+                img_run = img_para.add_run()
+                img_run.add_picture(img_path, width=Inches(4.0))
+                img_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                original_caption = doc.add_paragraph()
+                original_caption_run = original_caption.add_run("Original Ultrasound Image")
+                original_caption_run.font.size = Pt(9)
+                original_caption_run.font.italic = True
+                original_caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            except Exception as e:
+                doc.add_paragraph("Original image could not be loaded.")
+            if image.annotated_image:
+                try:
+                    annotated_path = image.annotated_image.path
+                    annotated_img_para = doc.add_paragraph()
+                    annotated_img_run = annotated_img_para.add_run()
+                    annotated_img_run.add_picture(annotated_path, width=Inches(4.0))
+                    annotated_img_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    annotated_caption = doc.add_paragraph()
+                    annotated_caption_run = annotated_caption.add_run("Annotated Ultrasound Image")
+                    annotated_caption_run.font.size = Pt(9)
+                    annotated_caption_run.font.italic = True
+                    annotated_caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                except Exception as e:
+                    doc.add_paragraph("Annotated image could not be loaded.")
+            doc.add_paragraph()
+
+    # Footer
+    footer_para = doc.add_paragraph()
+    footer_run = footer_para.add_run(
+        f"This report was generated on {timezone.localtime().strftime('%B %d, %Y at %I:%M %p')} by MSRA Ultrasound Clinic Management System.\n\n"
+        "IMPORTANT MEDICAL DISCLAIMER: This ultrasound examination report contains preliminary findings and should be interpreted "
+        "by a qualified healthcare professional. The final diagnosis and treatment recommendations must be provided by the "
+        "attending physician. This report is for medical records purposes only and should not be used as the sole basis "
+        "for medical decision-making."
+    )
+    footer_run.font.size = Pt(8)
+    footer_run.font.italic = True
+    footer_para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+    return doc
+
 def custom_staff_member_required(view_func):
     """
     Custom decorator that requires staff membership and redirects to forbidden page
@@ -652,6 +826,12 @@ def admin_login(request):
         user = authenticate(request, username=username, password=password)
         
         if user is not None and user.is_staff:
+            # If a staff user is logging into admin, store their original ID
+            if request.user.is_authenticated and request.user.is_staff and not request.user.is_superuser:
+                request.session['_original_user_id'] = request.user.id
+                request.session['_original_is_staff'] = request.user.is_staff
+                request.session['_original_is_superuser'] = request.user.is_superuser
+            
             login(request, user)
             messages.success(request, f'Welcome back, {user.username}! You have been successfully logged in.')
             next_url = request.POST.get('next') or request.GET.get('next')
@@ -1485,7 +1665,192 @@ def patient_cancel_appointment(request, appointment_id):
         'appointment': appointment,
         'patient': request.user.patient,
     }
-    return render(request, 'patients/patient_cancel_appointment.html', context) 
+    return render(request, 'patients/patient_cancel_appointment.html', context)
+
+@custom_staff_member_required
+def patient_list_export_excel(request):
+    """Export patient list to Excel format."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from django.http import HttpResponse
+    from django.db.models import Q
+
+    # Get filter parameters from request
+    search_query = request.GET.get('search', '')
+    sex_filter = request.GET.get('sex_filter', '')
+    patient_type = request.GET.get('patient_type', '')
+    patient_status = request.GET.get('patient_status', '')
+    region = request.GET.get('region', '')
+    province = request.GET.get('province', '')
+    city = request.GET.get('city', '')
+    barangay = request.GET.get('barangay', '')
+    created_start = request.GET.get('created_start', '')
+    created_end = request.GET.get('created_end', '')
+    age_min = request.GET.get('age_min', '')
+    age_max = request.GET.get('age_max', '')
+    last_visit_start = request.GET.get('last_visit_start', '')
+    last_visit_end = request.GET.get('last_visit_end', '')
+    has_visits = request.GET.get('has_visits', '')
+    sort = request.GET.get('sort', '')
+
+    # Build queryset with same filters as PatientListView
+    queryset = Patient.objects.filter(is_archived=False)
+
+    # Apply search
+    if search_query:
+        queryset = queryset.filter(
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(contact_number__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(id_number__icontains=search_query)
+        )
+
+    # Apply filters
+    if sex_filter in ['M', 'F']:
+        queryset = queryset.filter(sex=sex_filter)
+
+    if patient_type in dict(Patient.PATIENT_TYPE_CHOICES):
+        queryset = queryset.filter(patient_type=patient_type)
+
+    if patient_status in dict(Patient.PATIENT_STATUS_CHOICES):
+        queryset = queryset.filter(patient_status=patient_status)
+
+    # Location filters
+    if region:
+        queryset = queryset.filter(region=region)
+    if province:
+        queryset = queryset.filter(province=province)
+    if city:
+        queryset = queryset.filter(city=city)
+    if barangay:
+        queryset = queryset.filter(barangay=barangay)
+
+    # Created date range filters
+    from django.utils.dateparse import parse_date
+    if created_start:
+        start_date = parse_date(created_start)
+        if start_date:
+            queryset = queryset.filter(created_at__date__gte=start_date)
+    if created_end:
+        end_date = parse_date(created_end)
+        if end_date:
+            queryset = queryset.filter(created_at__date__lte=end_date)
+
+    # Age range filters
+    if age_min or age_max:
+        today = timezone.now().date()
+        if age_min:
+            try:
+                age_min_int = int(age_min)
+                cutoff = today.replace(year=today.year - age_min_int)
+                queryset = queryset.filter(birthday__lte=cutoff)
+            except Exception:
+                pass
+        if age_max:
+            try:
+                age_max_int = int(age_max)
+                cutoff = today.replace(year=today.year - age_max_int)
+                queryset = queryset.filter(birthday__gte=cutoff)
+            except Exception:
+                pass
+
+    # Last visit date range and has_visits
+    queryset = queryset.annotate(last_visit=models.Max('ultrasound_exams__exam_date'))
+    if last_visit_start:
+        start_lv = parse_date(last_visit_start)
+        if start_lv:
+            queryset = queryset.filter(last_visit__gte=start_lv)
+    if last_visit_end:
+        end_lv = parse_date(last_visit_end)
+        if end_lv:
+            queryset = queryset.filter(last_visit__lte=end_lv)
+    if has_visits == 'yes':
+        queryset = queryset.filter(last_visit__isnull=False)
+    elif has_visits == 'no':
+        queryset = queryset.filter(last_visit__isnull=True)
+
+    # Apply sorting
+    if sort:
+        if sort == 'age_asc':
+            queryset = queryset.order_by('birthday')
+        elif sort == 'age_desc':
+            queryset = queryset.order_by('-birthday')
+        elif sort == 'visit_asc':
+            queryset = queryset.order_by('last_visit')
+        elif sort == 'visit_desc':
+            queryset = queryset.order_by('-last_visit')
+    else:
+        queryset = queryset.order_by('-created_at')
+
+    # Create workbook and worksheet
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Patient List"
+
+    # Define styles
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    center_align = Alignment(horizontal="center")
+
+    # Headers
+    headers = [
+        'ID', 'First Name', 'Last Name', 'Age', 'Sex', 'Patient Type', 'Patient Status',
+        'Contact Number', 'Email', 'Region', 'Province', 'City', 'Barangay',
+        'Street Address', 'ID Number', 'Last Visit', 'Created At'
+    ]
+
+    # Write headers
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_align
+
+    # Write data
+    for row_num, patient in enumerate(queryset, 2):
+        ws.cell(row=row_num, column=1, value=patient.id)
+        ws.cell(row=row_num, column=2, value=patient.first_name)
+        ws.cell(row=row_num, column=3, value=patient.last_name)
+        ws.cell(row=row_num, column=4, value=patient.age or '')
+        ws.cell(row=row_num, column=5, value=patient.get_sex_display())
+        ws.cell(row=row_num, column=6, value=patient.get_patient_type_display())
+        ws.cell(row=row_num, column=7, value=patient.get_patient_status_display())
+        ws.cell(row=row_num, column=8, value=patient.contact_number)
+        ws.cell(row=row_num, column=9, value=patient.email or '')
+        ws.cell(row=row_num, column=10, value=patient.region_name)
+        ws.cell(row=row_num, column=11, value=patient.province_name)
+        ws.cell(row=row_num, column=12, value=patient.city_name)
+        ws.cell(row=row_num, column=13, value=patient.barangay_name)
+        ws.cell(row=row_num, column=14, value=patient.street_address)
+        ws.cell(row=row_num, column=15, value=patient.id_number or '')
+        ws.cell(row=row_num, column=16, value=patient.last_visit.strftime('%Y-%m-%d') if patient.last_visit else '')
+        ws.cell(row=row_num, column=17, value=patient.created_at.strftime('%Y-%m-%d %H:%M'))
+
+    # Auto-adjust column widths
+    for col_num, column in enumerate(ws.columns, 1):
+        max_length = 0
+        column_letter = chr(64 + col_num)  # A=1, B=2, etc.
+
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+
+        adjusted_width = min(max_length + 2, 50)  # Max width of 50
+        ws.column_dimensions[column_letter].width = adjusted_width
+
+    # Create response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=patient_list.xlsx'
+
+    # Save workbook to response
+    wb.save(response)
+    return response
 
 @custom_staff_member_required
 def staff_appointments(request):
@@ -1614,10 +1979,17 @@ def elevate_to_admin(request):
         user = authenticate(request, username=username, password=password)
 
         if user and user.is_superuser:
+            # Store the current user's ID and status before elevating
+            if request.user.is_authenticated:
+                request.session['_original_user_id'] = request.user.id
+                request.session['_original_is_staff'] = request.user.is_staff
+                request.session['_original_is_superuser'] = request.user.is_superuser
+
+            # Log in the superuser
+            login(request, user)
+            
             # Set elevation flag in session
             request.session['elevated_admin'] = True
-            request.session['_real_is_staff'] = request.user.is_staff
-            request.session['_real_is_superuser'] = request.user.is_superuser
 
             # Log the elevation
             import logging
@@ -1638,15 +2010,40 @@ def revert_from_admin(request):
     View to revert from elevated admin privileges back to original staff permissions.
     """
     if request.session.get('elevated_admin', False):
-        # Remove elevation flag
-        request.session['elevated_admin'] = False
+        original_user_id = request.session.get('_original_user_id')
+        
+        if original_user_id:
+            try:
+                original_user = User.objects.get(pk=original_user_id)
+                # Log out the current admin user
+                logout(request)
+                # Log in the original staff user
+                login(request, original_user)
+                
+                # Restore original staff/superuser status (though login should handle this)
+                # request.user.is_staff = request.session.get('_original_is_staff', False)
+                # request.user.is_superuser = request.session.get('_original_is_superuser', False)
+                
+                # Clear elevation flags
+                del request.session['elevated_admin']
+                del request.session['_original_user_id']
+                del request.session['_original_is_staff']
+                del request.session['_original_is_superuser']
 
-        # Log the reversion
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"User {request.user.username} reverted from admin privileges")
+                # Log the reversion
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info(f"User {original_user.username} reverted from admin privileges")
 
-        messages.success(request, 'Returned to staff privileges.')
+                messages.success(request, 'Returned to staff privileges.')
+            except User.DoesNotExist:
+                messages.error(request, 'Original staff user not found. Please log in again.')
+                logout(request) # Ensure no elevated session remains
+                return redirect('staff_login')
+        else:
+            messages.error(request, 'No original staff user session found. Please log in again.')
+            logout(request) # Ensure no elevated session remains
+            return redirect('staff_login')
     else:
         messages.info(request, 'No elevated privileges to revert.')
 

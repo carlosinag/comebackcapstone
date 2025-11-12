@@ -98,10 +98,10 @@ class PatientPasswordChangeForm(PasswordChangeForm):
 
 class PatientProfileForm(forms.ModelForm):
     """Form for patients to update their profile information."""
-    
+
     class Meta:
         model = Patient
-        fields = ['contact_number', 'email', 'street_address']
+        fields = ['contact_number', 'email', 'street_address', 'profile_picture']
         widgets = {
             'contact_number': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -115,6 +115,10 @@ class PatientProfileForm(forms.ModelForm):
                 'class': 'form-control',
                 'rows': 3,
                 'placeholder': 'Enter street address, building name/number, etc.'
+            }),
+            'profile_picture': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
             })
         }
 

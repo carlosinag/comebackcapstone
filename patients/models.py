@@ -59,6 +59,7 @@ class Patient(models.Model):
     
     contact_number = models.CharField(max_length=20)
     email = models.EmailField(blank=True, null=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_archived = models.BooleanField(default=False)

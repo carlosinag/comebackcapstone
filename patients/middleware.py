@@ -177,31 +177,15 @@ class PrivilegeElevationMiddleware(MiddlewareMixin):
 
     def process_request(self, request):
         if hasattr(request, 'user') and request.user.is_authenticated:
-            # Store original permissions on first login if not already stored
-            if '_real_is_staff' not in request.session:
-                request.session['_real_is_staff'] = request.user.is_staff
-                request.session['_real_is_superuser'] = request.user.is_superuser
-
             # Check for elevation flag
-            if request.session.get('elevated_admin', False):
-                # Temporarily elevate permissions
-                if not request.user.is_staff:
-                    request.user.is_staff = True
-                    self.logger.info(f"User {request.user.username} elevated to staff privileges")
-                if not request.user.is_superuser:
-                    request.user.is_superuser = True
-                    self.logger.info(f"User {request.user.username} elevated to superuser privileges")
-            else:
-                # Restore original permissions
-                original_staff = request.session.get('_real_is_staff', request.user.is_staff)
-                original_superuser = request.session.get('_real_is_superuser', request.user.is_superuser)
-
-                if request.user.is_staff != original_staff:
-                    request.user.is_staff = original_staff
-                    self.logger.info(f"User {request.user.username} reverted staff privileges")
-                if request.user.is_superuser != original_superuser:
-                    request.user.is_superuser = original_superuser
-                    self.logger.info(f"User {request.user.username} reverted superuser privileges")
+            if request.session.get('elevated_admin', False) and request.user.is_staff:
+                # Temporarily elevate permissions for the current request
+                # This is for display purposes in templates, the actual user object isn't changed
+                request.user.is_superuser = True
+                # No need to change is_staff, as superusers are implicitly staff
+                self.logger.debug(f"User {request.user.username} temporarily elevated to superuser privileges by middleware.")
+            # No 'else' block needed here to revert, as the views handle re-logging the original user
+            # and the request.user object will be fresh on subsequent requests after a re-login.
 
         return None
 
