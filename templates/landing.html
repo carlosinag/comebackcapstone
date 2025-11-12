@@ -2,19 +2,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MSRA Ultrasound Clinic</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+    <style>
+        /* Removed scroll-behavior and scroll-margin-top as JS will handle smooth scrolling with offset */
+    </style>
 </head>
-<body class="bg-gray-100 font-sans">
+
+<body class="bg-gray-100 font-sans scroll-smooth">
     <!-- Top Contact Bar -->
     <div class="bg-black text-white py-2">
         <div class="container mx-auto px-4 flex justify-between items-center">
-            <span class="text-sm font-medium">NUMBER</span>
-            <span class="text-sm font-medium">ADDRESS</span>
+            <span class="text-sm font-medium">0912-988-6757 / 0946-729-0043</span>
+            <span class="text-sm font-medium">Poblacion 1, Real, Quezon (Klinika Azcarraga)</span>
         </div>
     </div>
 
@@ -46,6 +50,9 @@
 
     <!-- Hero Section -->
     <main class="bg-gray-100 min-h-screen flex items-center justify-center relative">
+        <div class="hero-bg">
+            <img src="{% static 'hero.jpg' %}" alt="Hero Background" class="absolute inset-0 w-full h-full object-cover opacity-30" />
+        </div>
         
         <!-- Hero Content -->
         <div class="container mx-auto px-4 text-center relative z-10">
@@ -53,7 +60,7 @@
                 MSRA Ultrasound Clinic Services
             </h1>
             <p class="text-xl md:text-2xl text-gray-700 mb-8 max-w-4xl mx-auto leading-relaxed opacity-0 translate-y-6 transition-all duration-700 ease-out" data-animate="stagger-1">
-                A mobile ultrasound clinic that serves the people with quality healthcare services and compassionate care.
+                An ultrasound clinic that serves the people with quality healthcare services and compassionate care.
             </p>
             <a href="{% url 'patient_login' %}" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-4 px-8 rounded-lg text-lg transition-all duration-300 ease-out shadow-lg hover:shadow-xl hover:-translate-y-0.5 hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-purple-300 opacity-0 translate-y-6 inline-block" data-animate="stagger-2">
                 Patient Login
@@ -64,7 +71,7 @@
     <!-- About Us Section -->
     <section id="about" class="bg-pink-50 py-16 md:py-24">
         <div class="container mx-auto px-4">
-            <div class="max-w-4xl mx-auto">
+            <div class="max-w-6xl mx-auto">
                 <!-- Section Label -->
                 <p class="text-pink-300 text-sm font-medium uppercase tracking-wider mb-2 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
                     MSRA Ultrasound Clinic and Services
@@ -91,7 +98,7 @@
     </div>
 
                 <!-- Image Carousel (4 visible, smooth slide) -->
-                <div id="about-photos" class="relative overflow-hidden" data-images="{% static 'flower1.jpg' %},{% static 'flower2.jpeg' %},{% static 'flower3.jpeg' %},{% static 'flower4.jpeg' %},{% static 'flower5.jpeg' %}" data-descriptions="Blooming flower 1,Blooming flower 2,Blooming flower 3,Blooming flower 4,Blooming flower 5">
+                <div id="about-photos" class="relative overflow-hidden" data-images="{% static 'hero1.jpg' %},{% static 'hero2.jpg' %},{% static 'hero3.jpg' %},{% static 'hero4.jpg' %},{% static 'hero5.jpg' %}" data-descriptions="Clinic Room 1,Clinic Room 1,Clinic Room 1,Hall,Lobby">
                     <div id="about-photos-track" class="flex items-stretch will-change-transform" style="transform: translateX(0);">
                         <!-- Slides (initialized by JS with images) -->
                         <div class="carousel-slide flex-none basis-1/2 md:basis-1/4 p-2 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
@@ -106,7 +113,6 @@
                         <div class="carousel-slide flex-none basis-1/2 md:basis-1/4 p-2 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
                             <div class="h-40 md:h-56 lg:h-64 rounded-lg bg-gray-200 bg-center bg-cover shadow-sm"></div>
                         </div>
-                        <!-- This 5th slide is used as the incoming slide during animation -->
                         <div class="carousel-slide flex-none basis-1/2 md:basis-1/4 p-2 opacity-0">
                             <div class="h-40 md:h-56 lg:h-64 rounded-lg bg-gray-200 bg-center bg-cover"></div>
                         </div>
@@ -167,42 +173,44 @@
     <!-- Service Rates Section -->
     <section id="services" class="bg-pink-100 py-16 md:py-24">
         <div class="container mx-auto px-4">
-            <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
-                <div>
-                    <p class="text-pink-300 text-sm font-medium uppercase tracking-wider mb-2 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>MSRA Ultrasound Clinic and Services</p>
-                    <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>Service Rates</h2>
-                    <p class="text-gray-700 leading-relaxed mb-4 max-w-prose opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
-                        MSRA Ultrasound Clinic maintains a transparent pricing structure to ensure affordability while
-                        upholding the quality of diagnostic services. A detailed breakdown of service fees is provided to
-                        support informed decision-making.
-                    </p>
-                    <p class="text-gray-700 leading-relaxed mb-8 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>See our affordable service rates!</p>
+            <div class="max-w-6xl mx-auto">
+                <p class="text-pink-300 text-sm font-medium uppercase tracking-wider mb-2 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>MSRA Ultrasound Clinic and Services</p>
+                <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>Service Rates</h2>
+                <p class="text-gray-700 leading-relaxed mb-4 max-w-prose opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
+                    MSRA Ultrasound Clinic maintains a transparent pricing structure to ensure affordability while
+                    upholding the quality of diagnostic services. A detailed breakdown of service fees is provided to
+                    support informed decision-making.
+                </p>
+                <p class="text-gray-700 leading-relaxed mb-8 opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>See our affordable service rates!</p>
 
-                    <!-- Scrollable list of procedures (dynamic from ServiceType) -->
-                    <div class="bg-pink-200/70 rounded-xl p-4 md:p-6 h-72 md:h-80 overflow-y-auto border border-pink-200 shadow-inner opacity-0 translate-y-4 transition-all duration-700 ease-out" id="rates-list" data-observe>
-                        <ul class="divide-y divide-pink-300/40">
-                            {% for s in service_types %}
-                            <li class="py-3 flex items-center justify-between cursor-pointer select-none hover:bg-white/40 px-2 rounded group opacity-0 translate-y-4 transition-all duration-700 ease-out" data-proc="{{ s.name }}" data-part="{{ s.name }}" data-observe>
-                                <span class="font-medium text-gray-800 group-hover:text-gray-900">{{ s.name }}</span>
-                                <span class="text-gray-700">₱{{ s.base_price }}</span>
-                            </li>
-                            {% empty %}
-                            <li class="py-6 text-gray-600">No active services configured yet.</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-                <!-- Anatomy placeholder panel -->
-                <div class="w-full flex items-center justify-center opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
-                    <div class="bg-white rounded-2xl shadow-md border border-pink-200 p-6 w-full max-w-md">
-                        <div class="aspect-[3/4] w-full rounded-lg bg-gradient-to-b from-gray-100 to-gray-200 relative flex items-center justify-center mb-4 overflow-hidden">
-                            <img id="anatomy-image" src="{% static 'anatomy/upper abdomen.png' %}" alt="" class="absolute inset-0 w-full h-full object-contain" />
-                            <div id="anatomy-highlight" class="relative z-10 w-0 h-0 rounded-md bg-pink-300/70"></div>
+                <!-- Horizontally scrollable cards of procedures (dynamic from ServiceType) -->
+                <div class="bg-pink-200/70 rounded-xl p-4 md:p-6 border border-pink-200 shadow-inner opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe>
+                    <div class="flex space-x-6 overflow-x-auto pb-4" id="services-cards">
+                        {% for s in service_types %}
+                        <div class="flex-none w-80 bg-white rounded-lg shadow-md border border-pink-200 overflow-hidden opacity-0 translate-y-4 transition-all duration-700 ease-out" data-proc="{{ s.name }}" data-part="{{ s.name }}" data-observe>
+                            <!-- Image -->
+                            <div class="h-40 bg-gray-200 flex items-center justify-center">
+                                {% if s.image %}
+                                    <img src="{{ s.image.url }}" alt="{{ s.name }}" class="w-full h-full object-cover">
+                                {% else %}
+                                    <span class="text-gray-500">No image</span>
+                                {% endif %}
+                            </div>
+                            <!-- Title and Description -->
+                            <div class="p-6">
+                                <h3 class="font-semibold text-gray-800 text-xl mb-2">{{ s.name }}</h3>
+                                <p class="text-gray-600 text-sm mb-4">{{ s.description|default:"No description available." }}</p>
+                            </div>
+                            <!-- Price -->
+                            <div class="px-6 pb-6">
+                                <span class="text-2xl font-bold text-gray-800">₱{{ s.base_price }}</span>
+                            </div>
                         </div>
-                        <div class="text-center">
-                            <p class="text-sm text-gray-500 uppercase tracking-wider">Highlighted Area</p>
-                            <p id="highlight-label" class="text-lg font-semibold text-gray-800">Abdominal Ultrasound — Abdomen</p>
+                        {% empty %}
+                        <div class="flex-none w-80 bg-white rounded-lg shadow-md border border-pink-200 p-6 text-center">
+                            <p class="text-gray-600">No active services configured yet.</p>
                         </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -226,28 +234,39 @@
                         <div class="space-y-5">
                             <div>
                                 <h3 class="text-lg font-semibold text-gray-900 mb-1">Clinic Address</h3>
-                                <p class="text-gray-700">123 MSRA Street, Barangay Sample, City, Province, Philippines</p>
+                                <p class="text-gray-700">Famy-Real-Infanta Rd, Poblacion 1, Real, Quezon Province, Philippines</p>
                             </div>
                             <div>
                                 <h3 class="text-lg font-semibold text-gray-900 mb-1">Contact Number</h3>
-                                <p class="text-gray-700">(+63) 912-345-6789</p>
-                                <p class="text-gray-700">(02) 8123-4567</p>
+                                <p class="text-gray-700">(+63) 912-988-6757</p>
+                                <p class="text-gray-700">(+63) 946-729-0043</p>
                             </div>
                             <div>
                                 <h3 class="text-lg font-semibold text-gray-900 mb-1">Email</h3>
                                 <p class="text-gray-700">msra.ultrasound@example.com</p>
                             </div>
                             <div class="pt-2 text-sm text-gray-500">
-                                <p>Mon–Fri: 8:00 AM – 6:00 PM</p>
+                                <p>Mon–Fri: 8:00 AM – 5:00 PM</p>
                                 <p>Sat: 8:00 AM – 12:00 PM</p>
-            </div>
-        </div>
-    </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Right: Google Map (centered on Manila by default) -->
-                    <div id="map-wrapper" class="md:col-span-2 bg-gray-200 rounded-2xl border border-pink-200 shadow-inner h-64 md:h-80 lg:h-96 relative overflow-hidden opacity-0 translate-y-4 transition-all duration-700 ease-out" data-observe data-place="Real, Quezon, Philippines" data-zoom="13">
-                        <iframe id="google-map" title="Clinic Location Map" class="absolute inset-0 w-full h-full border-0"
-                            src="https://www.google.com/maps?q=Real,%20Quezon,%20Philippines&z=13&output=embed" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    <div id="map-wrapper"
+                        class="md:col-span-2 bg-gray-200 rounded-2xl border border-pink-200 shadow-inner h-64 md:h-80 lg:h-96 relative overflow-hidden opacity-0 translate-y-4 transition-all duration-700 ease-out"
+                        data-observe
+                        data-place="14.661187683721185, 121.60401921065994"
+                        data-zoom="17">
+
+                        <iframe id="google-map"
+                            title="Clinic Location Map"
+                            class="absolute inset-0 w-full h-full border-0"
+                            src="https://www.google.com/maps?q=loc:14.661187683721185,121.60401921065994&z=17&output=embed"
+                            allowfullscreen
+                            loading="lazy"
+                            referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
                     </div>
                 </div>
             </div>
@@ -260,7 +279,7 @@
             <div class="flex items-center justify-between text-xs md:text-sm">
                 <span>Copyright</span>
                 <span>{% now "Y" %}</span>
-                <a href="{% url 'staff_login' %}" class="text-gray-300 hover:text-white transition-colors">Staff? Login</a>
+                <a href="{% url 'staff_login' %}" class="text-gray-300-underline hover:text-white transition-colors">Staff? Login</a>
             </div>
         </div>
     </footer>
@@ -419,47 +438,14 @@
                 });
             }
 
-            // ---- Service rates interactions (static foundation) ----
-            const ratesList = document.getElementById('rates-list');
-            const highlightBox = document.getElementById('anatomy-highlight');
-            const highlightLabel = document.getElementById('highlight-label');
-            if (ratesList && highlightBox && highlightLabel) {
-                const anatomyImg = document.getElementById('anatomy-image');
-                // Map service keywords to anatomy images
-                const anatomyMap = {
-                    // keys are lowercase keywords to search in service name
-                    'abdomen': "{% static 'anatomy/upper abdomen.png' %}",
-                    'abdominal': "{% static 'anatomy/upper abdomen.png' %}",
-                    'hbt': "{% static 'anatomy/hepatobillary tree hbt.png' %}",
-                    'hepatobiliary': "{% static 'anatomy/hepatobillary tree hbt.png' %}",
-                    'liver': "{% static 'anatomy/hepatobillary tree hbt.png' %}",
-                    'breast': "{% static 'anatomy/breast bilateral.png' %}",
-                    'chest': "{% static 'anatomy/chest.png' %}",
-                    'thorax': "{% static 'anatomy/chest.png' %}",
-                    'kub': "{% static 'anatomy/kub.png' %}",
-                    'neck': "{% static 'anatomy/neck.png' %}",
-                    'one organ': "{% static 'anatomy/one organ.png' %}",
-                    'pelvic': "{% static 'anatomy/pelvic.png' %}",
-                    'thyroid': "{% static 'anatomy/thyroid.png' %}",
-                    'prostate gland': "{% static 'anatomy/prostate gland.png' %}",
-                    'scrotal': "{% static 'anatomy/inguino scrotal.png' %}",
-                };
-                ratesList.addEventListener('click', (e) => {
-                    const li = e.target.closest('li[data-proc]');
-                    if (!li) return;
-                    // Label update
-                    highlightLabel.textContent = `${li.dataset.proc} — ${li.dataset.part}`;
-                    // Simple placeholder 'highlight movement' to suggest area change
-                    highlightBox.classList.add('animate-pulse');
-                    setTimeout(() => highlightBox.classList.remove('animate-pulse'), 600);
-
-                    // Update anatomy image based on procedure name
-                    const name = (li.dataset.proc || '').toLowerCase();
-                    let matched = '';
-                    for (const key in anatomyMap) {
-                        if (name.includes(key)) { matched = anatomyMap[key]; break; }
-                    }
-                    anatomyImg.src = matched || '';
+            // ---- Service cards interactions (static foundation) ----
+            const servicesCards = document.getElementById('services-cards');
+            if (servicesCards) {
+                // Add hover effects or other interactions if needed
+                servicesCards.addEventListener('click', (e) => {
+                    const card = e.target.closest('div[data-proc]');
+                    if (!card) return;
+                    // Add any click interactions here if needed
                 });
             }
 
@@ -505,21 +491,24 @@
                 });
             }
 
-            // ---- Smooth scrolling for in-page anchors ----
-            const NAV_OFFSET = 72; // approximate sticky navbar height
-            document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
-                anchor.addEventListener('click', (e) => {
-                    const href = anchor.getAttribute('href');
-                    if (!href || href === '#') return;
-                    const target = document.querySelector(href);
-                    if (!target) return;
+            // ---- Smooth scrolling with offset for nav links ----
+            const navLinks = document.querySelectorAll('nav a[href^="#"]');
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
                     e.preventDefault();
-                    const targetTop = target.getBoundingClientRect().top + window.scrollY - NAV_OFFSET;
-                    window.scrollTo({ top: targetTop, behavior: 'smooth' });
+                    const targetId = link.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        const offset = 100; // nav height
+                        const elementPosition = targetElement.getBoundingClientRect().top;
+                        const offsetPosition = elementPosition + window.pageYOffset - offset;
+                        window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
                 });
             });
-
-            // removed login modal wiring (using dedicated login page instead)
         });
     </script>
     
@@ -575,5 +564,7 @@
             {% endif %}
         });
     </script>
+
+
 </body>
-</html> 
+</html>

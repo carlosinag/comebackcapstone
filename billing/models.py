@@ -9,6 +9,7 @@ class ServiceType(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     base_price = models.DecimalField(max_digits=10, decimal_places=2)
+    image = models.ImageField(upload_to='service_images/', blank=True, null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)

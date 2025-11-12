@@ -147,7 +147,7 @@
         <div class="col-xl-6 col-lg-6">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Age Buckets</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Age Bins</h6>
                 </div>
                 <div class="card-body">
                     <div id="ageBucketChart" style="height: 400px;"></div>
@@ -181,7 +181,7 @@
         <div class="col-xl-6 col-lg-6">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Procedure Count vs Revenue</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Procedure Count and Revenue (Top 10)</h6>
                 </div>
                 <div class="card-body">
                     <div id="procedureCountRevenueChart" style="height: 400px;"></div>
@@ -265,7 +265,34 @@
     Plotly.newPlot('ageBucketChart', [{ x: {{ age_bucket_labels|safe }}, y: {{ age_bucket_values|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Patients' }, showlegend: false });
     Plotly.newPlot('topPatientsRevenueChart', [{ x: {{ top_patients_labels|safe }}, y: {{ top_patients_revenue|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, xaxis: { automargin: true } });
     Plotly.newPlot('procedureRevenueChart', [{ values: {{ procedure_revenue_values|safe }}, labels: {{ procedure_revenue_labels|safe }}, type: 'pie', hole: 0.4 }], { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: true, legend: { orientation: 'h', y: -0.1 } });
-    Plotly.newPlot('procedureCountRevenueChart', [{ x: {{ procedure_revenue_counts|safe }}, y: {{ procedure_revenue_values|safe }}, mode: 'markers+text', type: 'scatter', text: {{ procedure_revenue_labels|safe }}, textposition: 'top center' }], { margin: { t: 20, b: 40, l: 60, r: 20 }, xaxis: { title: 'Number of Procedures' }, yaxis: { title: 'Total Revenue (₱)', tickformat: ',.0f' }, showlegend: false });
+    var trace1 = {
+      x: {{ procedure_revenue_labels|safe }},
+      y: {{ procedure_revenue_counts|safe }},
+      type: 'bar',
+      name: 'Procedure Count',
+      yaxis: 'y'
+    };
+    var trace2 = {
+      x: {{ procedure_revenue_labels|safe }},
+      y: {{ procedure_revenue_values|safe }},
+      type: 'scatter',
+      mode: 'lines+markers',
+      name: 'Revenue',
+      yaxis: 'y2'
+    };
+    var data = [trace1, trace2];
+    var layout = {
+      margin: { t: 20, b: 40, l: 60, r: 20 },
+      yaxis: { title: 'Procedure Count' },
+      yaxis2: {
+        title: 'Revenue (₱)',
+        tickformat: ',.0f',
+        overlaying: 'y',
+        side: 'right'
+      },
+      showlegend: true
+    };
+    Plotly.newPlot('procedureCountRevenueChart', data, layout);
     Plotly.newPlot('locationRevenueChart', [{ x: {{ location_revenue_labels|safe }}, y: {{ location_revenue_values|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, xaxis: { title: 'Region' }, showlegend: false });
     Plotly.newPlot('cityRevenueChart', [{ x: {{ city_revenue_labels|safe }}, y: {{ city_revenue_values|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, xaxis: { title: 'City', automargin: true }, showlegend: false });
     Plotly.newPlot('paymentMethodChart', [{ values: {{ payment_method_values|safe }}, labels: {{ payment_method_labels|safe }}, type: 'pie' }], { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: true, legend: { orientation: 'h', y: -0.1 } });

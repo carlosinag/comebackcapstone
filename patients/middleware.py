@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.http import HttpResponseRedirect
 from django.utils.deprecation import MiddlewareMixin
 import re
+import logging
 
 class NavigationControlMiddleware(MiddlewareMixin):
     """
@@ -160,4 +161,49 @@ class NavigationControlMiddleware(MiddlewareMixin):
                     response['Expires'] = '0'
                     break
         
+        return response
+
+
+class PrivilegeElevationMiddleware(MiddlewareMixin):
+    """
+    Middleware to handle temporary privilege elevation for staff users.
+    Uses session flag to temporarily grant admin permissions without changing the authenticated user.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        super().__init__(get_response)
+        self.logger = logging.getLogger(__name__)
+
+    def process_request(self, request):
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            # Store original permissions on first login if not already stored
+            if '_real_is_staff' not in request.session:
+                request.session['_real_is_staff'] = request.user.is_staff
+                request.session['_real_is_superuser'] = request.user.is_superuser
+
+            # Check for elevation flag
+            if request.session.get('elevated_admin', False):
+                # Temporarily elevate permissions
+                if not request.user.is_staff:
+                    request.user.is_staff = True
+                    self.logger.info(f"User {request.user.username} elevated to staff privileges")
+                if not request.user.is_superuser:
+                    request.user.is_superuser = True
+                    self.logger.info(f"User {request.user.username} elevated to superuser privileges")
+            else:
+                # Restore original permissions
+                original_staff = request.session.get('_real_is_staff', request.user.is_staff)
+                original_superuser = request.session.get('_real_is_superuser', request.user.is_superuser)
+
+                if request.user.is_staff != original_staff:
+                    request.user.is_staff = original_staff
+                    self.logger.info(f"User {request.user.username} reverted staff privileges")
+                if request.user.is_superuser != original_superuser:
+                    request.user.is_superuser = original_superuser
+                    self.logger.info(f"User {request.user.username} reverted superuser privileges")
+
+        return None
+
+    def process_response(self, request, response):
         return response

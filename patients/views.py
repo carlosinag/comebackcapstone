@@ -1600,8 +1600,63 @@ def staff_complete_appointment(request, appointment_id):
     }
     return render(request, 'patients/staff_complete_appointment.html', context)
 
+@custom_staff_member_required
+def elevate_to_admin(request):
+    """
+    View to temporarily elevate staff user to admin privileges.
+    Requires superuser credentials for authentication.
+    """
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        # Authenticate superuser credentials
+        user = authenticate(request, username=username, password=password)
+
+        if user and user.is_superuser:
+            # Set elevation flag in session
+            request.session['elevated_admin'] = True
+            request.session['_real_is_staff'] = request.user.is_staff
+            request.session['_real_is_superuser'] = request.user.is_superuser
+
+            # Log the elevation
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"User {request.user.username} elevated to admin privileges")
+
+            messages.success(request, 'Admin privileges granted. You now have access to admin features.')
+            return redirect('admin_dashboard')
+        else:
+            messages.error(request, 'Invalid superuser credentials. Access denied.')
+
+    return render(request, 'admin/admin_login.html')
+
+
+@custom_staff_member_required
+def revert_from_admin(request):
+    """
+    View to revert from elevated admin privileges back to original staff permissions.
+    """
+    if request.session.get('elevated_admin', False):
+        # Remove elevation flag
+        request.session['elevated_admin'] = False
+
+        # Log the reversion
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"User {request.user.username} reverted from admin privileges")
+
+        messages.success(request, 'Returned to staff privileges.')
+    else:
+        messages.info(request, 'No elevated privileges to revert.')
+
+    return redirect('home-dashboard')
+
 def forbidden_page(request):
-    """Custom forbidden page for invalid navigation attempts"""
+    """
+    Display the forbidden access page.
+    This page is shown when users try to access restricted areas or navigate improperly.
+    """
     return render(request, 'forbidden.html')
 
 def patient_register(request):
@@ -1610,7 +1665,7 @@ def patient_register(request):
     if request.user.is_authenticated and hasattr(request.user, 'patient'):
         messages.info(request, 'You already have a patient account. You are already logged in.')
         return redirect('patient-portal')
-    
+
     if request.method == 'POST':
         form = PatientRegistrationForm(request.POST)
         if form.is_valid():
@@ -1623,7 +1678,7 @@ def patient_register(request):
                     last_name=form.cleaned_data['last_name'],
                     email=form.cleaned_data.get('email', '')
                 )
-                
+
                 # Create patient profile
                 patient = Patient.objects.create(
                     user=user,
@@ -1642,12 +1697,12 @@ def patient_register(request):
                     contact_number=form.cleaned_data['contact_number'],
                     email=form.cleaned_data.get('email', '')
                 )
-                
+
                 # Log the user in
                 login(request, user)
                 messages.success(request, f'Welcome {user.first_name}! Your patient account has been created successfully.')
                 return redirect('patient-portal')
-                
+
             except Exception as e:
                 messages.error(request, f'An error occurred during registration: {str(e)}')
                 # Clean up user if patient creation failed
@@ -1657,8 +1712,8 @@ def patient_register(request):
             messages.error(request, 'Please correct the errors below.')
     else:
         form = PatientRegistrationForm()
-    
+
     context = {
         'form': form,
     }
-    return render(request, 'patient_register.html', context) 
+    return render(request, 'patient_register.html', context)

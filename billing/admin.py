@@ -1,9 +1,17 @@
 from django.contrib import admin
+from django.utils.safestring import mark_safe
 from .models import Bill, Payment, ServiceType, BillItem
 
 @admin.register(ServiceType)
 class ServiceTypeAdmin(admin.ModelAdmin):
     list_display = ['name', 'base_price', 'is_active', 'created_at']
+    readonly_fields = ['image_preview']
+
+    def image_preview(self, obj):
+        if obj.image:
+            return mark_safe(f'<img src="{obj.image.url}" width="100" height="100" />')
+        return "No image"
+    image_preview.short_description = "Image Preview"
     list_filter = ['is_active', 'created_at']
     search_fields = ['name', 'description']
     ordering = ['name']
