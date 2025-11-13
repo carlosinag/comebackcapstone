@@ -1,8 +1,214 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
-{% load crispy_forms_tags %}
 
-{% block title %}Bill #{{ bill.bill_number }} - Ultrasound Clinic{% endblock %}
+{% block title %}Bill Detail - #{{ bill.bill_number }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8">
+            <h2 class="mb-4">Bill #{{ bill.bill_number }}</h2>
+            
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="alert {% if 'Patient portal account created' in message.message %}alert-info{% else %}alert-{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                    {% if 'Patient portal account created' in message.message %}
+                    <h5 class="alert-heading">Patient Portal Credentials</h5>
+                    <hr>
+                    <pre class="mb-0">{{ message.message }}</pre>
+                    {% else %}
+                    {{ message }}
+                    {% endif %}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Bill Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Bill Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Patient:</strong> {{ bill.patient.first_name }} {{ bill.patient.last_name }}</p>
+                            <p><strong>Bill Date:</strong> {{ bill.bill_date }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> <span class="badge bg-{{ bill.status|lower }}">{{ bill.get_status_display }}</span></p>
+                            <p><strong>Total Amount:</strong> ₱{{ bill.total_amount|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                    
+                    
+                    <!-- Payment Summary -->
+                    {% if total_change > 0 %}
+                    <div class="alert alert-info mt-3">
+                        <h6 class="alert-heading">Payment Summary</h6>
+                        <p class="mb-1"><strong>Total Amount:</strong> ₱{{ bill.total_amount|floatformat:2 }}</p>
+                        <p class="mb-1"><strong>Total Paid:</strong> ₱{{ total_paid|floatformat:2 }}</p>
+                        <p class="mb-0"><strong>Total Change Given:</strong> <span class="text-success">₱{{ total_change|floatformat:2 }}</span></p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Bill Items -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Services</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Service</th>
+                                    <th>Exam Date</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in bill_items %}
+                                <tr>
+                                    <td>{{ item.service.name }}</td>
+                                    <td>{{ item.exam.exam_date }}</td>
+                                    <td class="text-end">₱{{ item.amount|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                                <tr class="table-light">
+                                    <td colspan="2" class="text-end"><strong>Subtotal:</strong></td>
+                                    <td class="text-end">₱{{ bill.subtotal|floatformat:2 }}</td>
+                                </tr>
+                                {% if bill.discount %}
+                                <tr class="table-light">
+                                    <td colspan="2" class="text-end"><strong>Discount:</strong></td>
+                                    <td class="text-end">-₱{{ bill.discount|floatformat:2 }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if bill.tax %}
+                                <tr class="table-light">
+                                    <td colspan="2" class="text-end"><strong>Tax:</strong></td>
+                                    <td class="text-end">₱{{ bill.tax|floatformat:2 }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr class="table-light">
+                                    <td colspan="2" class="text-end"><strong>Total:</strong></td>
+                                    <td class="text-end"><strong>₱{{ bill.total_amount|floatformat:2 }}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payments -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Payment History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Method</th>
+                                    <th>Reference</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-end">Change</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                <tr>
+                                    <td>{{ payment.payment_date }}</td>
+                                    <td>{{ payment.get_payment_method_display }}</td>
+                                    <td>{{ payment.reference_number|default:"-" }}</td>
+                                    <td class="text-end">₱{{ payment.amount|floatformat:2 }}</td>
+                                    <td class="text-end">
+                                        {% if payment.change > 0 %}
+                                            <span class="text-success">₱{{ payment.change|floatformat:2 }}</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No payments recorded yet.</td>
+                                </tr>
+                                {% endfor %}
+                                <tr class="table-light">
+                                    <td colspan="3" class="text-end"><strong>Total Paid:</strong></td>
+                                    <td class="text-end"><strong>₱{{ total_paid|floatformat:2 }}</strong></td>
+                                    <td class="text-end">
+                                        {% if total_change > 0 %}
+                                            <strong class="text-success">₱{{ total_change|floatformat:2 }}</strong>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Form -->
+        <div class="col-md-4">
+            {% if bill.status != 'PAID' and bill.status != 'CANCELLED' %}
+            <div class="card payment-card">
+                <div class="card-header payment-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-money-bill-wave me-2"></i>
+                        Record Payment
+                    </h5>
+                </div>
+                <div class="card-body payment-form-container">
+                    <form method="post" class="payment-form">
+                        {% csrf_token %}
+                        {% for field in payment_form %}
+                        <div class="form-group mb-4">
+                            <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                                {{ field.label }}
+                            </label>
+                            <div class="input-group">
+                                {{ field }}
+                            </div>
+                            {% if field.help_text %}
+                            <div class="form-text text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                {{ field.help_text }}
+                            </div>
+                            {% endif %}
+                            {% if field.errors %}
+                            <div class="invalid-feedback d-block">
+                                <i class="fas fa-exclamation-circle me-1"></i>
+                                {{ field.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-submit">
+                                <i class="fas fa-save me-2"></i>
+                                Record Payment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -49,22 +255,6 @@
 
     .payment-form .form-group {
         position: relative;
-        margin-bottom: 1.5rem;
-        transition: all 0.3s ease;
-    }
-
-    /* Smooth transitions for reference number field */
-    .form-group[style*="display: none"] {
-        opacity: 0;
-        max-height: 0;
-        overflow: hidden;
-        margin-bottom: 0;
-        padding: 0;
-    }
-
-    .form-group:not([style*="display: none"]) {
-        opacity: 1;
-        max-height: 200px;
         margin-bottom: 1.5rem;
     }
 
@@ -314,6 +504,22 @@
 
         .form-group {
             margin-bottom: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        /* Smooth transitions for reference number field */
+        .form-group[style*="display: none"] {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            margin-bottom: 0;
+            padding: 0;
+        }
+
+        .form-group:not([style*="display: none"]) {
+            opacity: 1;
+            max-height: 200px;
+            margin-bottom: 1.25rem;
         }
 
         .form-control {
@@ -321,227 +527,6 @@
         }
     }
 </style>
-{% endblock %}
-
-{% block content %}
-<div class="container mt-4">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'billing:bill_list' %}">Bills</a></li>
-            <li class="breadcrumb-item active">Bill #{{ bill.bill_number }}</li>
-        </ol>
-    </nav>
-
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card shadow mb-4">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-file-invoice"></i> Bill Details
-                    </h5>
-                    <span class="badge bg-{{ bill.status|lower }}-subtle text-{{ bill.status|lower }}">
-                        {{ bill.get_status_display }}
-                    </span>
-                </div>
-                <div class="card-body">
-                    <!-- Patient Info -->
-                    <div class="alert alert-info">
-                        <h6 class="alert-heading">Patient Information</h6>
-                        <p class="mb-1"><strong>Name:</strong> {{ bill.patient.name }}</p>
-                        <p class="mb-0"><strong>Email:</strong> {{ bill.patient.email }}</p>
-                    </div>
-
-                    <!-- Bill Items -->
-                    <div class="table-responsive mb-4">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Procedure</th>
-                                    <th>Date & Time</th>
-                                    <th class="text-end">Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in bill_items %}
-                                <tr>
-                                    <td>{{ item.service.name }}</td>
-                                    <td>{{ item.exam.exam_date }}</td>
-                                    <td class="text-end">₱{{ item.amount }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td colspan="2" class="text-end"><strong>Subtotal:</strong></td>
-                                    <td class="text-end">₱{{ bill.subtotal }}</td>
-                                </tr>
-                                {% if bill.discount > 0 %}
-                                <tr>
-                                    <td colspan="2" class="text-end"><strong>Discount:</strong></td>
-                                    <td class="text-end">-₱{{ bill.discount }}</td>
-                                </tr>
-                                {% endif %}
-                                {% if bill.tax > 0 %}
-                                <tr>
-                                    <td colspan="2" class="text-end"><strong>Tax:</strong></td>
-                                    <td class="text-end">₱{{ bill.tax }}</td>
-                                </tr>
-                                {% endif %}
-                                <tr class="table-info">
-                                    <td colspan="2" class="text-end"><strong>Total Amount:</strong></td>
-                                    <td class="text-end"><strong>₱{{ bill.total_amount }}</strong></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-
-                    <!-- Bill Details -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong>Bill Date:</strong> {{ bill.bill_date }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>Bill Number:</strong> {{ bill.bill_number }}</p>
-                            <p><strong>Status:</strong> {{ bill.get_status_display }}</p>
-                        </div>
-                    </div>
-
-                    <!-- Payment Summary -->
-                    {% if total_change > 0 %}
-                    <div class="alert alert-info mt-3">
-                        <h6 class="alert-heading">Payment Summary</h6>
-                        <p class="mb-1"><strong>Total Amount:</strong> ₱{{ bill.total_amount }}</p>
-                        <p class="mb-1"><strong>Total Paid:</strong> ₱{{ total_paid }}</p>
-                        <p class="mb-0"><strong>Total Change Given:</strong> <span class="text-success">₱{{ total_change }}</span></p>
-                    </div>
-                    {% endif %}
-
-
-                </div>
-            </div>
-
-            <!-- Payments Section -->
-            <div class="card shadow">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-money-bill-wave"></i> Payments
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if payments %}
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Method</th>
-                                    <th>Reference</th>
-                                    <th class="text-end">Amount</th>
-                                    <th class="text-end">Change</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for payment in payments %}
-                                <tr>
-                                    <td>{{ payment.payment_date }}</td>
-                                    <td>{{ payment.get_payment_method_display }}</td>
-                                    <td>{{ payment.reference_number|default:"-" }}</td>
-                                    <td class="text-end">₱{{ payment.amount }}</td>
-                                    <td class="text-end">
-                                        {% if payment.change > 0 %}
-                                            <span class="text-success">₱{{ payment.change }}</span>
-                                        {% else %}
-                                            -
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td colspan="3" class="text-end"><strong>Total Paid:</strong></td>
-                                    <td class="text-end">₱{{ total_paid }}</td>
-                                    <td class="text-end">
-                                        {% if total_change > 0 %}
-                                            <strong class="text-success">₱{{ total_change }}</strong>
-                                        {% else %}
-                                            -
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                    {% else %}
-                    <p class="text-muted mb-0">No payments recorded yet.</p>
-                    {% endif %}
-
-                    {% if bill.status != 'PAID' and bill.status != 'CANCELLED' %}
-                    <hr>
-                    <h6>Record New Payment</h6>
-                    <form method="post">
-                        {% csrf_token %}
-                        {{ payment_form|crispy }}
-                        <button type="submit" class="btn btn-success">
-                            <i class="fas fa-plus"></i> Add Payment
-                        </button>
-                    </form>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Actions Sidebar -->
-        <div class="col-md-4">
-            <div class="card shadow">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-cogs"></i> Actions
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="#" class="btn btn-outline-primary">
-                            <i class="fas fa-print"></i> Print Bill
-                        </a>
-                        <a href="#" class="btn btn-outline-info">
-                            <i class="fas fa-envelope"></i> Email Bill
-                        </a>
-                        {% if bill.status == 'PENDING' or bill.status == 'PARTIAL' %}
-                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelBillModal">
-                            <i class="fas fa-ban"></i> Cancel Bill
-                        </button>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Cancel Bill Modal -->
-{% if bill.status == 'PENDING' or bill.status == 'PARTIAL' %}
-<div class="modal fade" id="cancelBillModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Cancel Bill</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to cancel this bill? This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <form method="post" action="{% url 'billing:cancel_bill' bill.bill_number %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">Cancel Bill</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
 {% endblock %}
 
 {% block extra_js %}

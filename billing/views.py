@@ -72,13 +72,14 @@ def bill_detail(request, bill_number):
                         patient.user = user
                         patient.save()
                         
-                        # Add success message with credentials
+                        # Store credentials in session for display in template
+                        request.session['new_patient_username'] = username
+                        request.session['new_patient_password'] = password
+
+                        # Add success message
                         messages.success(
                             request,
-                            f'Payment recorded successfully. Patient portal account created!\n'
-                            f'Username: {username}\n'
-                            f'Password: {password}\n'
-                            'Please provide these credentials to the patient.'
+                            'Payment recorded successfully. Patient portal account created!'
                         )
                     else:
                         # Check if there's change to be given
@@ -97,6 +98,10 @@ def bill_detail(request, bill_number):
     else:
         payment_form = PaymentForm(initial={'created_by': request.user.get_full_name()})
     
+    # Get credentials from session if available
+    new_patient_username = request.session.pop('new_patient_username', None)
+    new_patient_password = request.session.pop('new_patient_password', None)
+
     context = {
         'bill': bill,
         'bill_items': bill_items,
@@ -104,6 +109,8 @@ def bill_detail(request, bill_number):
         'payment_form': payment_form,
         'total_paid': total_paid,
         'total_change': total_change,
+        'new_patient_username': new_patient_username,
+        'new_patient_password': new_patient_password,
     }
     return render(request, 'billing/bill_detail.html', context)
 

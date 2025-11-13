@@ -5,10 +5,28 @@
 
 {% block content %}
 <div class="container py-4">
+    <!-- Patient Credentials Alert -->
+    {% if new_patient_username and new_patient_password %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <h5 class="alert-heading"><i class="fas fa-user-check me-2"></i>Patient Portal Account Created</h5>
+        <p class="mb-2">A patient portal account has been created for <strong>{{ bill.patient.first_name }} {{ bill.patient.last_name }}</strong>.</p>
+        <div class="row">
+            <div class="col-md-6">
+                <strong>Username:</strong> <code>{{ new_patient_username }}</code>
+            </div>
+            <div class="col-md-6">
+                <strong>Password:</strong> <code>{{ new_patient_password }}</code>
+            </div>
+        </div>
+        <p class="mt-2 mb-0"><small>Please provide these credentials to the patient securely.</small></p>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
     <div class="row">
         <div class="col-md-8">
             <h2 class="mb-4">Bill #{{ bill.bill_number }}</h2>
-            
+
 
 
             <!-- Bill Information -->
