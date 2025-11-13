@@ -372,9 +372,9 @@ class PatientListView(CustomStaffRequiredMixin, ListView):
         sort = self.request.GET.get('sort')
         if sort:
             if sort == 'age_asc':
-                queryset = queryset.order_by('age')
+                queryset = queryset.order_by('-birthday')
             elif sort == 'age_desc':
-                queryset = queryset.order_by('-age')
+                queryset = queryset.order_by('birthday')
             elif sort == 'visit_asc':
                 queryset = queryset.order_by('last_visit')
             elif sort == 'visit_desc':
