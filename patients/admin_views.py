@@ -446,11 +446,11 @@ def admin_billing_export(request):
     # Write data rows
     for row, bill in enumerate(bills, start=1):
         worksheet.write(row, 0, bill.id)
-        worksheet.write(row, 1, bill.patient.name)
+        worksheet.write(row, 1, f"{bill.patient.first_name} {bill.patient.last_name}")
         worksheet.write(row, 2, bill.bill_date.strftime('%Y-%m-%d'))
         worksheet.write(row, 3, float(bill.total_amount))
         worksheet.write(row, 4, bill.status)
-        worksheet.write(row, 5, bill.payment_method or 'N/A')
+        worksheet.write(row, 5, bill.payments.first().payment_method if bill.payments.exists() else 'N/A')
 
     # Add summary at the bottom
     summary_row = len(bills) + 3
