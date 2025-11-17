@@ -58,22 +58,33 @@ def get_analytics_context():
 
     # Procedure distribution
     procedures = UltrasoundExam.objects.values('procedure_type__name').annotate(count=Count('id'))
-    procedure_distribution_data = [p['count'] for p in procedures]
-    procedure_distribution_labels = [p['procedure_type__name'] for p in procedures]
+    procedure_distribution_data = json.dumps([p['count'] for p in procedures])
+    procedure_distribution_labels = json.dumps([p['procedure_type__name'] for p in procedures])
 
     # Findings distribution (recommendations)
     findings = UltrasoundExam.objects.values('recommendations').annotate(count=Count('id'))
     recommendation_map = dict(UltrasoundExam.RECOMMENDATION_CHOICES)
-    findings_distribution_data = [f['count'] for f in findings]
-    findings_distribution_labels = [recommendation_map.get(f['recommendations'], f['recommendations']) for f in findings]
+    findings_distribution_data = json.dumps([f['count'] for f in findings])
+    findings_distribution_labels = json.dumps([recommendation_map.get(f['recommendations'], f['recommendations']) for f in findings])
 
     # Monthly revenue (last 6 months)
-    monthly_revenue = Bill.objects.filter(
-        bill_date__gte=six_months_ago,
-        status__in=['PAID', 'PARTIAL']
-    ).values('bill_date').annotate(total=Sum('total_amount')).order_by('bill_date')
-    monthly_revenue_dates = [entry['bill_date'].strftime('%Y-%m-%d') for entry in monthly_revenue]
-    monthly_revenue_values = [float(entry['total']) for entry in monthly_revenue]
+    monthly_revenue_dates = []
+    monthly_revenue_values = []
+    for i in range(6):
+        month_date = (today.replace(day=1) - timedelta(days=i*30)).replace(day=1)
+        month_start = month_date
+        month_end = (month_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        month_total = Bill.objects.filter(
+            bill_date__gte=month_start,
+            bill_date__lte=month_end,
+            status__in=['PAID', 'PARTIAL']
+        ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        monthly_revenue_dates.append(month_date.strftime('%Y-%m'))
+        monthly_revenue_values.append(float(month_total))
+    monthly_revenue_dates.reverse()
+    monthly_revenue_values.reverse()
+    monthly_revenue_dates = json.dumps(monthly_revenue_dates)
+    monthly_revenue_values = json.dumps(monthly_revenue_values)
 
     # Weekly procedures (this week)
     week_procedures = UltrasoundExam.objects.filter(
@@ -265,6 +276,11 @@ def admin_dashboard(request):
     total_revenue = Bill.objects.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
     pending_bills = Bill.objects.filter(status='PENDING').count()
 
+    # Billing status counts for chart
+    paid_bills = Bill.objects.filter(status='PAID').count()
+    partial_bills = Bill.objects.filter(status='PARTIAL').count()
+    overdue_bills = Bill.objects.filter(status='PENDING').count()  # Assuming pending are overdue for simplicity
+
     # Get recent patients
     recent_patients = Patient.objects.all().order_by('-created_at')[:5]
 
@@ -274,11 +290,20 @@ def admin_dashboard(request):
     # Get analytics context
     analytics_context = get_analytics_context()
 
+    # Prepare chart data as JSON strings
+    billing_data = json.dumps([paid_bills, partial_bills, overdue_bills])
+    patient_data = json.dumps([analytics_context['new_patients_month'], analytics_context['active_patients_90d']])
+
     context = {
         'total_patients': total_patients,
         'total_exams': total_exams,
         'total_revenue': total_revenue,
         'pending_bills': pending_bills,
+        'paid_bills': paid_bills,
+        'partial_bills': partial_bills,
+        'overdue_bills': overdue_bills,
+        'billing_data': billing_data,
+        'patient_data': patient_data,
         'recent_patients': recent_patients,
         'recent_bills': recent_bills,
     }
@@ -429,7 +454,7 @@ def admin_billing_export(request):
 
     # Add summary at the bottom
     summary_row = len(bills) + 3
-    total_revenue = bills.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
+    total_revenue = Bill.objects.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
     other_expenses = Decimal(str(request.session.get('other_expenses', '0')))
     net_revenue = total_revenue - other_expenses
 

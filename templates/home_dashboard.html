@@ -189,24 +189,6 @@
         </div>
     </div>
     
-    <!-- Test Notification Button (remove this after testing)
-    <div class="alert alert-info">
-        <strong>Testing Notifications:</strong>
-        <button class="btn btn-sm btn-success ms-2" onclick="testNotification('success')">Test Success</button>
-        <button class="btn btn-sm btn-danger ms-1" onclick="testNotification('error')">Test Error</button>
-        <button class="btn btn-sm btn-warning ms-1" onclick="testNotification('warning')">Test Warning</button>
-        <button class="btn btn-sm btn-info ms-1" onclick="testNotification('info')">Test Info</button>
-    </div> -->
-    
-    <!-- Test Notification Button (remove this after testing)
-    <div class="alert alert-info">
-        <strong>Testing Notifications:</strong>
-        <button class="btn btn-sm btn-success ms-2" onclick="testNotification('success')">Test Success</button>
-        <button class="btn btn-sm btn-danger ms-1" onclick="testNotification('error')">Test Error</button>
-        <button class="btn btn-sm btn-warning ms-1" onclick="testNotification('warning')">Test Warning</button>
-        <button class="btn btn-sm btn-info ms-1" onclick="testNotification('info')">Test Info</button>
-    </div> -->
-    
     <!-- Quick Actions Row -->
     <div class="row mb-5">
         <div class="col-xl-3 col-md-6 mb-4">
@@ -305,14 +287,14 @@
     <div class="row mb-5">
         <!-- Revenue Trend Chart -->
         <div class="col-xl-8 col-lg-7 mb-4">
-            <div class="card shadow-lg border-0">
+            <div class="card shadow-lg border-0" style="height: 300px;">
                 <div class="card-header bg-white border-0 py-4">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0 font-weight-bold text-dark">Revenue Analytics</h5>
                         <span class="badge badge-primary px-3 py-2">Last 6 Months</span>
                     </div>
                 </div>
-                <div class="card-body p-4">
+                <div class="card-body p-4" style="height: 250px;">
                     <canvas id="revenueChart" height="120"></canvas>
                 </div>
             </div>
@@ -320,7 +302,7 @@
 
         <!-- Patient Growth Chart -->
         <div class="col-xl-4 col-lg-5 mb-4">
-            <div class="card shadow-lg border-0">
+            <div class="card shadow-lg border-0" style="height: 300px;">
                 <div class="card-header bg-white border-0 py-4">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0 font-weight-bold text-dark">Patient Overview</h5>
@@ -329,7 +311,6 @@
                 </div>
                 <div class="card-body p-4">
                     <canvas id="patientGrowthChart" height="200"></canvas>
-                    </div>
                 </div>
             </div>
         </div>
