@@ -173,15 +173,18 @@ class UltrasoundExamForm(forms.ModelForm):
 
 class AppointmentForm(forms.ModelForm):
     """Form for patients to book appointments."""
-    
+
+    procedure_type = forms.ChoiceField(
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'placeholder': 'Select procedure type'
+        })
+    )
+
     class Meta:
         model = Appointment
         fields = ['procedure_type', 'appointment_date', 'appointment_time', 'reason', 'notes']
         widgets = {
-            'procedure_type': forms.Select(attrs={
-                'class': 'form-control',
-                'placeholder': 'Select procedure type'
-            }),
             'appointment_date': forms.DateInput(attrs={
                 'class': 'form-control',
                 'type': 'date',
@@ -207,6 +210,10 @@ class AppointmentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Set minimum date to today
         self.fields['appointment_date'].widget.attrs['min'] = date.today().strftime('%Y-%m-%d')
+        # Use ServiceType names with prices as choices for procedure_type
+        self.fields['procedure_type'].choices = [('', '---')] + [(st.name, f"{st.name} - ₱{st.base_price}") for st in ServiceType.objects.filter(is_active=True)]
+        # Set default to empty (which shows '---')
+        self.initial['procedure_type'] = ''
     
     def clean_appointment_date(self):
         appointment_date = self.cleaned_data.get('appointment_date')

@@ -40,7 +40,7 @@
                                 <p class="mb-1"><strong>Time:</strong> {{ appointment.appointment_time|time:"g:i A" }}</p>
                             </div>
                             <div class="col-md-6">
-                                <p class="mb-1"><strong>Procedure:</strong> {{ appointment.get_procedure_type_display }}</p>
+                                <p class="mb-1"><strong>Procedure:</strong> {{ appointment.procedure_type }}</p>
                                 <p class="mb-1"><strong>Contact:</strong> {{ appointment.patient.contact_number }}</p>
                                 <p class="mb-0"><strong>Status:</strong> 
                                     <span class="badge bg-warning">Pending</span>

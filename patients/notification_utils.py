@@ -49,7 +49,7 @@ def notify_staff_new_appointment(appointment):
             user_id=staff_user.id,
             notification_type='APPOINTMENT_BOOKED',
             title='New Appointment Booked',
-            message=f'{appointment.patient.first_name} {appointment.patient.last_name} booked a {appointment.get_procedure_type_display()} appointment for {appointment.appointment_date} at {appointment.appointment_time}',
+            message=f'{appointment.patient.first_name} {appointment.patient.last_name} booked a {appointment.procedure_type} appointment for {appointment.appointment_date} at {appointment.appointment_time}',
             appointment_id=appointment.id
         )
 

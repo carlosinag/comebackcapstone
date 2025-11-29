@@ -267,7 +267,7 @@ class Appointment(models.Model):
     ]
     
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='appointments')
-    procedure_type = models.CharField(max_length=3, choices=PROCEDURE_CHOICES)
+    procedure_type = models.TextField()
     appointment_date = models.DateField()
     appointment_time = models.TimeField()
     reason = models.TextField(help_text="Reason for appointment or symptoms")
@@ -280,7 +280,7 @@ class Appointment(models.Model):
         ordering = ['-appointment_date', '-appointment_time']
     
     def __str__(self):
-        return f"{self.patient.first_name} {self.patient.last_name} - {self.get_procedure_type_display()} on {self.appointment_date}"
+        return f"{self.patient.first_name} {self.patient.last_name} - {self.procedure_type} on {self.appointment_date}"
     
     @property
     def is_past_due(self):

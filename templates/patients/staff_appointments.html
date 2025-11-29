@@ -110,7 +110,7 @@
                                                 <small class="text-muted">{{ appointment.appointment_time|time:"g:i A" }}</small>
                                             </div>
                                         </td>
-                                        <td>{{ appointment.get_procedure_type_display }}</td>
+                                        <td>{{ appointment.procedure_type }}</td>
                                         <td>
                                             {% if appointment.status == 'PENDING' %}
                                                 <span class="badge bg-warning">Pending</span>
