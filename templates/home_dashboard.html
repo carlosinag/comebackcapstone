@@ -193,7 +193,7 @@
     <div class="row mb-5">
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card quick-action-card dashboard-card h-100">
-                <div class="card-body">
+                <div class="card-body" onclick="window.location.href = '/patient/new/';" style="cursor: pointer;">
                     <a href="{% url 'patient-create' %}">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-3">
@@ -211,7 +211,7 @@
 
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card quick-action-card dashboard-card h-100">
-                <div class="card-body">
+                <div class="card-body" onclick="window.location.href = '/patients/';" style="cursor: pointer;">
                     <a href="{% url 'patient-list' %}">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-3">
@@ -229,7 +229,7 @@
 
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card quick-action-card dashboard-card h-100">
-                <div class="card-body">
+                <div class="card-body" onclick="window.location.href = '/billing/bills/';" style="cursor: pointer;">
                     <a href="{% url 'billing:bill_list' %}">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-3">
@@ -247,7 +247,7 @@
 
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card quick-action-card dashboard-card h-100 position-relative appointment-notification">
-                <div class="card-body">
+                <div class="card-body" onclick="window.location.href = '/staff/appointments/';" style="cursor: pointer;">
                     <a href="{% url 'staff-appointments' %}">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-3">
