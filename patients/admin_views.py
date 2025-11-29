@@ -362,8 +362,8 @@ def admin_billing_report(request):
         except ValueError:
             pass
 
-    # Pagination - 5 bills per page
-    paginator = Paginator(bills.order_by('-bill_date'), 5)
+    # Pagination - 10 bills per page
+    paginator = Paginator(bills.order_by('-bill_date'), 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -609,7 +609,7 @@ def admin_patient_list(request):
     else:
         page_number = request.GET.get('page')
     
-    paginator = Paginator(patients.order_by('-created_at'), 25)  # 25 patients per page
+    paginator = Paginator(patients.order_by('-created_at'), 10)  # 10 patients per page
     page_obj = paginator.get_page(page_number)
     
     context = {
@@ -820,7 +820,7 @@ def admin_examinations(request):
     else:
         page_number = request.GET.get('page')
     
-    paginator = Paginator(exams.order_by('-exam_date'), 25)  # 25 exams per page
+    paginator = Paginator(exams.order_by('-exam_date'), 10)  # 10 exams per page
     page_obj = paginator.get_page(page_number)
 
     context = {

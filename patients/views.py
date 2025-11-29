@@ -470,6 +470,7 @@ class ArchivedPatientListView(ListView):
     template_name = 'patients/archived_patient_list.html'
     context_object_name = 'patients'
     ordering = ['-archived_at']
+    paginate_by = 10
 
     def get_queryset(self):
         queryset = super().get_queryset().filter(is_archived=True)
