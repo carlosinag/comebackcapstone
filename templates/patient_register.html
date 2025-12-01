@@ -319,12 +319,10 @@
                                 </div>
                                 <div class="mb-3">
                                     <label for="{{ form.street_address.id_for_label }}" class="form-label">
-                                        Street Address <span class="required">*</span>
+                                        Street Address
                                     </label>
                                     {{ form.street_address }}
-                                    {% if form.street_address.errors %}
-                                    <div class="text-danger">{{ form.street_address.errors.0 }}</div>
-                                    {% endif %}
+                                    <div class="text-danger" id="street_address-error">{{ form.street_address.errors.0 }}</div>
                                 </div>
                             </div>
 
@@ -477,6 +475,38 @@
                     })
                     .catch(error => console.error('Error loading barangays:', error));
             }
+
+            // Input validation for contact number and email
+            const contactNumberInput = document.getElementById('id_contact_number');
+            const emailInput = document.getElementById('id_email');
+
+            // Restrict contact number input to numbers only and max 13 characters
+            contactNumberInput.addEventListener('keydown', function(e) {
+                if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                    e.preventDefault();
+                }
+            });
+
+            contactNumberInput.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '').substring(0, 13);
+            });
+
+            contactNumberInput.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const paste = (e.clipboardData || window.clipboardData).getData('text');
+                const cleaned = paste.replace(/[^0-9]/g, '').substring(0, 13);
+                this.value = cleaned;
+            });
+
+            // Email validation on blur
+            emailInput.addEventListener('blur', function() {
+                const emailErrorDiv = document.getElementById('email-error');
+                if (this.value && !this.value.includes('@')) {
+                    emailErrorDiv.textContent = 'Invalid email format.';
+                } else {
+                    emailErrorDiv.textContent = '';
+                }
+            });
         });
     </script>
 </body>

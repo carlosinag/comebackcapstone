@@ -4,6 +4,9 @@ from billing.models import ServiceType
 from django.contrib.auth.forms import PasswordChangeForm, UserChangeForm, UserChangeForm, UserCreationForm
 from django.contrib.auth.models import User
 from datetime import date, timedelta
+import json
+import os
+from django.conf import settings
 
 class PatientForm(forms.ModelForm):
     # Add help text for address fields
@@ -61,7 +64,11 @@ class PatientForm(forms.ModelForm):
             }),
             'contact_number': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Enter contact number'
+                'placeholder': 'Enter contact number',
+                'type': 'tel',
+                'pattern': '[0-9]{13}',
+                'maxlength': '13',
+                'title': 'Contact number must be exactly 13 digits (numbers only)'
             }),
             'email': forms.EmailInput(attrs={
                 'class': 'form-control',
@@ -71,22 +78,41 @@ class PatientForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Initialize empty choices for address dropdowns
+        # Initialize empty choices for address dropdowns (JavaScript will load them)
         self.fields['region'].choices = [('', 'Select Region...')]
         self.fields['province'].choices = [('', 'Select Province...')]
         self.fields['city'].choices = [('', 'Select City/Municipality...')]
         self.fields['barangay'].choices = [('', 'Select Barangay...')]
-        
+
         # Disable cascading fields initially
         self.fields['province'].widget.attrs['disabled'] = True
         self.fields['city'].widget.attrs['disabled'] = True
         self.fields['barangay'].widget.attrs['disabled'] = True
-        
+
         # Add help text
         self.fields['region'].help_text = 'Select your region'
         self.fields['province'].help_text = 'Select your province'
         self.fields['city'].help_text = 'Select your city/municipality'
         self.fields['barangay'].help_text = 'Select your barangay'
+
+        # Set required fields
+        required_fields = ['first_name', 'last_name', 'birthday', 'sex', 'patient_type', 'patient_status', 'region', 'province', 'city', 'barangay', 'contact_number']
+        for field in required_fields:
+            self.fields[field].required = True
+
+        # Set optional fields
+        optional_fields = ['street_address', 'marital_status', 'id_number', 'email']
+        for field in optional_fields:
+            self.fields[field].required = False
+
+    def clean_contact_number(self):
+        contact_number = self.cleaned_data.get('contact_number')
+        if contact_number:
+            if not contact_number.isdigit():
+                raise forms.ValidationError("Contact number must contain only digits.")
+            if len(contact_number) != 13:
+                raise forms.ValidationError("Contact number must be exactly 13 digits.")
+        return contact_number
 
 class PatientPasswordChangeForm(PasswordChangeForm):
     """Custom password change form for patients with Bootstrap styling."""

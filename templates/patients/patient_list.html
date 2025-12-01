@@ -13,12 +13,14 @@
             {% endif %}
         </h2>
         {% if request.GET.view != 'annotation' %}
-        <a href="{% url 'patient-export-excel' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-success me-2">
+        <span>
+            <a href="{% url 'patient-export-excel' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-success me-2">
             <i class="fas fa-file-excel"></i> Export to Excel
         </a>
         <a href="{% url 'patient-create' %}" class="btn btn-primary">
             <i class="fas fa-plus"></i> Add New Patient
-        </a>
+        </a></span>
+        
         {% endif %}
     </div>
 
@@ -239,12 +241,12 @@
                             <th>Sex</th>
                             <th>Contact</th>
                             <th>Last Visit</th>
-                            <th>Actions</th>
+                            <th>Quick Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for patient in patients %}
-                        <tr>
+                        <tr onclick="window.location.href = '/patient/{{ patient.id }}/';" style="cursor: pointer;">
                             <td style="font-weight: 500;">{{ patient.first_name }} {{ patient.last_name }}</td>
                             <td>{{ patient.age }}</td>
                             <td>{{ patient.get_sex_display }}</td>

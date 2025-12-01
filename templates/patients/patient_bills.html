@@ -28,12 +28,12 @@
                                     <th>Date</th>
                                     <th>Total</th>
                                     <th>Status</th>
-                                    <th>Action</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for bill in bills %}
-                                <tr>
+                                <tr onclick="window.location.href = '/patient-bills/{{ bill.bill_number }}/';" style="cursor: pointer;">
                                     <td>{{ bill.bill_number }}</td>
                                     <td>{{ bill.bill_date }}</td>
                                     <td>₱{{ bill.total_amount }}</td>
