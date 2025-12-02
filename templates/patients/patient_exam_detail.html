@@ -68,7 +68,7 @@
                         <div class="row">
                             {% for image in exam.images.all %}
                             <div class="col-md-6 mb-4">
-                                <div class="card h-100">
+                                <div class="card h-100 image-card">
                                     <div class="card-header bg-light">
                                         <h6 class="mb-0">
                                             <i class="fas fa-image me-2"></i>Image {{ forloop.counter }}
@@ -80,10 +80,14 @@
                                     <div class="card-body p-0">
                                         <!-- Original Image -->
                                         <div class="position-relative">
-                                            <img src="{{ image.image.url }}" 
-                                                 class="img-fluid w-100" 
+                                            <img src="{{ image.image.url }}"
+                                                 class="img-fluid w-100"
                                                  alt="Original Ultrasound Image"
-                                                 style="height: 250px; object-fit: cover;">
+                                                 style="height: 250px; object-fit: cover; cursor: pointer;"
+                                                 onclick="openModal('originalModal{{ image.pk }}')">
+                                            <div class="position-absolute top-0 start-0 m-2">
+                                                <span class="badge bg-info">Click to enlarge</span>
+                                            </div>
                                         </div>
                                         
                                         <!-- Annotated Image (if available) -->
@@ -93,12 +97,11 @@
                                                 <i class="fas fa-draw-polygon me-2"></i>Annotated Analysis
                                             </h6>
                                             <div class="position-relative">
-                                                <img src="{{ image.annotated_image.url }}" 
-                                                     class="img-fluid w-100" 
+                                                <img src="{{ image.annotated_image.url }}"
+                                                     class="img-fluid w-100"
                                                      alt="Annotated Ultrasound Image"
                                                      style="height: 250px; object-fit: cover; cursor: pointer;"
-                                                     data-bs-toggle="modal" 
-                                                     data-bs-target="#annotatedModal{{ image.pk }}">
+                                                     onclick="openModal('annotatedModal{{ image.pk }}')">
                                                 <div class="position-absolute top-0 start-0 m-2">
                                                     <span class="badge bg-info">Click to enlarge</span>
                                                 </div>
@@ -127,8 +130,8 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                         <div class="modal-body text-center">
-                                            <img src="{{ image.annotated_image.url }}" 
-                                                 class="img-fluid" 
+                                            <img src="{{ image.annotated_image.url }}"
+                                                 class="img-fluid"
                                                  alt="Annotated Ultrasound Image">
                                         </div>
                                         <div class="modal-footer">
@@ -138,6 +141,28 @@
                                 </div>
                             </div>
                             {% endif %}
+
+                            <!-- Modal for enlarged original image -->
+                            <div class="modal fade" id="originalModal{{ image.pk }}" tabindex="-1" aria-labelledby="originalModalLabel{{ image.pk }}" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="originalModalLabel{{ image.pk }}">
+                                                <i class="fas fa-image me-2"></i>Original Image - Image {{ forloop.counter }}
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body text-center">
+                                            <img src="{{ image.image.url }}"
+                                                 class="img-fluid"
+                                                 alt="Original Ultrasound Image">
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             {% endfor %}
                         </div>
                     </div>
@@ -282,6 +307,10 @@ Annotated Image {{ forloop.counter }}:
         transform: translateY(-2px);
     }
 
+    .image-card:hover {
+        transform: none;
+    }
+
     .modal-body img {
         max-height: 70vh;
         object-fit: contain;
@@ -324,4 +353,16 @@ Annotated Image {{ forloop.counter }}:
         }
     }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openModal(modalId) {
+    const modalElement = document.getElementById(modalId);
+    if (modalElement) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    }
+}
+</script>
 {% endblock %}

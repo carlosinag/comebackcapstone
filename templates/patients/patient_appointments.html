@@ -38,7 +38,7 @@
                                 </thead>
                                 <tbody>
                                     {% for appointment in appointments %}
-                                    <tr>
+                                    <tr {% if appointment.status != 'CANCELLED' and appointment.status != 'COMPLETED' %}onclick="window.location.href = '{{ appointment.id }}/update';" style="cursor: pointer;{% endif %}">
                                         <td>
                                             <div>
                                                 <strong>{{ appointment.appointment_date|date:"M d, Y" }}</strong>
@@ -118,7 +118,7 @@
                         </li>
                         <li class="mb-2">
                             <i class="fas fa-map-marker-alt text-primary me-2"></i>
-                            <strong>Location:</strong> MSRA Services
+                            <strong>Location:</strong>   Famy-Real-Infanta Rd, Poblacion 1, Real, Quezon Province, Philippines
                         </li>
                         <li class="mb-0">
                             <i class="fas fa-exclamation-triangle text-warning me-2"></i>
