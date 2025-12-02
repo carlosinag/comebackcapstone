@@ -560,21 +560,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
 
-            // Prevent input if already 13 characters
-            if (this.value.length >= 13) {
-                e.preventDefault();
-                return false;
-            }
+    // Prevent input if already 11 characters
+    if (this.value.length >= 11) {
+        e.preventDefault();
+        return false;
+    }
         });
 
         // Clean input in real-time and enforce length limit
         contactNumberInput.addEventListener('input', function(e) {
             // Remove any non-digit characters
             let cleanedValue = this.value.replace(/\D/g, '');
-            // Limit to 13 characters
-            if (cleanedValue.length > 13) {
-                cleanedValue = cleanedValue.slice(0, 13);
-            }
+    // Limit to 11 characters
+    if (cleanedValue.length > 11) {
+        cleanedValue = cleanedValue.slice(0, 11);
+    }
             this.value = cleanedValue;
         });
 
@@ -582,7 +582,7 @@ document.addEventListener('DOMContentLoaded', function() {
         contactNumberInput.addEventListener('paste', function(e) {
             e.preventDefault();
             const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-            const digitsOnly = pastedText.replace(/\D/g, '').slice(0, 13);
+    const digitsOnly = pastedText.replace(/\D/g, '').slice(0, 11);
             this.value = digitsOnly;
         });
 
@@ -590,7 +590,7 @@ document.addEventListener('DOMContentLoaded', function() {
         contactNumberInput.addEventListener('drop', function(e) {
             e.preventDefault();
             const droppedText = e.dataTransfer.getData('text');
-            const digitsOnly = droppedText.replace(/\D/g, '').slice(0, 13);
+    const digitsOnly = droppedText.replace(/\D/g, '').slice(0, 11);
             this.value = digitsOnly;
         });
     }
@@ -630,9 +630,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Contact number validation
         const contactNumber = document.getElementById('id_contact_number');
-        if (contactNumber.value && !/^\d{13}$/.test(contactNumber.value)) {
+        if (contactNumber.value && !/^\d{11}$/.test(contactNumber.value)) {
             isValid = false;
-            errors.push('Contact number must be exactly 13 digits.');
+            errors.push('Contact number must be exactly 11 digits.');
             contactNumber.classList.add('is-invalid');
         }
 

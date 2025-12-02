@@ -66,9 +66,9 @@ class PatientForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Enter contact number',
                 'type': 'tel',
-                'pattern': '[0-9]{13}',
-                'maxlength': '13',
-                'title': 'Contact number must be exactly 13 digits (numbers only)'
+                'pattern': '[0-9]{11}',
+                'maxlength': '11',
+                'title': 'Contact number must be exactly 11 digits (numbers only)'
             }),
             'email': forms.EmailInput(attrs={
                 'class': 'form-control',
@@ -110,8 +110,8 @@ class PatientForm(forms.ModelForm):
         if contact_number:
             if not contact_number.isdigit():
                 raise forms.ValidationError("Contact number must contain only digits.")
-            if len(contact_number) != 13:
-                raise forms.ValidationError("Contact number must be exactly 13 digits.")
+            if len(contact_number) != 11:
+                raise forms.ValidationError("Contact number must be exactly 11 digits.")
         return contact_number
 
 class PatientPasswordChangeForm(PasswordChangeForm):
@@ -131,7 +131,11 @@ class PatientProfileForm(forms.ModelForm):
         widgets = {
             'contact_number': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Enter contact number'
+                'placeholder': 'Enter contact number',
+                'type': 'tel',
+                'pattern': '[0-9]{11}',
+                'maxlength': '11',
+                'title': 'Contact number must be exactly 11 digits (numbers only)'
             }),
             'email': forms.EmailInput(attrs={
                 'class': 'form-control',
@@ -577,7 +581,11 @@ class PatientRegistrationForm(forms.Form):
         max_length=20,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Enter contact number'
+            'placeholder': 'Enter contact number',
+            'type': 'tel',
+            'pattern': '[0-9]{11}',
+            'maxlength': '11',
+            'title': 'Contact number must be exactly 11 digits (numbers only)'
         })
     )
     email = forms.EmailField(
@@ -626,6 +634,11 @@ class PatientRegistrationForm(forms.Form):
     
     def clean_contact_number(self):
         contact_number = self.cleaned_data.get('contact_number')
+        if contact_number:
+            if not contact_number.isdigit():
+                raise forms.ValidationError("Contact number must contain only digits.")
+            if len(contact_number) != 11:
+                raise forms.ValidationError("Contact number must be exactly 11 digits.")
         if Patient.objects.filter(contact_number=contact_number).exists():
             raise forms.ValidationError("A patient with this contact number already exists.")
         return contact_number
