@@ -14,11 +14,17 @@ from .forms import StaffUserForm, StaffPasswordChangeForm, ServiceForm, StaffUse
 from .views import require_valid_navigation, custom_staff_member_required
 import json
 
-def get_analytics_context():
-    """Helper function to generate analytics context data"""
+
+def get_analytics_context(start_date=None, end_date=None):
+    """
+    Helper function to generate analytics context data.
+    When start_date/end_date are provided, most revenue and activity based
+    aggregates are filtered to that range. Demographic summaries remain
+    unfiltered (lifetime view).
+    """
     today = timezone.now().date()
 
-    # Weekly revenue
+    # Weekly revenue (always current week, not affected by date filters)
     week_start = today - timedelta(days=today.weekday())
     weekly_bills = Bill.objects.filter(
         bill_date__gte=week_start,
@@ -56,29 +62,45 @@ def get_analytics_context():
     returning_rate = (num_returning / num_recent_unique * 100) if num_recent_unique else 0
     returning_rate_percent = f"{returning_rate:.1f}"
 
-    # Procedure distribution
-    procedures = UltrasoundExam.objects.values('procedure_type__name').annotate(count=Count('id'))
+    # Date filters for analytics charts (applied where relevant)
+    bill_date_filter = Q()
+    exam_date_filter = Q()
+    filter_start_date = start_date
+    filter_end_date = end_date
+    if filter_start_date:
+        bill_date_filter &= Q(bill_date__gte=filter_start_date)
+        exam_date_filter &= Q(exam_date__gte=filter_start_date)
+    if filter_end_date:
+        bill_date_filter &= Q(bill_date__lte=filter_end_date)
+        exam_date_filter &= Q(exam_date__lte=filter_end_date)
+
+    # Procedure distribution (respects date filter)
+    procedures = UltrasoundExam.objects.filter(exam_date_filter).values('procedure_type__name').annotate(count=Count('id'))
     procedure_distribution_data = json.dumps([p['count'] for p in procedures])
     procedure_distribution_labels = json.dumps([p['procedure_type__name'] for p in procedures])
 
-    # Findings distribution (recommendations)
-    findings = UltrasoundExam.objects.values('recommendations').annotate(count=Count('id'))
+    # Findings distribution (recommendations, respects date filter)
+    findings = UltrasoundExam.objects.filter(exam_date_filter).values('recommendations').annotate(count=Count('id'))
     recommendation_map = dict(UltrasoundExam.RECOMMENDATION_CHOICES)
     findings_distribution_data = json.dumps([f['count'] for f in findings])
     findings_distribution_labels = json.dumps([recommendation_map.get(f['recommendations'], f['recommendations']) for f in findings])
 
-    # Monthly revenue (last 6 months)
+    # Monthly revenue (last 6 months, respects date filter when provided)
     monthly_revenue_dates = []
     monthly_revenue_values = []
     for i in range(6):
         month_date = (today.replace(day=1) - timedelta(days=i*30)).replace(day=1)
         month_start = month_date
         month_end = (month_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
-        month_total = Bill.objects.filter(
-            bill_date__gte=month_start,
-            bill_date__lte=month_end,
-            status__in=['PAID', 'PARTIAL']
-        ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        month_total = (
+            Bill.objects.filter(
+                bill_date__gte=month_start,
+                bill_date__lte=month_end,
+                status__in=['PAID', 'PARTIAL']
+            )
+            .filter(bill_date_filter)
+            .aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        )
         monthly_revenue_dates.append(month_date.strftime('%Y-%m'))
         monthly_revenue_values.append(float(month_total))
     monthly_revenue_dates.reverse()
@@ -86,10 +108,17 @@ def get_analytics_context():
     monthly_revenue_dates = json.dumps(monthly_revenue_dates)
     monthly_revenue_values = json.dumps(monthly_revenue_values)
 
-    # Weekly procedures (this week)
-    week_procedures = UltrasoundExam.objects.filter(
-        exam_date__gte=week_start
-    ).values('exam_date').annotate(count=Count('id')).order_by('exam_date')
+    # Daily procedures in selected range (or this week when no filter)
+    if filter_start_date or filter_end_date:
+        week_procedures_qs = UltrasoundExam.objects.filter(exam_date_filter)
+    else:
+        week_procedures_qs = UltrasoundExam.objects.filter(exam_date__gte=week_start)
+    week_procedures = (
+        week_procedures_qs
+        .values('exam_date')
+        .annotate(count=Count('id'))
+        .order_by('exam_date')
+    )
     week_procedures_dates = [entry['exam_date'].strftime('%Y-%m-%d') for entry in week_procedures]
     week_procedures_counts = [entry['count'] for entry in week_procedures]
 
@@ -124,19 +153,29 @@ def get_analytics_context():
     age_bucket_labels = list(age_buckets.keys())
     age_bucket_values = list(age_buckets.values())
 
-    # Top patients by revenue
+    # Top patients by revenue (respects date filter)
     top_revenue = (
-        Bill.objects.values('patient__first_name', 'patient__last_name')
+        Bill.objects.filter(bill_date__gte=filter_start_date) if filter_start_date else Bill.objects
+    )
+    top_revenue = (
+        top_revenue.filter(bill_date__lte=filter_end_date) if filter_end_date else top_revenue
+    )
+    top_revenue = (
+        top_revenue.values('patient__first_name', 'patient__last_name')
         .annotate(total=Sum('total_amount'))
         .order_by('-total')[:10]
     )
     top_patients_labels = [f"{t['patient__first_name']} {t['patient__last_name']}".strip() for t in top_revenue]
     top_patients_revenue = [float(t['total']) if t['total'] else 0 for t in top_revenue]
 
-    # Revenue by Procedure Type
+    # Revenue by Procedure Type (respects date filter)
     from billing.models import BillItem
     procedure_revenue = (
         BillItem.objects.filter(bill__status__in=['PAID', 'PARTIAL'])
+        .filter(
+            Q(bill__bill_date__gte=filter_start_date) if filter_start_date else Q(),
+            Q(bill__bill_date__lte=filter_end_date) if filter_end_date else Q(),
+        )
         .values('service__name')
         .annotate(total_revenue=Sum('amount'), procedure_count=Count('id'))
         .order_by('-total_revenue')
@@ -145,9 +184,9 @@ def get_analytics_context():
     procedure_revenue_values = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in procedure_revenue]
     procedure_revenue_counts = [p['procedure_count'] for p in procedure_revenue]
 
-    # Revenue by Region
+    # Revenue by Region (respects date filter)
     location_revenue = (
-        Bill.objects.filter(status__in=['PAID', 'PARTIAL'])
+        Bill.objects.filter(status__in=['PAID', 'PARTIAL']).filter(bill_date_filter)
         .values('patient__region')
         .annotate(total_revenue=Sum('total_amount'), patient_count=Count('patient', distinct=True))
         .order_by('-total_revenue')
@@ -155,9 +194,9 @@ def get_analytics_context():
     location_revenue_labels = [l['patient__region'] for l in location_revenue]
     location_revenue_values = [float(l['total_revenue']) if l['total_revenue'] else 0 for l in location_revenue]
 
-    # Revenue by City (Top 10)
+    # Revenue by City (Top 10, respects date filter)
     city_revenue = (
-        Bill.objects.filter(status__in=['PAID', 'PARTIAL'])
+        Bill.objects.filter(status__in=['PAID', 'PARTIAL']).filter(bill_date_filter)
         .values('patient__city')
         .annotate(total_revenue=Sum('total_amount'), patient_count=Count('patient', distinct=True))
         .order_by('-total_revenue')[:10]
@@ -165,9 +204,9 @@ def get_analytics_context():
     city_revenue_labels = [c['patient__city'] for c in city_revenue]
     city_revenue_values = [float(c['total_revenue']) if c['total_revenue'] else 0 for c in city_revenue]
 
-    # Revenue by Payment Method
+    # Revenue by Payment Method (respects date filter)
     payment_method_revenue = (
-        Bill.objects.filter(status__in=['PAID', 'PARTIAL'])
+        Bill.objects.filter(status__in=['PAID', 'PARTIAL']).filter(bill_date_filter)
         .values('payments__payment_method')
         .annotate(total_revenue=Sum('total_amount'), payment_count=Count('payments'))
         .filter(payments__payment_method__isnull=False)
@@ -176,9 +215,9 @@ def get_analytics_context():
     payment_method_labels = [p['payments__payment_method'] for p in payment_method_revenue]
     payment_method_values = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in payment_method_revenue]
 
-    # Revenue by Patient Type
+    # Revenue by Patient Type (respects date filter)
     patient_type_revenue = (
-        Bill.objects.filter(status__in=['PAID', 'PARTIAL'])
+        Bill.objects.filter(status__in=['PAID', 'PARTIAL']).filter(bill_date_filter)
         .values('patient__patient_type')
         .annotate(total_revenue=Sum('total_amount'), patient_count=Count('patient', distinct=True))
         .order_by('-total_revenue')
@@ -187,19 +226,56 @@ def get_analytics_context():
     patient_type_revenue_labels = [patient_type_map.get(p['patient__patient_type'], p['patient__patient_type']) for p in patient_type_revenue]
     patient_type_revenue_values = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in patient_type_revenue]
 
-    # Monthly Revenue Trends (Last 12 months)
+    # Monthly Revenue Trends (Last 12 months, respects date filter)
     monthly_trends = []
     for i in range(12):
         month_date = today.replace(day=1) - timedelta(days=30*i)
-        month_revenue = Bill.objects.filter(
-            bill_date__year=month_date.year,
-            bill_date__month=month_date.month,
-            status__in=['PAID', 'PARTIAL']
-        ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        month_revenue = (
+            Bill.objects.filter(
+                bill_date__year=month_date.year,
+                bill_date__month=month_date.month,
+                status__in=['PAID', 'PARTIAL']
+            )
+            .filter(bill_date_filter)
+            .aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        )
         monthly_trends.append({'month': month_date.strftime('%b %Y'), 'revenue': float(month_revenue)})
     monthly_trends.reverse()
     monthly_trend_labels = [m['month'] for m in monthly_trends]
     monthly_trend_values = [m['revenue'] for m in monthly_trends]
+
+    # Summary insights for the selected period
+    filtered_bills_qs = Bill.objects.filter(status__in=['PAID', 'PARTIAL']).filter(bill_date_filter)
+    filtered_revenue_total_raw = filtered_bills_qs.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    filtered_revenue_total = "{:,.2f}".format(filtered_revenue_total_raw)
+
+    filtered_revenue_change_percent = None
+    if filter_start_date and filter_end_date and filter_start_date <= filter_end_date:
+        period_days = (filter_end_date - filter_start_date).days + 1
+        if period_days > 0:
+            prev_start = filter_start_date - timedelta(days=period_days)
+            prev_end = filter_start_date - timedelta(days=1)
+            previous_revenue = (
+                Bill.objects.filter(
+                    status__in=['PAID', 'PARTIAL'],
+                    bill_date__gte=prev_start,
+                    bill_date__lte=prev_end,
+                )
+                .aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+            )
+            if previous_revenue:
+                change = ((filtered_revenue_total_raw - previous_revenue) / previous_revenue) * 100
+                filtered_revenue_change_percent = f"{change:.1f}"
+
+    # Use already computed procedure_revenue / location_revenue for insights
+    filtered_top_procedure_name = procedure_revenue_labels[0] if procedure_revenue_labels else None
+    filtered_top_procedure_count = procedure_revenue_counts[0] if procedure_revenue_counts else 0
+    filtered_top_region_label = location_revenue_labels[0] if location_revenue_labels else None
+    filtered_top_region_revenue = (
+        "{:,.2f}".format(location_revenue_values[0]) if location_revenue_values else "0.00"
+    )
+
+    has_filtered_data = bool(filtered_revenue_total_raw or week_procedures_counts or top_patients_revenue)
 
     return {
         'weekly_revenue': weekly_revenue,
@@ -236,6 +312,15 @@ def get_analytics_context():
         'patient_type_revenue_values': patient_type_revenue_values,
         'monthly_trend_labels': monthly_trend_labels,
         'monthly_trend_values': monthly_trend_values,
+        'filter_start_date': filter_start_date,
+        'filter_end_date': filter_end_date,
+        'filtered_revenue_total': filtered_revenue_total,
+        'filtered_revenue_change_percent': filtered_revenue_change_percent,
+        'filtered_top_procedure_name': filtered_top_procedure_name,
+        'filtered_top_procedure_count': filtered_top_procedure_count,
+        'filtered_top_region_label': filtered_top_region_label,
+        'filtered_top_region_revenue': filtered_top_region_revenue,
+        'has_filtered_data': has_filtered_data,
     }
 
 @custom_staff_member_required
@@ -261,12 +346,66 @@ def admin_add_user(request):
 
 @custom_staff_member_required
 def admin_analytics(request):
-    # Get analytics context
-    analytics_context = get_analytics_context()
+    # Read date filters from query string
+    today = timezone.now().date()
+    preset_param = request.GET.get('preset', '').strip()
+    preset = preset_param or 'last_30'
+    start_str = request.GET.get('start_date', '').strip()
+    end_str = request.GET.get('end_date', '').strip()
 
-    context = analytics_context
+    start_date = None
+    end_date = None
 
-    return render(request, 'admin/analytics.html', context)
+    # Parse explicit dates if provided
+    try:
+        if start_str:
+            start_date = datetime.strptime(start_str, '%Y-%m-%d').date()
+        if end_str:
+            end_date = datetime.strptime(end_str, '%Y-%m-%d').date()
+    except ValueError:
+        start_date = None
+        end_date = None
+
+    # If only one bound is provided, infer a reasonable other bound
+    if start_date and not end_date:
+        end_date = today
+    elif end_date and not start_date:
+        start_date = end_date - timedelta(days=29)
+
+    # If no explicit dates, fall back to preset ranges
+    if not start_date and not end_date:
+        if preset == 'last_7':
+            end_date = today
+            start_date = today - timedelta(days=6)
+        elif preset == 'last_30':
+            end_date = today
+            start_date = today - timedelta(days=29)
+        elif preset == 'this_month':
+            start_date = today.replace(day=1)
+            end_date = today
+        elif preset == 'this_year':
+            start_date = today.replace(month=1, day=1)
+            end_date = today
+        elif preset == 'all':
+            start_date = None
+            end_date = None
+        else:
+            end_date = today
+            start_date = today - timedelta(days=29)
+
+    # Ensure start_date <= end_date
+    if start_date and end_date and start_date > end_date:
+        start_date, end_date = end_date, start_date
+
+    # Detect if user explicitly applied any filters (for UX messages)
+    filters_applied = bool(start_str or end_str or preset_param)
+
+    # Get analytics context with applied date filters
+    analytics_context = get_analytics_context(start_date=start_date, end_date=end_date)
+    analytics_context['filter_preset'] = preset
+    analytics_context['filters_applied'] = filters_applied
+
+    return render(request, 'admin/analytics.html', analytics_context)
 
 @custom_staff_member_required
 def admin_dashboard(request):

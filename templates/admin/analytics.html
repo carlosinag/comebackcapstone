@@ -3,7 +3,7 @@
 {% block title %}Admin Analytics{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid pb-5">
     <h1 class="h3 mb-4">Admin Analytics</h1>
 
     <!-- Analytics Summary Cards -->
@@ -70,6 +70,79 @@
         </div>
     </div>
 
+    <!-- Insight Banners -->
+    <div class="row mb-4">
+        <div class="col-lg-4 mb-3">
+            <div class="card border-left-primary shadow h-100">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                        Revenue in period
+                    </div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                        ₱{{ filtered_revenue_total|default:'0.00' }}
+                    </div>
+                    {% if filtered_revenue_change_percent %}
+                        <div class="mt-2 small text-muted">
+                            vs previous period: {{ filtered_revenue_change_percent }}%
+                        </div>
+                    {% else %}
+                        <div class="mt-2 small text-muted">
+                            Change vs previous period: N/A
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-3">
+            <div class="card border-left-success shadow h-100">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                        Top procedure in period
+                    </div>
+                    {% if filtered_top_procedure_name %}
+                        <div class="h6 mb-0 font-weight-bold text-gray-800">
+                            {{ filtered_top_procedure_name }}
+                        </div>
+                        <div class="mt-1 small text-muted">
+                            {{ filtered_top_procedure_count }} procedures
+                        </div>
+                    {% else %}
+                        <div class="small text-muted">
+                            No procedure data in this date range.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-3">
+            <div class="card border-left-warning shadow h-100">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                        Top region by revenue
+                    </div>
+                    {% if filtered_top_region_label %}
+                        <div class="h6 mb-0 font-weight-bold text-gray-800">
+                            {{ filtered_top_region_label }}
+                        </div>
+                        <div class="mt-1 small text-muted">
+                            ₱{{ filtered_top_region_revenue }}
+                        </div>
+                    {% else %}
+                        <div class="small text-muted">
+                            No regional revenue data in this date range.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if filters_applied and not has_filtered_data %}
+        <div class="alert alert-light border-left-warning mb-4">
+            No data found for the selected date range. Charts below may appear empty.
+        </div>
+    {% endif %}
+
     <!-- Charts Row 1 -->
     <div class="row">
         <div class="col-xl-6 col-lg-6">
@@ -78,7 +151,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Procedure Type Distribution</h6>
                 </div>
                 <div class="card-body">
-                    <div id="procedureDistributionChart" style="height: 400px;"></div>
+                    <canvas id="procedureDistributionChart" style="height: 400px;"></canvas>
                 </div>
             </div>
         </div>
@@ -88,7 +161,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Findings Distribution</h6>
                 </div>
                 <div class="card-body">
-                    <div id="findingsDistributionChart" style="height: 400px;"></div>
+                    <canvas id="findingsDistributionChart" style="height: 400px;"></canvas>
                 </div>
             </div>
         </div>
@@ -102,7 +175,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Monthly Revenue (Last 6 Months)</h6>
                 </div>
                 <div class="card-body">
-                    <div id="monthlyRevenueChart" style="height: 400px;"></div>
+                    <canvas id="monthlyRevenueChart" style="height: 400px;"></canvas>
                 </div>
             </div>
         </div>
@@ -112,7 +185,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Daily Procedures (This Week)</h6>
                 </div>
                 <div class="card-body">
-                    <div id="weekProceduresChart" style="height: 400px;"></div>
+                    <canvas id="weekProceduresChart" style="height: 400px;"></canvas>
                 </div>
             </div>
         </div>
@@ -126,7 +199,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Gender Distribution</h6>
                 </div>
                 <div class="card-body">
-                    <div id="genderDistributionChart" style="height: 400px;"></div>
+                    <canvas id="genderDistributionChart" style="height: 400px;"></canvas>
                 </div>
             </div>
         </div>
@@ -136,7 +209,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Patient Type Distribution</h6>
                 </div>
                 <div class="card-body">
-                    <div id="patientTypeChart" style="height: 400px;"></div>
+                    <canvas id="patientTypeChart" style="height: 400px;"></canvas>
                 </div>
             </div>
         </div>
@@ -150,7 +223,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Age Bins</h6>
                 </div>
                 <div class="card-body">
-                    <div id="ageBucketChart" style="height: 400px;"></div>
+                    <canvas id="ageBucketChart" style="height: 400px;"></canvas>
                 </div>
             </div>
         </div>
@@ -160,7 +233,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Top Patients by Revenue</h6>
                 </div>
                 <div class="card-body">
-                    <div id="topPatientsRevenueChart" style="height: 400px;"></div>
+                    <canvas id="topPatientsRevenueChart" style="height: 400px;"></canvas>
                 </div>
             </div>
         </div>
@@ -174,7 +247,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Revenue by Procedure Type</h6>
                 </div>
                 <div class="card-body">
-                    <div id="procedureRevenueChart" style="height: 400px;"></div>
+                    <canvas id="procedureRevenueChart" style="height: 400px;"></canvas>
                 </div>
             </div>
         </div>
@@ -184,7 +257,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Procedure Count and Revenue (Top 10)</h6>
                 </div>
                 <div class="card-body">
-                    <div id="procedureCountRevenueChart" style="height: 400px;"></div>
+                    <canvas id="procedureCountRevenueChart" style="height: 400px;"></canvas>
                 </div>
             </div>
         </div>
@@ -198,7 +271,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Revenue by Region</h6>
                 </div>
                 <div class="card-body">
-                    <div id="locationRevenueChart" style="height: 400px;"></div>
+                    <canvas id="locationRevenueChart" style="height: 400px;"></canvas>
                 </div>
             </div>
         </div>
@@ -208,7 +281,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Revenue by City (Top 10)</h6>
                 </div>
                 <div class="card-body">
-                    <div id="cityRevenueChart" style="height: 400px;"></div>
+                    <canvas id="cityRevenueChart" style="height: 400px;"></canvas>
                 </div>
             </div>
         </div>
@@ -222,7 +295,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Revenue by Payment Method</h6>
                 </div>
                 <div class="card-body">
-                    <div id="paymentMethodChart" style="height: 400px;"></div>
+                    <canvas id="paymentMethodChart" style="height: 400px;"></canvas>
                 </div>
             </div>
         </div>
@@ -232,7 +305,7 @@
                     <h6 class="m-0 font-weight-bold text-primary">Revenue by Patient Type</h6>
                 </div>
                 <div class="card-body">
-                    <div id="patientTypeRevenueChart" style="height: 400px;"></div>
+                    <canvas id="patientTypeRevenueChart" style="height: 400px;"></canvas>
                 </div>
             </div>
         </div>
@@ -246,58 +319,707 @@
                     <h6 class="m-0 font-weight-bold text-primary">Monthly Revenue Trends (Last 12 Months)</h6>
                 </div>
                 <div class="card-body">
-                    <div id="monthlyTrendChart" style="height: 400px;"></div>
+                    <canvas id="monthlyTrendChart" style="height: 400px;"></canvas>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Global Filters Button -->
+    <button type="button"
+            class="btn btn-primary shadow filter-fab"
+            data-bs-toggle="modal"
+            data-bs-target="#globalFilterModal"
+            aria-label="Open filters">
+        <i class="fas fa-filter"></i>
+    </button>
+
+    <!-- Global Filters Modal -->
+    <div class="modal fade" id="globalFilterModal" tabindex="-1" role="dialog" aria-labelledby="globalFilterModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <form method="get">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="globalFilterModalLabel">Analytics Filters</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="modal_start_date" class="small mb-1">Start date</label>
+                                <input type="date"
+                                       id="modal_start_date"
+                                       name="start_date"
+                                       class="form-control"
+                                       value="{% if filter_start_date %}{{ filter_start_date|date:'Y-m-d' }}{% endif %}">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="modal_end_date" class="small mb-1">End date</label>
+                                <input type="date"
+                                       id="modal_end_date"
+                                       name="end_date"
+                                       class="form-control"
+                                       value="{% if filter_end_date %}{{ filter_end_date|date:'Y-m-d' }}{% endif %}">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="modal_preset" class="small mb-1">Quick range</label>
+                            <select id="modal_preset" name="preset" class="form-control">
+                                <option value="last_7" {% if filter_preset == 'last_7' %}selected{% endif %}>Last 7 days</option>
+                                <option value="last_30" {% if filter_preset == 'last_30' or not filter_preset %}selected{% endif %}>Last 30 days</option>
+                                <option value="this_month" {% if filter_preset == 'this_month' %}selected{% endif %}>This month</option>
+                                <option value="this_year" {% if filter_preset == 'this_year' %}selected{% endif %}>This year</option>
+                                <option value="all" {% if filter_preset == 'all' %}selected{% endif %}>All time</option>
+                            </select>
+                        </div>
+                        <small class="text-muted d-block">
+                            {% if filter_start_date and filter_end_date %}
+                                Currently showing data from {{ filter_start_date }} to {{ filter_end_date }}.
+                            {% elif filter_preset == 'all' %}
+                                Currently showing all available data.
+                            {% else %}
+                                Currently showing default period.
+                            {% endif %}
+                        </small>
+                    </div>
+                    <div class="modal-footer">
+                        <a href="{% url 'admin_analytics' %}" class="btn btn-outline-secondary">Reset</a>
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
 {% block extra_js %}
-<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+    .filter-fab {
+        position: fixed;
+        bottom: 1.75rem;
+        right: 1.75rem;
+        z-index: 1030;
+        width: 3.5rem;
+        height: 3.5rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    @media (max-width: 576px) {
+        .filter-fab {
+            bottom: 1.25rem;
+            right: 1.25rem;
+        }
+    }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     /* eslint-disable */
-    Plotly.newPlot('procedureDistributionChart', [{ values: {{ procedure_distribution_data|safe }}, labels: {{ procedure_distribution_labels|safe }}, type: 'pie', hole: 0.4 }], { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: true, legend: { orientation: 'h', y: -0.1 } });
-    Plotly.newPlot('findingsDistributionChart', [{ values: {{ findings_distribution_data|safe }}, labels: {{ findings_distribution_labels|safe }}, type: 'pie' }], { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: true, legend: { orientation: 'h', y: -0.1 } });
-    Plotly.newPlot('monthlyRevenueChart', [{ x: {{ monthly_revenue_dates|safe }}, y: {{ monthly_revenue_values|safe }}, type: 'scatter', mode: 'lines+markers' }], { margin: { t: 20, b: 40, l: 60, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, showlegend: false });
-    Plotly.newPlot('weekProceduresChart', [{ x: {{ week_procedures_dates|safe }}, y: {{ week_procedures_counts|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Number of Procedures', dtick: 1 }, showlegend: false });
-    Plotly.newPlot('genderDistributionChart', [{ values: {{ gender_distribution_values|safe }}, labels: {{ gender_distribution_labels|safe }}, type: 'pie' }], { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: true, legend: { orientation: 'h', y: -0.1 } });
-    Plotly.newPlot('patientTypeChart', [{ values: {{ patient_type_values|safe }}, labels: {{ patient_type_labels|safe }}, type: 'pie' }], { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: true, legend: { orientation: 'h', y: -0.1 } });
-    Plotly.newPlot('ageBucketChart', [{ x: {{ age_bucket_labels|safe }}, y: {{ age_bucket_values|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Patients' }, showlegend: false });
-    Plotly.newPlot('topPatientsRevenueChart', [{ x: {{ top_patients_labels|safe }}, y: {{ top_patients_revenue|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, xaxis: { automargin: true } });
-    Plotly.newPlot('procedureRevenueChart', [{ values: {{ procedure_revenue_values|safe }}, labels: {{ procedure_revenue_labels|safe }}, type: 'pie', hole: 0.4 }], { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: true, legend: { orientation: 'h', y: -0.1 } });
-    var trace1 = {
-      x: {{ procedure_revenue_labels|safe }},
-      y: {{ procedure_revenue_counts|safe }},
-      type: 'bar',
-      name: 'Procedure Count',
-      yaxis: 'y'
+    // Ensure Bootstrap 5 modal works even if data attributes fail
+    document.addEventListener('DOMContentLoaded', function () {
+        var filterBtn = document.querySelector('.filter-fab');
+        var modalEl = document.getElementById('globalFilterModal');
+        if (filterBtn && modalEl && window.bootstrap && bootstrap.Modal) {
+            var modal = new bootstrap.Modal(modalEl);
+            filterBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                modal.show();
+            });
+        }
+    });
+
+    const chartColors = {
+        primary: '#4e73df',
+        secondary: '#1cc88a',
+        accent: '#36b9cc',
+        warning: '#f6c23e',
+        danger: '#e74a3b',
+        gray: '#858796'
     };
-    var trace2 = {
-      x: {{ procedure_revenue_labels|safe }},
-      y: {{ procedure_revenue_values|safe }},
-      type: 'scatter',
-      mode: 'lines+markers',
-      name: 'Revenue',
-      yaxis: 'y2'
+
+    const categoricalColors = [
+        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e',
+        '#e74a3b', '#858796', '#5a5c69', '#2e59d9',
+        '#17a673', '#2c9faf'
+    ];
+
+    const pesoFormatter = (value) => {
+        if (value === null || value === undefined || isNaN(value)) return '₱0';
+        return '₱' + Number(value).toLocaleString('en-PH');
     };
-    var data = [trace1, trace2];
-    var layout = {
-      margin: { t: 20, b: 40, l: 60, r: 20 },
-      yaxis: { title: 'Procedure Count' },
-      yaxis2: {
-        title: 'Revenue (₱)',
-        tickformat: ',.0f',
-        overlaying: 'y',
-        side: 'right'
-      },
-      showlegend: true
-    };
-    Plotly.newPlot('procedureCountRevenueChart', data, layout);
-    Plotly.newPlot('locationRevenueChart', [{ x: {{ location_revenue_labels|safe }}, y: {{ location_revenue_values|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, xaxis: { title: 'Region' }, showlegend: false });
-    Plotly.newPlot('cityRevenueChart', [{ x: {{ city_revenue_labels|safe }}, y: {{ city_revenue_values|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, xaxis: { title: 'City', automargin: true }, showlegend: false });
-    Plotly.newPlot('paymentMethodChart', [{ values: {{ payment_method_values|safe }}, labels: {{ payment_method_labels|safe }}, type: 'pie' }], { margin: { t: 0, b: 0, l: 0, r: 0 }, showlegend: true, legend: { orientation: 'h', y: -0.1 } });
-    Plotly.newPlot('patientTypeRevenueChart', [{ x: {{ patient_type_revenue_labels|safe }}, y: {{ patient_type_revenue_values|safe }}, type: 'bar' }], { margin: { t: 20, b: 40, l: 40, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, xaxis: { title: 'Patient Type' }, showlegend: false });
-    Plotly.newPlot('monthlyTrendChart', [{ x: {{ monthly_trend_labels|safe }}, y: {{ monthly_trend_values|safe }}, type: 'scatter', mode: 'lines+markers' }], { margin: { t: 20, b: 40, l: 60, r: 20 }, yaxis: { title: 'Revenue (₱)', tickformat: ',.0f' }, xaxis: { title: 'Month' }, showlegend: false });
+
+    function createChart(ctxId, config) {
+        const canvas = document.getElementById(ctxId);
+        if (!canvas) return null;
+        return new Chart(canvas, config);
+    }
+
+    // Procedure Type Distribution (Doughnut)
+    const procedureDistributionData = {{ procedure_distribution_data|default:'[]'|safe }};
+    const procedureDistributionLabels = {{ procedure_distribution_labels|default:'[]'|safe }};
+    createChart('procedureDistributionChart', {
+        type: 'doughnut',
+        data: {
+            labels: procedureDistributionLabels,
+            datasets: [{
+                data: procedureDistributionData,
+                backgroundColor: categoricalColors,
+                borderWidth: 1,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const label = context.label || '';
+                            const value = context.parsed;
+                            return label + ': ' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Findings Distribution (Doughnut)
+    const findingsDistributionData = {{ findings_distribution_data|default:'[]'|safe }};
+    const findingsDistributionLabels = {{ findings_distribution_labels|default:'[]'|safe }};
+    createChart('findingsDistributionChart', {
+        type: 'doughnut',
+        data: {
+            labels: findingsDistributionLabels,
+            datasets: [{
+                data: findingsDistributionData,
+                backgroundColor: categoricalColors,
+                borderWidth: 1,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // Monthly Revenue (Last 6 Months) - Line
+    const monthlyRevenueLabels = {{ monthly_revenue_dates|default:'[]'|safe }};
+    const monthlyRevenueValues = {{ monthly_revenue_values|default:'[]'|safe }};
+    createChart('monthlyRevenueChart', {
+        type: 'line',
+        data: {
+            labels: monthlyRevenueLabels,
+            datasets: [{
+                label: 'Revenue',
+                data: monthlyRevenueValues,
+                borderColor: chartColors.primary,
+                backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: 3,
+                pointBackgroundColor: chartColors.primary
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return pesoFormatter(context.parsed.y);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { maxRotation: 0, autoSkip: true }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function (value) { return pesoFormatter(value); }
+                    }
+                }
+            }
+        }
+    });
+
+    // Daily Procedures (This Week) - Bar
+    const weekProceduresLabels = {{ week_procedures_dates|default:'[]'|safe }};
+    const weekProceduresCounts = {{ week_procedures_counts|default:'[]'|safe }};
+    createChart('weekProceduresChart', {
+        type: 'bar',
+        data: {
+            labels: weekProceduresLabels,
+            datasets: [{
+                label: 'Procedures',
+                data: weekProceduresCounts,
+                backgroundColor: chartColors.secondary,
+                borderColor: chartColors.secondary,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    ticks: { maxRotation: 0 }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
+
+    // Gender Distribution (Doughnut)
+    const genderDistributionValues = {{ gender_distribution_values|default:'[]'|safe }};
+    const genderDistributionLabels = {{ gender_distribution_labels|default:'[]'|safe }};
+    createChart('genderDistributionChart', {
+        type: 'doughnut',
+        data: {
+            labels: genderDistributionLabels,
+            datasets: [{
+                data: genderDistributionValues,
+                backgroundColor: categoricalColors,
+                borderWidth: 1,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // Patient Type Distribution (Doughnut)
+    const patientTypeValues = {{ patient_type_values|default:'[]'|safe }};
+    const patientTypeLabels = {{ patient_type_labels|default:'[]'|safe }};
+    createChart('patientTypeChart', {
+        type: 'doughnut',
+        data: {
+            labels: patientTypeLabels,
+            datasets: [{
+                data: patientTypeValues,
+                backgroundColor: categoricalColors,
+                borderWidth: 1,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // Age Bins - Bar
+    const ageBucketLabels = {{ age_bucket_labels|default:'[]'|safe }};
+    const ageBucketValues = {{ age_bucket_values|default:'[]'|safe }};
+    createChart('ageBucketChart', {
+        type: 'bar',
+        data: {
+            labels: ageBucketLabels,
+            datasets: [{
+                label: 'Patients',
+                data: ageBucketValues,
+                backgroundColor: chartColors.accent,
+                borderColor: chartColors.accent,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { ticks: { maxRotation: 0 } },
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
+
+    // Top Patients by Revenue - Bar
+    const topPatientsLabels = {{ top_patients_labels|default:'[]'|safe }};
+    const topPatientsRevenue = {{ top_patients_revenue|default:'[]'|safe }};
+    createChart('topPatientsRevenueChart', {
+        type: 'bar',
+        data: {
+            labels: topPatientsLabels,
+            datasets: [{
+                label: 'Revenue',
+                data: topPatientsRevenue,
+                backgroundColor: chartColors.primary,
+                borderColor: chartColors.primary,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return pesoFormatter(context.parsed.y);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { autoSkip: true, maxRotation: 45, minRotation: 0 }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function (value) { return pesoFormatter(value); }
+                    }
+                }
+            }
+        }
+    });
+
+    // Revenue by Procedure Type - Doughnut
+    const procedureRevenueValues = {{ procedure_revenue_values|default:'[]'|safe }};
+    const procedureRevenueLabels = {{ procedure_revenue_labels|default:'[]'|safe }};
+    createChart('procedureRevenueChart', {
+        type: 'doughnut',
+        data: {
+            labels: procedureRevenueLabels,
+            datasets: [{
+                data: procedureRevenueValues,
+                backgroundColor: categoricalColors,
+                borderWidth: 1,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const label = context.label || '';
+                            return label + ': ' + pesoFormatter(context.parsed);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Procedure Count and Revenue (Top 10) - Mixed Bar + Line with Dual Axis
+    const procedureCountLabels = {{ procedure_revenue_labels|default:'[]'|safe }};
+    const procedureCounts = {{ procedure_revenue_counts|default:'[]'|safe }};
+    const procedureRevenues = {{ procedure_revenue_values|default:'[]'|safe }};
+    createChart('procedureCountRevenueChart', {
+        data: {
+            labels: procedureCountLabels,
+            datasets: [
+                {
+                    type: 'bar',
+                    label: 'Procedure Count',
+                    data: procedureCounts,
+                    backgroundColor: chartColors.secondary,
+                    borderColor: chartColors.secondary,
+                    borderWidth: 1,
+                    yAxisID: 'y'
+                },
+                {
+                    type: 'line',
+                    label: 'Revenue',
+                    data: procedureRevenues,
+                    borderColor: chartColors.primary,
+                    backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            if (context.dataset.label === 'Revenue') {
+                                return context.dataset.label + ': ' + pesoFormatter(context.parsed.y);
+                            }
+                            return context.dataset.label + ': ' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { autoSkip: true, maxRotation: 45 }
+                },
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Procedure Count'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    position: 'right',
+                    beginAtZero: true,
+                    grid: { drawOnChartArea: false },
+                    title: {
+                        display: true,
+                        text: 'Revenue (₱)'
+                    },
+                    ticks: {
+                        callback: function (value) { return pesoFormatter(value); }
+                    }
+                }
+            }
+        }
+    });
+
+    // Revenue by Region - Bar
+    const locationRevenueLabels = {{ location_revenue_labels|default:'[]'|safe }};
+    const locationRevenueValues = {{ location_revenue_values|default:'[]'|safe }};
+    createChart('locationRevenueChart', {
+        type: 'bar',
+        data: {
+            labels: locationRevenueLabels,
+            datasets: [{
+                label: 'Revenue',
+                data: locationRevenueValues,
+                backgroundColor: chartColors.primary,
+                borderColor: chartColors.primary,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return pesoFormatter(context.parsed.y);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'Region' },
+                    ticks: { autoSkip: true, maxRotation: 45 }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function (value) { return pesoFormatter(value); }
+                    }
+                }
+            }
+        }
+    });
+
+    // Revenue by City (Top 10) - Bar
+    const cityRevenueLabels = {{ city_revenue_labels|default:'[]'|safe }};
+    const cityRevenueValues = {{ city_revenue_values|default:'[]'|safe }};
+    createChart('cityRevenueChart', {
+        type: 'bar',
+        data: {
+            labels: cityRevenueLabels,
+            datasets: [{
+                label: 'Revenue',
+                data: cityRevenueValues,
+                backgroundColor: chartColors.accent,
+                borderColor: chartColors.accent,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return pesoFormatter(context.parsed.y);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'City' },
+                    ticks: { autoSkip: true, maxRotation: 60 }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function (value) { return pesoFormatter(value); }
+                    }
+                }
+            }
+        }
+    });
+
+    // Revenue by Payment Method - Doughnut
+    const paymentMethodValues = {{ payment_method_values|default:'[]'|safe }};
+    const paymentMethodLabels = {{ payment_method_labels|default:'[]'|safe }};
+    createChart('paymentMethodChart', {
+        type: 'doughnut',
+        data: {
+            labels: paymentMethodLabels,
+            datasets: [{
+                data: paymentMethodValues,
+                backgroundColor: categoricalColors,
+                borderWidth: 1,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const label = context.label || '';
+                            return label + ': ' + pesoFormatter(context.parsed);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Revenue by Patient Type - Bar
+    const patientTypeRevenueLabels = {{ patient_type_revenue_labels|default:'[]'|safe }};
+    const patientTypeRevenueValues = {{ patient_type_revenue_values|default:'[]'|safe }};
+    createChart('patientTypeRevenueChart', {
+        type: 'bar',
+        data: {
+            labels: patientTypeRevenueLabels,
+            datasets: [{
+                label: 'Revenue',
+                data: patientTypeRevenueValues,
+                backgroundColor: chartColors.secondary,
+                borderColor: chartColors.secondary,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return pesoFormatter(context.parsed.y);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'Patient Type' },
+                    ticks: { autoSkip: true, maxRotation: 45 }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function (value) { return pesoFormatter(value); }
+                    }
+                }
+            }
+        }
+    });
+
+    // Monthly Revenue Trends (Last 12 Months, respects selected date range) - Line
+    const monthlyTrendLabels = {{ monthly_trend_labels|default:'[]'|safe }};
+    const monthlyTrendValues = {{ monthly_trend_values|default:'[]'|safe }};
+    createChart('monthlyTrendChart', {
+        type: 'line',
+        data: {
+            labels: monthlyTrendLabels,
+            datasets: [{
+                label: 'Revenue',
+                data: monthlyTrendValues,
+                borderColor: chartColors.primary,
+                backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: 3,
+                pointBackgroundColor: chartColors.primary
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return pesoFormatter(context.parsed.y);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'Month' },
+                    ticks: { autoSkip: true, maxRotation: 45 }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function (value) { return pesoFormatter(value); }
+                    }
+                }
+            }
+        }
+    });
 </script>
 {% endblock %}
 {% endblock %}
