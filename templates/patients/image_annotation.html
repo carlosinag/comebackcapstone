@@ -813,28 +813,78 @@
         clearAnnotations(examId);
     }
 
-    function loadSavedMeasurements(imageId, procedureType) {
-        fetch(`/api/exams/${imageId}/annotations/?type=${procedureType}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
+    function loadSavedAnnotations(imageId) {
+        fetch(`/api/exams/${imageId}/annotations/`)
+            .then(response => response.json())
             .then(data => {
-                if (data && data.measurements) {
-                    Object.entries(data.measurements).forEach(([key, value]) => {
-                        const input = document.getElementById(`${key}-${imageId}`);
-                        if (input) {
-                            input.value = value;
+                if (data.annotations) {
+                    const canvas = canvases[imageId];
+                    canvas.loadFromJSON(data.annotations, function() {
+                        canvas.renderAll();
+                        // Restore measurements from saved annotations (on-image labels)
+                        const objects = canvas.getObjects();
+                        measurements[imageId] = {};
+                        objects.forEach(obj => {
+                            if (obj.type === 'text' && obj.measurementId) {
+                                measurements[imageId][obj.measurementId] = obj.text;
+                                lockObjectInteraction(obj);
+                            }
+                            if (obj.type === 'path' && obj.drawingId) {
+                                lockObjectInteraction(obj);
+                            }
+                            if (obj.type === 'text' && obj.labelType) {
+                                lockObjectInteraction(obj);
+                            }
+                        });
+                        
+                        // Restore general notes if they exist
+                        if (data.notes) {
+                            const notesTextarea = document.getElementById(`notes-${imageId}`);
+                            if (notesTextarea) {
+                                notesTextarea.value = data.notes;
+                            }
                         }
+
+                        // Restore drawing notes if they exist
+                        if (data.drawing_notes) {
+                            drawingNotes[imageId] = data.drawing_notes || {};
+                        }
+
+                        // Restore on-image measurement notes if provided
+                        if (data.on_image_measurements && Array.isArray(data.on_image_measurements)) {
+                            data.on_image_measurements.forEach(entry => {
+                                if (!measurements[imageId]) measurements[imageId] = {};
+                                if (entry && entry.id) {
+                                    if (entry.note) {
+                                        measurements[imageId][entry.id] = { value: entry.value || '', note: entry.note };
+                                    } else {
+                                        measurements[imageId][entry.id] = entry.value || '';
+                                    }
+                                }
+                            });
+                        }
+
+                        // NEW: restore side-panel procedure measurements from JSON
+                        if (data.measurements && typeof data.measurements === 'object') {
+                            if (!measurements[imageId]) {
+                                measurements[imageId] = {};
+                            }
+                            Object.entries(data.measurements).forEach(([fieldId, value]) => {
+                                const inputEl = document.getElementById(`${fieldId}-${imageId}`);
+                                if (inputEl) {
+                                    inputEl.value = value;
+                                }
+                                measurements[imageId][fieldId] = value;
+                            });
+                        }
+                        
+                        renumberAnnotations(imageId);
+                        renderDrawingNotesEditor(imageId);
+                        updateMeasurementSummary(imageId);
                     });
                 }
             })
-            .catch(error => {
-                console.log('Warning: Could not load saved measurements.', error);
-                // Don't show error to user, just continue without loading measurements
-            });
+            .catch(error => console.error('Error loading annotations:', error));
     }
 
     function updateMeasurement(imageId, fieldId, value) {

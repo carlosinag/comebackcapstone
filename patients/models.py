@@ -153,51 +153,51 @@ class UltrasoundImage(models.Model):
     def __str__(self):
         return f"Image for {self.exam} - {self.uploaded_at}"
 
-class BaseMeasurements(models.Model):
-    ultrasound_image = models.ForeignKey(UltrasoundImage, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+# class BaseMeasurements(models.Model):
+#     ultrasound_image = models.ForeignKey(UltrasoundImage, on_delete=models.CASCADE)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        abstract = True
+#     class Meta:
+#         abstract = True
 
-class PelvicUltrasoundMeasurements(BaseMeasurements):
-    uterus_length = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
-    uterus_width = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
-    endometrial_thickness = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='mm')
-    right_ovary_location = models.CharField(max_length=100, null=True, blank=True)
-    left_ovary_location = models.CharField(max_length=100, null=True, blank=True)
+# class PelvicUltrasoundMeasurements(BaseMeasurements):
+#     uterus_length = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
+#     uterus_width = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
+#     endometrial_thickness = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='mm')
+#     right_ovary_location = models.CharField(max_length=100, null=True, blank=True)
+#     left_ovary_location = models.CharField(max_length=100, null=True, blank=True)
 
-    def __str__(self):
-        return f"Pelvic Measurements for {self.ultrasound_image}"
+#     def __str__(self):
+#         return f"Pelvic Measurements for {self.ultrasound_image}"
 
-class AbdominalUltrasoundMeasurements(BaseMeasurements):
-    liver_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
-    liver_location = models.CharField(max_length=100, null=True, blank=True)
-    gallbladder_location = models.CharField(max_length=100, null=True, blank=True)
-    spleen_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
-    kidney_right_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
-    kidney_left_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
+# class AbdominalUltrasoundMeasurements(BaseMeasurements):
+#     liver_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
+#     liver_location = models.CharField(max_length=100, null=True, blank=True)
+#     gallbladder_location = models.CharField(max_length=100, null=True, blank=True)
+#     spleen_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
+#     kidney_right_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
+#     kidney_left_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
 
-    def __str__(self):
-        return f"Abdominal Measurements for {self.ultrasound_image}"
+#     def __str__(self):
+#         return f"Abdominal Measurements for {self.ultrasound_image}"
 
-class BreastUltrasoundMeasurements(BaseMeasurements):
-    mass_location = models.CharField(max_length=100, null=True, blank=True)
-    mass_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
-    distance_from_nipple = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
+# class BreastUltrasoundMeasurements(BaseMeasurements):
+#     mass_location = models.CharField(max_length=100, null=True, blank=True)
+#     mass_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
+#     distance_from_nipple = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
 
-    def __str__(self):
-        return f"Breast Measurements for {self.ultrasound_image}"
+#     def __str__(self):
+#         return f"Breast Measurements for {self.ultrasound_image}"
 
-class ThyroidUltrasoundMeasurements(BaseMeasurements):
-    right_lobe_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
-    left_lobe_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
-    nodule_location = models.CharField(max_length=100, null=True, blank=True)
-    nodule_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='mm')
+# class ThyroidUltrasoundMeasurements(BaseMeasurements):
+#     right_lobe_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
+#     left_lobe_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='cm')
+#     nodule_location = models.CharField(max_length=100, null=True, blank=True)
+#     nodule_size = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text='mm')
 
-    def __str__(self):
-        return f"Thyroid Measurements for {self.ultrasound_image}"
+#     def __str__(self):
+#         return f"Thyroid Measurements for {self.ultrasound_image}"
 
 class UltrasoundExam(models.Model):
     STATUS_CHOICES = [
