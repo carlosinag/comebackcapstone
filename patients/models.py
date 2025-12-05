@@ -16,6 +16,7 @@ class FamilyGroup(models.Model):
 
 class Patient(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name='patient')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_patients', verbose_name='Created By')
     GENDER_CHOICES = [
         ('M', 'Male'),
         ('F', 'Female'),
