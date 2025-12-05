@@ -276,6 +276,7 @@ class Appointment(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    completed_on = models.DateTimeField(null=True, blank=True)
     
     class Meta:
         ordering = ['-appointment_date', '-appointment_time']
@@ -328,6 +329,21 @@ class Appointment(models.Model):
         
         count = overdue_appointments.update(status='CANCELLED')
         return count
+
+    def save(self, *args, **kwargs):
+        from django.utils import timezone
+        try:
+            old_instance = type(self).objects.get(pk=self.pk)
+            old_status = old_instance.status
+        except type(self).DoesNotExist:
+            old_status = None
+
+        if self.status == 'COMPLETED' and (old_status != 'COMPLETED' or self.completed_on is None):
+            self.completed_on = timezone.now()
+        elif self.status != 'COMPLETED':
+            self.completed_on = None
+
+        super().save(*args, **kwargs)
 
 class Notification(models.Model):
     NOTIFICATION_TYPES = [

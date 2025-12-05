@@ -97,6 +97,11 @@
                                         
                                         <dt class="col-sm-4">Booked On</dt>
                                         <dd class="col-sm-8">{{ appointment.created_at|date:"M d, Y g:i A" }}</dd>
+
+                                        {% if appointment.status == 'COMPLETED' and appointment.completed_on %}
+                                            <dt class="col-sm-4">Completed On</dt>
+                                            <dd class="col-sm-8">{{ appointment.completed_on|date:"M d, Y g:i A" }}</dd>
+                                        {% endif %}
                                     </dl>
                                 </div>
                             </div>
