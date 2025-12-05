@@ -3,7 +3,10 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
-from patients.models import Patient, UltrasoundExam
+from patients.models import Patient, UltrasoundExam, Appointment
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ServiceType(models.Model):
     name = models.CharField(max_length=100)
@@ -187,6 +190,10 @@ class Payment(models.Model):
         
         # Update bill status based on total payments
         bill = self.bill
+        # Refresh bill from database to get current status
+        bill.refresh_from_db()
+        was_paid_before = bill.status == 'PAID'
+        
         total_paid = sum(payment.amount for payment in bill.payments.all())
         
         if total_paid >= bill.total_amount:
@@ -197,3 +204,37 @@ class Payment(models.Model):
             bill.status = 'PENDING'
         
         bill.save()
+        
+        # Automatically mark appointments as completed when bill becomes fully paid
+        if bill.status == 'PAID' and not was_paid_before:
+            try:
+                # Get all exams from bill items
+                bill_items = bill.items.select_related('exam', 'exam__patient', 'exam__procedure_type').all()
+                
+                for bill_item in bill_items:
+                    exam = bill_item.exam
+                    
+                    # Find matching appointment by patient, date, time, and procedure type name
+                    # Match appointment.procedure_type (TextField) with exam.procedure_type.name
+                    matching_appointments = Appointment.objects.filter(
+                        patient=exam.patient,
+                        appointment_date=exam.exam_date,
+                        appointment_time=exam.exam_time,
+                        procedure_type__iexact=exam.procedure_type.name,
+                        status__in=['PENDING', 'CONFIRMED']  # Only update if not already completed/cancelled
+                    )
+                    
+                    for appointment in matching_appointments:
+                        appointment.status = 'COMPLETED'
+                        appointment.save()
+                        logger.info(
+                            f"Marked appointment {appointment.id} as COMPLETED after payment for bill {bill.bill_number} "
+                            f"(Patient: {appointment.patient}, Exam: {exam.id})"
+                        )
+            
+            except Exception as e:
+                # Log error but don't prevent payment processing
+                logger.error(
+                    f"Error marking appointments as completed after payment for bill {bill.bill_number}: {str(e)}",
+                    exc_info=True
+                )

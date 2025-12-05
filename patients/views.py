@@ -24,8 +24,11 @@ from docx import Document
 from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 import os
+import logging
 from django.conf import settings
 from functools import wraps
+
+logger = logging.getLogger(__name__)
 
 def generate_ultrasound_docx(exam):
     """
@@ -1935,6 +1938,15 @@ def patient_list_export_excel(request):
 @custom_staff_member_required
 def staff_appointments(request):
     """Staff view to manage all appointments."""
+    # Automatically cancel appointments that are 3+ days overdue
+    try:
+        cancelled_count = Appointment.cancel_overdue_appointments(days_overdue=3)
+        if cancelled_count > 0:
+            logger.info(f"Automatically cancelled {cancelled_count} overdue appointment(s) when accessing staff appointments page")
+            messages.info(request, f'Automatically cancelled {cancelled_count} appointment(s) that were 3+ days overdue.')
+    except Exception as e:
+        logger.error(f"Error cancelling overdue appointments: {str(e)}", exc_info=True)
+    
     # Get filter parameters
     status_filter = request.GET.get('status', '')
     date_filter = request.GET.get('date', '')
@@ -1995,6 +2007,88 @@ def staff_confirm_appointment(request, appointment_id):
     if request.method == 'POST':
         appointment.status = 'CONFIRMED'
         appointment.save()
+        
+        # Automatically create UltrasoundExam when appointment is confirmed
+        try:
+            # Check for duplicate exam (same patient + exam_date + exam_time + procedure_type)
+            # First, find the ServiceType for procedure_type
+            service_type = None
+            
+            # Try to find ServiceType by case-insensitive name matching
+            if appointment.procedure_type:
+                service_type = ServiceType.objects.filter(
+                    name__iexact=appointment.procedure_type.strip(),
+                    is_active=True
+                ).first()
+            
+            # Fallback to first active ServiceType if no match found
+            if not service_type:
+                service_type = ServiceType.objects.filter(is_active=True).first()
+                if service_type:
+                    logger.warning(
+                        f"ServiceType '{appointment.procedure_type}' not found for appointment {appointment_id}. "
+                        f"Using fallback ServiceType: {service_type.name}"
+                    )
+                else:
+                    logger.error(
+                        f"No active ServiceType found. Cannot create UltrasoundExam for appointment {appointment_id}."
+                    )
+                    messages.warning(
+                        request,
+                        'Appointment confirmed, but could not create ultrasound exam: No active service types available.'
+                    )
+            
+            # Only proceed if we have a service_type
+            if service_type:
+                # Check for duplicate exam
+                existing_exam = UltrasoundExam.objects.filter(
+                    patient=appointment.patient,
+                    exam_date=appointment.appointment_date,
+                    exam_time=appointment.appointment_time,
+                    procedure_type=service_type
+                ).first()
+                
+                if existing_exam:
+                    logger.info(
+                        f"UltrasoundExam already exists for appointment {appointment_id}. "
+                        f"Exam ID: {existing_exam.id}"
+                    )
+                    messages.info(
+                        request,
+                        'Appointment confirmed. Ultrasound exam already exists for this appointment.'
+                    )
+                else:
+                    # Create new UltrasoundExam
+                    referring_physician = appointment.notes if appointment.notes else "N/A"
+                    # Ensure referring_physician doesn't exceed max_length
+                    if len(referring_physician) > 100:
+                        referring_physician = referring_physician[:100]
+                    
+                    exam = UltrasoundExam.objects.create(
+                        patient=appointment.patient,
+                        procedure_type=service_type,
+                        exam_date=appointment.appointment_date,
+                        exam_time=appointment.appointment_time,
+                        referring_physician=referring_physician,
+                        status='PENDING',
+                        notes=appointment.notes if appointment.notes else None
+                    )
+                    logger.info(
+                        f"Created UltrasoundExam {exam.id} for appointment {appointment_id} "
+                        f"(Patient: {appointment.patient}, Procedure: {service_type.name})"
+                    )
+        
+        except Exception as e:
+            # Log error but don't prevent appointment confirmation
+            logger.error(
+                f"Error creating UltrasoundExam for appointment {appointment_id}: {str(e)}",
+                exc_info=True
+            )
+            messages.warning(
+                request,
+                'Appointment confirmed, but there was an error creating the ultrasound exam. '
+                'Please create it manually if needed.'
+            )
         
         # Send real-time notification to patient
         from .notification_utils import notify_patient_appointment_update

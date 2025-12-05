@@ -293,6 +293,40 @@ class Appointment(models.Model):
     def is_today(self):
         from django.utils import timezone
         return self.appointment_date == timezone.now().date()
+    
+    @property
+    def is_overdue_by_3_days(self):
+        """Check if appointment is 3 or more days past the appointment date."""
+        from django.utils import timezone
+        from datetime import timedelta
+        today = timezone.now().date()
+        three_days_ago = today - timedelta(days=3)
+        return self.appointment_date < three_days_ago
+    
+    def cancel_if_overdue(self):
+        """Cancel the appointment if it's 3 or more days overdue."""
+        if self.is_overdue_by_3_days and self.status in ['PENDING', 'CONFIRMED']:
+            self.status = 'CANCELLED'
+            self.save(update_fields=['status', 'updated_at'])
+            return True
+        return False
+    
+    @classmethod
+    def cancel_overdue_appointments(cls, days_overdue=3):
+        """Cancel all appointments that are overdue by the specified number of days."""
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        today = timezone.now().date()
+        cutoff_date = today - timedelta(days=days_overdue)
+        
+        overdue_appointments = cls.objects.filter(
+            appointment_date__lt=cutoff_date,
+            status__in=['PENDING', 'CONFIRMED']
+        )
+        
+        count = overdue_appointments.update(status='CANCELLED')
+        return count
 
 class Notification(models.Model):
     NOTIFICATION_TYPES = [

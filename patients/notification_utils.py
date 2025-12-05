@@ -60,11 +60,11 @@ def notify_patient_appointment_update(appointment, action):
     if action == 'confirmed':
         notification_type = 'APPOINTMENT_CONFIRMED'
         title = 'Appointment Confirmed'
-        message = f'Your {appointment.get_procedure_type_display()} appointment on {appointment.appointment_date} at {appointment.appointment_time} has been confirmed.'
+        message = f'Your {appointment.procedure_type} appointment on {appointment.appointment_date} at {appointment.appointment_time} has been confirmed.'
     elif action == 'cancelled':
         notification_type = 'APPOINTMENT_CANCELLED'
         title = 'Appointment Cancelled'
-        message = f'Your {appointment.get_procedure_type_display()} appointment on {appointment.appointment_date} at {appointment.appointment_time} has been cancelled.'
+        message = f'Your {appointment.procedure_type} appointment on {appointment.appointment_date} at {appointment.appointment_time} has been cancelled.'
     else:
         return
 
