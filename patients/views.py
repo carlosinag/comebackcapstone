@@ -204,7 +204,7 @@ def generate_ultrasound_docx(exam):
 def custom_staff_member_required(view_func):
     """
     Custom decorator that requires staff membership and redirects to forbidden page
-    instead of Django admin login.
+    instead of Django admin login. Works with both function and class-based views.
     """
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
@@ -213,6 +213,9 @@ def custom_staff_member_required(view_func):
         if not request.user.is_staff:
             return redirect('forbidden')
         return view_func(request, *args, **kwargs)
+    
+    # Support for method_decorator usage
+    wrapper.csrf_exempt = getattr(view_func, 'csrf_exempt', False)
     return wrapper
 
 class CustomStaffRequiredMixin(AccessMixin):
@@ -224,6 +227,35 @@ class CustomStaffRequiredMixin(AccessMixin):
         if not request.user.is_authenticated:
             return redirect('forbidden')
         if not request.user.is_staff:
+            return redirect('forbidden')
+        return super().dispatch(request, *args, **kwargs)
+
+def custom_admin_required(view_func):
+    """
+    Custom decorator that requires superuser status and redirects to forbidden page
+    instead of Django admin login. Works with both function and class-based views.
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('forbidden')
+        if not request.user.is_superuser:
+            return redirect('forbidden')
+        return view_func(request, *args, **kwargs)
+    
+    # Support for method_decorator usage
+    wrapper.csrf_exempt = getattr(view_func, 'csrf_exempt', False)
+    return wrapper
+
+class CustomAdminRequiredMixin(AccessMixin):
+    """
+    Custom mixin that requires superuser status and redirects to forbidden page
+    instead of Django admin login.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('forbidden')
+        if not request.user.is_superuser:
             return redirect('forbidden')
         return super().dispatch(request, *args, **kwargs)
 
@@ -241,13 +273,19 @@ def require_valid_navigation(view_func):
         if request.method == 'POST':
             return view_func(request, *args, **kwargs)
         
-        # Allow if referrer is from the same domain and a valid page
-        if referer and referer.startswith(request.build_absolute_uri('/')):
+        # Allow GET requests with valid referrer
+        # If no referrer is provided, allow it anyway (some security settings block referrers)
+        if not referer:
+            return view_func(request, *args, **kwargs)
+        
+        # Check if referrer is from the same domain and a valid page
+        if referer.startswith(request.build_absolute_uri('/')):
             # Check if referrer is from a valid page
             valid_referrer_patterns = [
                 '/',
                 '/patients/',
                 '/patient/',
+                '/exam/',
                 '/custom-admin/',
                 '/patient-portal/',
                 '/patient-appointments/',
@@ -544,12 +582,17 @@ class UltrasoundExamCreateView(CreateView):
     def get_success_url(self):
         return reverse_lazy('patient-detail', kwargs={'pk': self.object.patient.pk})
 
-@method_decorator(staff_member_required, name='dispatch')
-@method_decorator(require_valid_navigation, name='dispatch')
-class UltrasoundExamUpdateView(UpdateView):
+class UltrasoundExamUpdateView(CustomStaffRequiredMixin, UpdateView):
     model = UltrasoundExam
     form_class = UltrasoundExamForm
     template_name = 'patients/ultrasound_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        exam = self.get_object()
+        if exam.patient.is_archived:
+            messages.warning(request, 'Cannot edit an exam for an archived patient. Please unarchive the patient first.')
+            return redirect('patient-detail', pk=exam.patient.pk)
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         try:
@@ -998,6 +1041,9 @@ def patient_login(request):
 def patient_portal(request):
     if not hasattr(request.user, 'patient'):
         messages.error(request, 'Access denied. This portal is for patients only.')
+        # Redirect staff/admin users to their home dashboard
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('home-dashboard')
         return redirect('landing')
     
     patient = request.user.patient
@@ -1046,6 +1092,9 @@ def staff_login(request):
 def patient_view_exam(request, exam_id):
     if not hasattr(request.user, 'patient'):
         messages.error(request, 'Access denied. This portal is for patients only.')
+        # Redirect staff/admin users to their home dashboard
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('home-dashboard')
         return redirect('landing')
 
     exam = get_object_or_404(UltrasoundExam, id=exam_id)
@@ -1249,6 +1298,9 @@ def patient_settings(request):
     """Patient settings page."""
     if not hasattr(request.user, 'patient'):
         messages.error(request, 'Access denied. This portal is for patients only.')
+        # Redirect staff/admin users to their home dashboard
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('home-dashboard')
         return redirect('landing')
     
     patient = request.user.patient
@@ -1262,6 +1314,9 @@ def patient_change_password(request):
     """Allow patients to change their password."""
     if not hasattr(request.user, 'patient'):
         messages.error(request, 'Access denied. This portal is for patients only.')
+        # Redirect staff/admin users to their home dashboard
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('home-dashboard')
         return redirect('landing')
     
     if request.method == 'POST':
@@ -1287,6 +1342,9 @@ def patient_update_profile(request):
     """Allow patients to update their profile information."""
     if not hasattr(request.user, 'patient'):
         messages.error(request, 'Access denied. This portal is for patients only.')
+        # Redirect staff/admin users to their home dashboard
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('home-dashboard')
         return redirect('landing')
     
     patient = request.user.patient
@@ -1319,6 +1377,9 @@ def patient_download_exam(request, exam_id):
     """Allow patients to download their examination report."""
     if not hasattr(request.user, 'patient'):
         messages.error(request, 'Access denied. This portal is for patients only.')
+        # Redirect staff/admin users to their home dashboard
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('home-dashboard')
         return redirect('landing')
     
     exam = get_object_or_404(UltrasoundExam, id=exam_id)
@@ -1509,6 +1570,9 @@ def patient_appointments(request):
     """Patient appointments page."""
     if not hasattr(request.user, 'patient'):
         messages.error(request, 'Access denied. This portal is for patients only.')
+        # Redirect staff/admin users to their home dashboard
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('home-dashboard')
         return redirect('landing')
     
     patient = request.user.patient
@@ -1525,6 +1589,9 @@ def patient_bills(request):
     """Patient bills page: list bills and statuses for the logged-in patient."""
     if not hasattr(request.user, 'patient'):
         messages.error(request, 'Access denied. This portal is for patients only.')
+        # Redirect staff/admin users to their home dashboard
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('home-dashboard')
         return redirect('landing')
 
     patient = request.user.patient
@@ -1544,6 +1611,9 @@ def patient_bill_detail(request, bill_number):
     """Patient bill detail: show items, related exam info, and payment history."""
     if not hasattr(request.user, 'patient'):
         messages.error(request, 'Access denied. This portal is for patients only.')
+        # Redirect staff/admin users to their home dashboard
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('home-dashboard')
         return redirect('landing')
 
     patient = request.user.patient
@@ -1572,6 +1642,9 @@ def patient_book_appointment(request):
     """Allow patients to book new appointments."""
     if not hasattr(request.user, 'patient'):
         messages.error(request, 'Access denied. This portal is for patients only.')
+        # Redirect staff/admin users to their home dashboard
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('home-dashboard')
         return redirect('landing')
     
     # Prevent booking if the patient already has a pending appointment
@@ -1615,6 +1688,9 @@ def patient_update_appointment(request, appointment_id):
     """Allow patients to update their appointments."""
     if not hasattr(request.user, 'patient'):
         messages.error(request, 'Access denied. This portal is for patients only.')
+        # Redirect staff/admin users to their home dashboard
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('home-dashboard')
         return redirect('landing')
     
     appointment = get_object_or_404(Appointment, id=appointment_id)
@@ -1647,6 +1723,9 @@ def patient_cancel_appointment(request, appointment_id):
     """Allow patients to cancel their appointments."""
     if not hasattr(request.user, 'patient'):
         messages.error(request, 'Access denied. This portal is for patients only.')
+        # Redirect staff/admin users to their home dashboard
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('home-dashboard')
         return redirect('landing')
     
     appointment = get_object_or_404(Appointment, id=appointment_id)
