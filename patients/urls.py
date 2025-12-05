@@ -59,6 +59,7 @@ urlpatterns = [
     # API endpoints
     path('api/exams/<int:exam_id>/annotations/', api.exam_annotations, name='exam-annotations'),
     path('api/exams/<int:exam_id>/save-preview/', api.save_annotation_preview, name='save-annotation-preview'),
+    path('api/appointments/calendar-counts/', api.appointment_calendar_counts, name='appointment-calendar-counts'),
     path('patient/<int:patient_id>/upload-image/', views.exam_image_upload, name='exam-image-upload'),
     
     # Custom admin interface

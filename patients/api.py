@@ -6,7 +6,8 @@ from django.core.exceptions import ValidationError
 from django.contrib import messages
 from django.contrib.messages import add_message, INFO
 from .models import (
-    UltrasoundImage, 
+    UltrasoundImage,
+    Appointment,
 #     PelvicUltrasoundMeasurements,
 #     AbdominalUltrasoundMeasurements,
 #     BreastUltrasoundMeasurements,
@@ -16,7 +17,9 @@ import json
 import logging
 import base64
 from django.core.files.base import ContentFile
-from datetime import datetime
+from datetime import datetime, date
+from django.utils.dateparse import parse_date
+from django.db.models import Count
 
 logger = logging.getLogger(__name__)
 
@@ -171,4 +174,59 @@ def save_annotation_preview(request, exam_id):
         return JsonResponse({
             'status': 'error',
             'message': 'Error saving annotation preview'
+        }, status=500)
+
+@require_http_methods(["GET"])
+def appointment_calendar_counts(request):
+    """API endpoint to get appointment counts for a date range."""
+    # Check authentication and staff status
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Authentication required'
+        }, status=403)
+    
+    try:
+        start_date_str = request.GET.get('start_date')
+        end_date_str = request.GET.get('end_date')
+        
+        if not start_date_str or not end_date_str:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'start_date and end_date parameters are required'
+            }, status=400)
+        
+        start_date = parse_date(start_date_str)
+        end_date = parse_date(end_date_str)
+        
+        if not start_date or not end_date:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid date format. Use YYYY-MM-DD'
+            }, status=400)
+        
+        # Get appointment counts grouped by date
+        appointments = Appointment.objects.filter(
+            appointment_date__gte=start_date,
+            appointment_date__lte=end_date
+        ).values('appointment_date').annotate(
+            count=Count('id')
+        ).order_by('appointment_date')
+        
+        # Convert to dictionary with date strings as keys
+        counts = {}
+        for item in appointments:
+            date_str = item['appointment_date'].strftime('%Y-%m-%d')
+            counts[date_str] = item['count']
+        
+        return JsonResponse({
+            'status': 'success',
+            'counts': counts
+        })
+        
+    except Exception as e:
+        logger.error(f'Error fetching calendar counts: {str(e)}')
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Error fetching appointment counts'
         }, status=500)

@@ -57,105 +57,154 @@
                         </div>
                     </div>
 
-                    <!-- Filters -->
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <form method="get" class="d-flex gap-2">
-                                <select name="status" class="form-select">
-                                    <option value="">All Statuses</option>
-                                    <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>Pending</option>
-                                    <option value="CONFIRMED" {% if status_filter == 'CONFIRMED' %}selected{% endif %}>Confirmed</option>
-                                    <option value="CANCELLED" {% if status_filter == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
-                                    <option value="COMPLETED" {% if status_filter == 'COMPLETED' %}selected{% endif %}>Completed</option>
-                                </select>
-                                <input type="date" name="date" class="form-control" value="{{ date_filter }}" placeholder="Filter by date">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-filter me-1"></i>Filter
-                                </button>
-                                <a href="{% url 'staff-appointments' %}" class="btn btn-outline-secondary">
-                                    <i class="fas fa-times me-1"></i>Clear
-                                </a>
-                            </form>
+                    <!-- Main Content: Table/Filters on Left, Calendar on Right -->
+                    <div class="row">
+                        <!-- Left Column: Table and Filters -->
+                        <div class="col-lg-8 mb-4">
+                            <!-- Appointments Table -->
+                            {% if appointments %}
+                                <div class="table-responsive mb-4">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Patient</th>
+                                                <th>Date & Time</th>
+                                                <th>Procedure</th>
+                                                <th>Status</th>
+                                                <th>Contact</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for appointment in appointments %}
+                                            <tr>
+                                                <td>
+                                                    <div>
+                                                        <strong>{{ appointment.patient.first_name }} {{ appointment.patient.last_name }}</strong>
+                                                        <br>
+                                                        <small class="text-muted">ID: {{ appointment.patient.id }}</small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <strong>{{ appointment.appointment_date|date:"M d, Y" }}</strong>
+                                                        <br>
+                                                        <small class="text-muted">{{ appointment.appointment_time|time:"g:i A" }}</small>
+                                                    </div>
+                                                </td>
+                                                <td>{{ appointment.procedure_type }}</td>
+                                                <td>
+                                                    {% if appointment.status == 'PENDING' %}
+                                                        <span class="badge bg-warning">Pending</span>
+                                                    {% elif appointment.status == 'CONFIRMED' %}
+                                                        <span class="badge bg-success">Confirmed</span>
+                                                    {% elif appointment.status == 'CANCELLED' %}
+                                                        <span class="badge bg-danger">Cancelled</span>
+                                                    {% elif appointment.status == 'COMPLETED' %}
+                                                        <span class="badge bg-info">Completed</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <small class="text-muted">{{ appointment.patient.contact_number }}</small>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <a href="{% url 'staff-appointment-detail' appointment.id %}" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        {% if appointment.status == 'PENDING' %}
+                                                            <a href="{% url 'staff-confirm-appointment' appointment.id %}" class="btn btn-sm btn-outline-success">
+                                                                <i class="fas fa-check"></i>
+                                                            </a>
+                                                            <a href="{% url 'staff-cancel-appointment' appointment.id %}" class="btn btn-sm btn-outline-danger">
+                                                                <i class="fas fa-times"></i>
+                                                            </a>
+                                                        {% elif appointment.status == 'CONFIRMED' %}
+                                                            <a href="{% url 'staff-complete-appointment' appointment.id %}" class="btn btn-sm btn-outline-info">
+                                                                <i class="fas fa-check-double"></i>
+                                                            </a>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5 mb-4">
+                                    <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+                                    <h5 class="text-muted">No Appointments Found</h5>
+                                    <p class="text-muted">No appointments match the current filters.</p>
+                                </div>
+                            {% endif %}
+
+                            <!-- Filters -->
+                            <div class="card shadow-sm">
+                                <div class="card-header bg-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-filter me-2"></i>Filters
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <form method="get" class="d-flex gap-2">
+                                        <select name="status" class="form-select">
+                                            <option value="">All Statuses</option>
+                                            <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>Pending</option>
+                                            <option value="CONFIRMED" {% if status_filter == 'CONFIRMED' %}selected{% endif %}>Confirmed</option>
+                                            <option value="CANCELLED" {% if status_filter == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                                            <option value="COMPLETED" {% if status_filter == 'COMPLETED' %}selected{% endif %}>Completed</option>
+                                        </select>
+                                        <input type="date" name="date" class="form-control" value="{{ date_filter }}" placeholder="Filter by date">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-filter me-1"></i>Filter
+                                        </button>
+                                        <a href="{% url 'staff-appointments' %}" class="btn btn-outline-secondary">
+                                            <i class="fas fa-times me-1"></i>Clear
+                                        </a>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Calendar -->
+                        <div class="col-lg-4 mb-4">
+                            <div class="card shadow-sm">
+                                <div class="card-header bg-white">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-calendar me-2"></i>Appointment Calendar
+                                        </h6>
+                                        <div class="d-flex gap-2">
+                                            <button id="prevMonth" class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-chevron-left"></i>
+                                            </button>
+                                            <span id="currentMonthYear" class="align-self-center px-3 fw-bold"></span>
+                                            <button id="nextMonth" class="btn btn-sm btn-outline-secondary" disabled>
+                                                <i class="fas fa-chevron-right"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div id="calendarContainer">
+                                        <div class="calendar-grid">
+                                            <div class="calendar-weekdays">
+                                                <div class="calendar-weekday">Sun</div>
+                                                <div class="calendar-weekday">Mon</div>
+                                                <div class="calendar-weekday">Tue</div>
+                                                <div class="calendar-weekday">Wed</div>
+                                                <div class="calendar-weekday">Thu</div>
+                                                <div class="calendar-weekday">Fri</div>
+                                                <div class="calendar-weekday">Sat</div>
+                                            </div>
+                                            <div id="calendarDays" class="calendar-days"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- Appointments Table -->
-                    {% if appointments %}
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Patient</th>
-                                        <th>Date & Time</th>
-                                        <th>Procedure</th>
-                                        <th>Status</th>
-                                        <th>Contact</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for appointment in appointments %}
-                                    <tr>
-                                        <td>
-                                            <div>
-                                                <strong>{{ appointment.patient.first_name }} {{ appointment.patient.last_name }}</strong>
-                                                <br>
-                                                <small class="text-muted">ID: {{ appointment.patient.id }}</small>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div>
-                                                <strong>{{ appointment.appointment_date|date:"M d, Y" }}</strong>
-                                                <br>
-                                                <small class="text-muted">{{ appointment.appointment_time|time:"g:i A" }}</small>
-                                            </div>
-                                        </td>
-                                        <td>{{ appointment.procedure_type }}</td>
-                                        <td>
-                                            {% if appointment.status == 'PENDING' %}
-                                                <span class="badge bg-warning">Pending</span>
-                                            {% elif appointment.status == 'CONFIRMED' %}
-                                                <span class="badge bg-success">Confirmed</span>
-                                            {% elif appointment.status == 'CANCELLED' %}
-                                                <span class="badge bg-danger">Cancelled</span>
-                                            {% elif appointment.status == 'COMPLETED' %}
-                                                <span class="badge bg-info">Completed</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <small class="text-muted">{{ appointment.patient.contact_number }}</small>
-                                        </td>
-                                        <td>
-                                            <div class="btn-group" role="group">
-                                                <a href="{% url 'staff-appointment-detail' appointment.id %}" class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                {% if appointment.status == 'PENDING' %}
-                                                    <a href="{% url 'staff-confirm-appointment' appointment.id %}" class="btn btn-sm btn-outline-success">
-                                                        <i class="fas fa-check"></i>
-                                                    </a>
-                                                    <a href="{% url 'staff-cancel-appointment' appointment.id %}" class="btn btn-sm btn-outline-danger">
-                                                        <i class="fas fa-times"></i>
-                                                    </a>
-                                                {% elif appointment.status == 'CONFIRMED' %}
-                                                    <a href="{% url 'staff-complete-appointment' appointment.id %}" class="btn btn-sm btn-outline-info">
-                                                        <i class="fas fa-check-double"></i>
-                                                    </a>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
-                            <h5 class="text-muted">No Appointments Found</h5>
-                            <p class="text-muted">No appointments match the current filters.</p>
-                        </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -180,5 +229,342 @@
     .table td {
         vertical-align: middle;
     }
+    
+    /* Calendar Styles */
+    .calendar-grid {
+        width: 100%;
+    }
+    
+    .calendar-weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+        margin-bottom: 8px;
+    }
+    
+    .calendar-weekday {
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.75rem;
+        color: #6c757d;
+        padding: 6px 2px;
+    }
+    
+    .calendar-days {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+    }
+    
+    .calendar-day {
+        aspect-ratio: 1;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 6px 2px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        cursor: pointer;
+        transition: all 0.2s;
+        background-color: #fff;
+        position: relative;
+        min-height: 40px;
+    }
+    
+    .calendar-day:hover {
+        background-color: #f8f9fa;
+        border-color: #0d6efd;
+        transform: translateY(-1px);
+    }
+    
+    .calendar-day.past-day {
+        background-color: #f8f9fa;
+        color: #6c757d;
+    }
+    
+    .calendar-day.today {
+        background-color: #e7f3ff;
+        border-color: #0d6efd;
+        font-weight: 600;
+    }
+    
+    .calendar-day.selected-day {
+        background-color: #cfe2ff;
+        border-color: #0a58ca;
+        font-weight: 700;
+        box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+    }
+    
+    .calendar-day.selected-day.today {
+        background-color: #b6d4fe;
+        border-color: #0a58ca;
+    }
+    
+    .calendar-day.future-day {
+        background-color: #fff;
+        color: #212529;
+    }
+    
+    .calendar-day.other-month {
+        opacity: 0.3;
+        cursor: default;
+    }
+    
+    .calendar-day-number {
+        font-size: 0.8rem;
+        margin-bottom: 2px;
+    }
+    
+    .calendar-day-count {
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    
+    .calendar-day-count .badge {
+        font-size: 0.65rem;
+        padding: 2px 4px;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 991.98px) {
+        .col-lg-8, .col-lg-4 {
+            margin-bottom: 2rem;
+        }
+    }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    'use strict';
+    
+    let currentDate = new Date();
+    let appointmentCounts = {};
+    
+    // Format date as YYYY-MM-DD
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    
+    // Get first day of month
+    function getFirstDayOfMonth(year, month) {
+        return new Date(year, month, 1).getDay();
+    }
+    
+    // Get days in month
+    function getDaysInMonth(year, month) {
+        return new Date(year, month + 1, 0).getDate();
+    }
+    
+    // Check if date is today
+    function isToday(date) {
+        const today = new Date();
+        return date.getDate() === today.getDate() &&
+               date.getMonth() === today.getMonth() &&
+               date.getFullYear() === today.getFullYear();
+    }
+    
+    // Check if date is in the past
+    function isPastDate(date) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        date.setHours(0, 0, 0, 0);
+        return date < today;
+    }
+    
+    // Check if date is in the future
+    function isFutureDate(date) {
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        date.setHours(23, 59, 59, 999);
+        return date > today;
+    }
+    
+    // Check if we can navigate to future months (only if displayed month is before current month)
+    function canNavigateToFuture() {
+        const today = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth();
+        const todayYear = today.getFullYear();
+        const todayMonth = today.getMonth();
+        
+        // Can navigate forward if displayed month/year is before current month/year
+        if (currentYear < todayYear) {
+            return true;
+        }
+        if (currentYear === todayYear && currentMonth < todayMonth) {
+            return true;
+        }
+        return false;
+    }
+    
+    // Load appointment counts for current month
+    function loadAppointmentCounts() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const startDate = new Date(year, month, 1);
+        const endDate = new Date(year, month + 1, 0);
+        
+        const startDateStr = formatDate(startDate);
+        const endDateStr = formatDate(endDate);
+        
+        $.ajax({
+            url: '/api/appointments/calendar-counts/',
+            method: 'GET',
+            data: {
+                start_date: startDateStr,
+                end_date: endDateStr
+            },
+            success: function(data) {
+                appointmentCounts = data.counts || {};
+                renderCalendar();
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading appointment counts:', error);
+                appointmentCounts = {};
+                renderCalendar();
+            }
+        });
+    }
+    
+    // Render calendar
+    function renderCalendar() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const firstDay = getFirstDayOfMonth(year, month);
+        const daysInMonth = getDaysInMonth(year, month);
+        const today = new Date();
+        
+        // Get selected date from URL if present
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedDateStr = urlParams.get('date');
+        let selectedDate = null;
+        if (selectedDateStr) {
+            const parts = selectedDateStr.split('-');
+            if (parts.length === 3) {
+                const y = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10) - 1;
+                const d = parseInt(parts[2], 10);
+                if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                    selectedDate = new Date(y, m, d);
+                }
+            }
+        }
+        
+        // Update month/year display
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December'];
+        $('#currentMonthYear').text(`${monthNames[month]} ${year}`);
+        
+        // Update next button state
+        const canGoNext = canNavigateToFuture();
+        $('#nextMonth').prop('disabled', !canGoNext);
+        
+        // Clear calendar
+        const calendarDays = $('#calendarDays');
+        calendarDays.empty();
+        
+        // Add empty cells for days before month starts
+        for (let i = 0; i < firstDay; i++) {
+            const emptyDay = $('<div class="calendar-day other-month"></div>');
+            calendarDays.append(emptyDay);
+        }
+        
+        // Add days of the month
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, month, day);
+            const dateStr = formatDate(date);
+            const count = appointmentCounts[dateStr] || 0;
+            
+            const dayElement = $('<div class="calendar-day"></div>');
+            
+            // Check if this is the selected date
+            const isSelected = selectedDate && 
+                date.getDate() === selectedDate.getDate() &&
+                date.getMonth() === selectedDate.getMonth() &&
+                date.getFullYear() === selectedDate.getFullYear();
+            
+            // Add classes based on date
+            if (isSelected) {
+                dayElement.addClass('selected-day');
+            } else if (isToday(date)) {
+                dayElement.addClass('today');
+            } else if (isPastDate(date)) {
+                dayElement.addClass('past-day');
+            } else {
+                dayElement.addClass('future-day');
+            }
+            
+            // Day number
+            const dayNumber = $('<div class="calendar-day-number"></div>').text(day);
+            dayElement.append(dayNumber);
+            
+            // Appointment count badge
+            if (count > 0) {
+                const countBadge = $('<div class="calendar-day-count"></div>');
+                const badge = $('<span class="badge bg-primary"></span>').text(count);
+                countBadge.append(badge);
+                dayElement.append(countBadge);
+            }
+            
+            // Click handler to filter by date
+            dayElement.on('click', function() {
+                if (!dayElement.hasClass('other-month')) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('date', dateStr);
+                    window.location.href = url.toString();
+                }
+            });
+            
+            calendarDays.append(dayElement);
+        }
+    }
+    
+    // Previous month
+    $('#prevMonth').on('click', function() {
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        loadAppointmentCounts();
+    });
+    
+    // Next month (only if not in future)
+    $('#nextMonth').on('click', function() {
+        if (canNavigateToFuture()) {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            loadAppointmentCounts();
+        }
+    });
+    
+    // Parse date from URL if present
+    function parseDateFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const dateParam = urlParams.get('date');
+        if (dateParam) {
+            const parts = dateParam.split('-');
+            if (parts.length === 3) {
+                const year = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1; // JavaScript months are 0-indexed
+                const day = parseInt(parts[2], 10);
+                if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+                    return new Date(year, month, day);
+                }
+            }
+        }
+        return null;
+    }
+    
+    // Initialize calendar - check for date filter in URL
+    const urlDate = parseDateFromURL();
+    if (urlDate) {
+        // Set calendar to display the month of the selected date
+        currentDate = new Date(urlDate.getFullYear(), urlDate.getMonth(), 1);
+    }
+    
+    loadAppointmentCounts();
+})();
+</script>
 {% endblock %} 
