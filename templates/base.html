@@ -43,15 +43,18 @@
             position: fixed;
             height: 100vh;
             z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
         }
         
         #sidebar .sidebar-header {
             padding: 15px;
-            background: #1a2634;
+            background: #2c3e50;
         }
         
         #sidebar ul.components {
-            padding: 20px 0;
+            flex-grow: 1;
         }
         
         #sidebar ul li a {
@@ -60,6 +63,7 @@
             color: white;
             text-decoration: none;
             transition: all 0.3s;
+            margin-bottom: 2px;
         }
         
         #sidebar ul li a:hover {
@@ -110,6 +114,136 @@
                 display: block;
             }
         }
+
+        /* Profile Dropdown Styling */
+        .sidebar-profile {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 15px !important;
+            transition: all 0.3s ease;
+            position: relative;
+            margin-bottom: 10px !important;
+        }
+
+        .sidebar-profile:hover {
+            background: rgba(52, 152, 219, 0.1);
+        }
+
+        .sidebar-profile:focus {
+            outline: none;
+            background: rgba(52, 152, 219, 0.15);
+        }
+
+        .sidebar-profile .avatar {
+            flex-shrink: 0;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            margin-right: 12px;
+        }
+
+        .sidebar-profile:hover .avatar {
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.4);
+            transform: scale(1.05);
+        }
+
+        .sidebar-profile span {
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+
+        .sidebar-profile i {
+            transition: transform 0.3s ease;
+            margin-left: 12px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-profile[aria-expanded="true"] i {
+            transform: rotate(180deg);
+        }
+
+        .profile-dropdown {
+            min-width: 200px !important;
+            border-radius: 12px !important;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25) !important;
+            border: 1px solid rgba(52, 152, 219, 0.2) !important;
+            background: white !important;
+            padding: 10px 0 !important;
+            animation: dropdownSlideIn 0.3s ease !important;
+            transform-origin: top left;
+            position: fixed !important;
+        }
+
+        .profile-dropdown::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 75%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-right: 8px solid white;
+            filter: drop-shadow(-2px 0 2px rgba(0, 0, 0, 0.1));
+        }
+
+        @keyframes dropdownSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-dropdown.hide {
+            animation: dropdownSlideOut 0.3s ease !important;
+        }
+
+        @keyframes dropdownSlideOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+
+        .profile-dropdown .dropdown-item {
+            padding: 12px 16px !important;
+            color: #2c3e50 !important;
+            font-weight: 500;
+            transition: all 0.2s ease !important;
+            border-left: 3px solid transparent;
+        }
+
+        .profile-dropdown .dropdown-item:hover {
+            background: #ecf0f1 !important;
+            border-left-color: #3498db;
+            padding-left: 18px !important;
+        }
+
+        .profile-dropdown .dropdown-item i {
+            margin-right: 10px;
+            width: 16px;
+            text-align: center;
+        }
+
+        .profile-dropdown .dropdown-item.text-danger {
+            color: #e74c3c !important;
+        }
+
+        .profile-dropdown .dropdown-item.text-danger:hover {
+            background: #fadbd8 !important;
+            border-left-color: #e74c3c;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -120,49 +254,133 @@
             <div class="sidebar-header">
                 <h5 class="mb-0">
                     <img src="{% static 'logo.png' %}" alt="Clinic Logo" style="height:2em; width:auto; margin:0 6px 0 0; vertical-align:middle;">
-                    MSRA Clinic
                 </h5>            
             </div>
 
-            <ul class="list-unstyled components">
-                <li>
-                    <a href="{% url 'home-dashboard' %}" class="{% if request.resolver_match.url_name == 'home-dashboard' %}active{% endif %}">
-                        <i class="fas fa-home"></i> Dashboard
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'patient-list' %}" class="{% if request.resolver_match.url_name == 'patient-list' and not request.GET.view %}active{% endif %}">
-                        <i class="fas fa-users"></i> Patient List
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'patient-list' %}?view=annotation" class="{% if request.resolver_match.url_name == 'patient-list' and request.GET.view == 'annotation' %}active{% endif %}">
-                        <i class="fas fa-draw-polygon"></i> Image Annotation
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'billing:bill_list' %}" class="{% if 'billing' in request.path %}active{% endif %}">
-                        <i class="fas fa-file-invoice-dollar"></i> Billing
-                    </a>
-                </li>
-                
-                <li class="mt-auto">
-                    <a href="{% url 'admin_login' %}" class="{% if request.resolver_match.url_name == 'admin_login' %}active{% endif %}">
-                        <i class="fas fa-user-shield"></i> Admin Panel
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'staff_logout' %}" class="text-danger">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </li>
+            <ul class="list-unstyled components flex-grow-1">
+                <!-- ADMIN SIDEBAR -->
+                {% if user.is_superuser %}
+                    <li>
+                        <a href="{% url 'admin_dashboard' %}" class="{% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'admin_analytics' %}" class="{% if request.resolver_match.url_name == 'admin_analytics' %}active{% endif %}">
+                            <i class="fas fa-chart-bar"></i> Analytics
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'admin_patient_list' %}" class="{% if request.resolver_match.url_name == 'admin_patient_list' %}active{% endif %}">
+                            <i class="fas fa-users"></i> Patients
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'admin-archived-patient-list' %}" class="{% if request.resolver_match.url_name == 'admin-archived-patient-list' %}active{% endif %}">
+                            <i class="fas fa-archive"></i> Archived Patients
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'admin_examinations' %}" class="{% if request.resolver_match.url_name == 'admin_examinations' %}active{% endif %}">
+                            <i class="fas fa-notes-medical"></i> Examinations
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'admin_billing_report' %}" class="{% if request.resolver_match.url_name == 'admin_billing_report' %}active{% endif %}">
+                            <i class="fas fa-file-invoice-dollar"></i> Billing Report
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'admin_prices' %}" class="{% if request.resolver_match.url_name == 'admin_prices' %}active{% endif %}">
+                            <i class="fas fa-tags"></i> Prices
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'admin_users' %}" class="{% if request.resolver_match.url_name == 'admin_users' %}active{% endif %}">
+                            <i class="fas fa-users-cog"></i> Users
+                        </a>
+                    </li>
+                    <!-- <li>
+                        <a href="{% url 'home-dashboard' %}">
+                            <i class="fas fa-arrow-left"></i> Back to Site
+                        </a>
+                    </li> -->
+                <!-- STAFF SIDEBAR -->
+                {% else %}
+                    <li>
+                        <a href="{% url 'home-dashboard' %}" class="{% if request.resolver_match.url_name == 'home-dashboard' %}active{% endif %}">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'patient-list' %}" class="{% if request.resolver_match.url_name == 'patient-list' and not request.GET.view %}active{% endif %}">
+                            <i class="fas fa-users"></i> Patient List
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'patient-list' %}?view=annotation" class="{% if request.resolver_match.url_name == 'patient-list' and request.GET.view == 'annotation' %}active{% endif %}">
+                            <i class="fas fa-draw-polygon"></i> Image Annotation
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'billing:bill_list' %}" class="{% if 'billing' in request.path %}active{% endif %}">
+                            <i class="fas fa-file-invoice-dollar"></i> Billing
+                        </a>
+                    </li>
+                    <li class="mt-auto">
+                        <a href="{% url 'admin_login' %}" class="{% if request.resolver_match.url_name == 'admin_login' %}active{% endif %}">
+                            <i class="fas fa-user-shield"></i> Admin Panel
+                        </a>
+                    </li>
+                {% endif %}
             </ul>
+
+            <!-- Profile Dropdown -->
+            {% if user.is_authenticated and user.is_staff or user.is_superuser %}
+            <div class="sidebar-profile d-flex align-items-center mb-3 px-3 w-100" id="sidebarProfile" tabindex="0" aria-expanded="false">
+                <div class="avatar rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                     style="width:2rem;height:2rem;font-size:1rem;">
+                    {{ user.first_name|slice:':1' }}{{ user.last_name|slice:':1' }}
+                </div>
+                <span class="fw-semibold">{{ user.first_name }} {{ user.last_name }}</span>
+                <i class="fas fa-caret-down"></i>
+
+                <div class="profile-dropdown dropdown-menu shadow" id="profileDropdown"
+                     style="display:none;">
+                    <!-- Admin Logout -->
+                    {% if user.is_superuser %}
+                        <form id="logoutForm" method="post" action="{% url 'admin_logout' %}" style="display:none;">
+                            {% csrf_token %}
+                        </form>
+                        <button class="dropdown-item text-danger" id="profileLogoutBtn" type="button">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    <!-- Staff Logout -->
+                    {% else %}
+                        <button class="dropdown-item" id="profileSettingsBtn" type="button">
+                            <i class="fas fa-sliders-h"></i> Settings
+                        </button>
+                        <button class="dropdown-item text-danger" id="profileLogoutBtn" type="button">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </nav>
 
         <!-- Mobile Toggle Button -->
         <button class="btn btn-primary sidebar-toggle" type="button">
             <i class="fas fa-bars"></i>
         </button>
+
+        {% if user.is_superuser %}
+        <!-- Floating back button for admins when no sidebar item is active -->
+        <button id="adminBackBtn" class="btn btn-secondary shadow d-flex align-items-center" style="display:none !important; position:fixed; bottom:20px; right:20px; z-index:1100; border-radius:999px; padding:8px 12px; gap:8px; min-height:44px;" aria-label="Back to admin dashboard" title="Back to Admin Dashboard" role="button">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i>
+            <span style="font-weight:600; font-size:0.95rem; color:inherit;">Back to Dashboard</span>
+        </button>
+        {% endif %}
 
         <!-- Page Content -->
         <div id="content">
@@ -174,7 +392,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="{% static 'js/notifications.js' %}"></script>
+    {% if not user.is_superuser %}
     <script src="{% static 'js/dashboard.js' %}"></script>
+    {% endif %}
     <script>
         $(document).ready(function() {
             const sidebarToggle = document.querySelector('.sidebar-toggle');
@@ -213,6 +433,55 @@
                     {% endfor %}
                 {% endif %}
             }, 100);
+
+            // Floating admin back button: show only for admins and only when no sidebar item is active
+            (function() {
+                var $adminBack = $('#adminBackBtn');
+                if (!$adminBack.length) return; // not an admin or button not rendered
+
+                function updateBackButtonVisibility() {
+                    // consider any active link/list-item or aria-current in the sidebar as "page selected"
+                    var hasActive = $('#sidebar ul.components a.active, #sidebar ul.components li.active, #sidebar ul.components a[aria-current="page"], #sidebar ul.components .active').length > 0;
+                    if (!hasActive) {
+                        // show with fade only when appropriate
+                        $adminBack.stop(true, true).fadeIn(200);
+                    } else {
+                        $adminBack.stop(true, true).fadeOut(150);
+                    }
+                }
+
+                // initial check with slight delay to ensure active classes are rendered by server
+                setTimeout(updateBackButtonVisibility, 50);
+
+                // hide immediately on early navigation events (prevents brief fade during page unload)
+                $('#sidebar ul.components a').on('mousedown touchstart', function() {
+                    $adminBack.stop(true, true).hide();
+                });
+
+                // also hide on beforeunload to prevent flash while the browser navigates
+                window.addEventListener('beforeunload', function() {
+                    $adminBack.style.display = 'none';
+                });
+
+                // if navigation does not unload page, update visibility after click
+                $('#sidebar ul.components a').on('click', function() {
+                    setTimeout(updateBackButtonVisibility, 80);
+                });
+
+                // click / keyboard activation: go back to admin dashboard
+                $adminBack.on('click keydown', function(e) {
+                    if (e.type === 'click' || e.key === 'Enter' || e.key === ' ') {
+                        window.location.href = "{% url 'admin_dashboard' %}";
+                    }
+                });
+
+                // hide on Esc
+                $(document).on('keydown', function(e) {
+                    if (e.key === 'Escape' && $adminBack.is(':visible')) {
+                        $adminBack.stop(true, true).fadeOut(150);
+                    }
+                });
+            })();
         });
 
         // Test function for notifications (remove after testing)
@@ -238,11 +507,83 @@
         };
     </script>
     
-    <!-- Real-time Notifications -->
-    {% if user.is_authenticated %}
+    <!-- Real-time Notifications for Staff -->
+    {% if user.is_authenticated and not user.is_superuser %}
     <script src="{% static 'js/realtime_notifications.js' %}"></script>
+    {% endif %}
+    
+    <!-- Profile Dropdown Script -->
+    {% if user.is_authenticated and user.is_staff or user.is_superuser %}
+    <script>
+    $(document).ready(function() {
+        var $profile = $('#sidebarProfile');
+        var $dropdown = $('#profileDropdown');
+        
+        function positionDropdown() {
+            var profileRect = $profile[0].getBoundingClientRect();
+            var sidebarWidth = 250; // var(--sidebar-width)
+            $dropdown.css({
+                'top': (profileRect.top + profileRect.height - 110) + 'px',
+                'left': (sidebarWidth + 15) + 'px'
+            });
+        }
+        
+        $profile.on('click keydown', function(e) {
+            if(e.type === 'click' || e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const isVisible = $dropdown.is(':visible');
+                
+                if(isVisible) {
+                    $dropdown.addClass('hide');
+                    setTimeout(() => {
+                        $dropdown.hide().removeClass('hide');
+                        $profile.attr('aria-expanded', 'false');
+                    }, 300);
+                } else {
+                    positionDropdown();
+                    $dropdown.show();
+                    $profile.attr('aria-expanded', 'true');
+                }
+            }
+        });
+        
+        // Hide dropdown on click outside
+        $(document).on('mousedown', function(e) {
+            if (!$profile.is(e.target) && $profile.has(e.target).length === 0 && 
+                !$dropdown.is(e.target) && $dropdown.has(e.target).length === 0) {
+                if($dropdown.is(':visible')) {
+                    $dropdown.addClass('hide');
+                    setTimeout(() => {
+                        $dropdown.hide().removeClass('hide');
+                        $profile.attr('aria-expanded', 'false');
+                    }, 300);
+                }
+            }
+        });
+
+        // Logout button click
+        $('#profileLogoutBtn').on('click', function() {
+            {% if user.is_superuser %}
+                document.getElementById('logoutForm').submit();
+            {% else %}
+                window.location.href = "{% url 'staff_logout' %}";
+            {% endif %}
+        });
+        
+        // Hide dropdown on Esc
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape' && $dropdown.is(':visible')) {
+                $dropdown.addClass('hide');
+                setTimeout(() => {
+                    $dropdown.hide().removeClass('hide');
+                    $profile.attr('aria-expanded', 'false');
+                }, 300);
+            }
+        });
+    });
+    </script>
     {% endif %}
     
     {% block extra_js %}{% endblock %}
 </body>
-</html> 
+</html>

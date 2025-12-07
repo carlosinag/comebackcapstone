@@ -27,15 +27,19 @@
             position: fixed;
             height: 100vh;
             z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
         }
         
         #sidebar .sidebar-header {
-            padding: 20px;
-            background: #1a2634;
+            padding: 15px;
+            background: #2c3e50;
         }
         
         #sidebar ul.components {
             padding: 20px 0;
+            flex-grow: 1;
         }
         
         #sidebar ul li a {
@@ -55,31 +59,6 @@
         }
         
         #sidebar ul li a i {
-            margin-right: 10px;
-            width: 20px;
-            text-align: center;
-        }
-        
-        .logout-btn {
-            padding: 15px 20px;
-            display: block;
-            color: #dc3545 !important;
-            text-decoration: none;
-            transition: all 0.3s;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-            font-size: inherit;
-            cursor: pointer;
-        }
-        
-        .logout-btn:hover {
-            background: #34495e !important;
-            color: #dc3545 !important;
-        }
-        
-        .logout-btn i {
             margin-right: 10px;
             width: 20px;
             text-align: center;
@@ -119,21 +98,150 @@
                 display: block;
             }
         }
+
+        /* Profile Dropdown Styling */
+        .sidebar-profile {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 15px !important;
+            transition: all 0.3s ease;
+            position: relative;
+            margin-bottom: 10px !important;
+        }
+
+        .sidebar-profile:hover {
+            background: rgba(52, 152, 219, 0.1);
+        }
+
+        .sidebar-profile:focus {
+            outline: none;
+            background: rgba(52, 152, 219, 0.15);
+        }
+
+        .sidebar-profile .avatar {
+            flex-shrink: 0;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            margin-right: 12px;
+        }
+
+        .sidebar-profile:hover .avatar {
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.4);
+            transform: scale(1.05);
+        }
+
+        .sidebar-profile span {
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+
+        .sidebar-profile i {
+            transition: transform 0.3s ease;
+            margin-left: 12px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-profile[aria-expanded="true"] i {
+            transform: rotate(180deg);
+        }
+
+        .profile-dropdown {
+            min-width: 200px !important;
+            border-radius: 12px !important;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25) !important;
+            border: 1px solid rgba(52, 152, 219, 0.2) !important;
+            background: white !important;
+            padding: 10px 0 !important;
+            animation: dropdownSlideIn 0.3s ease !important;
+            transform-origin: top left;
+            position: fixed !important;
+        }
+
+        .profile-dropdown::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 75%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-right: 8px solid white;
+            filter: drop-shadow(-2px 0 2px rgba(0, 0, 0, 0.1));
+        }
+
+        @keyframes dropdownSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-dropdown.hide {
+            animation: dropdownSlideOut 0.3s ease !important;
+        }
+
+        @keyframes dropdownSlideOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+
+        .profile-dropdown .dropdown-item {
+            padding: 12px 16px !important;
+            color: #2c3e50 !important;
+            font-weight: 500;
+            transition: all 0.2s ease !important;
+            border-left: 3px solid transparent;
+        }
+
+        .profile-dropdown .dropdown-item:hover {
+            background: #ecf0f1 !important;
+            border-left-color: #3498db;
+            padding-left: 18px !important;
+        }
+
+        .profile-dropdown .dropdown-item i {
+            margin-right: 10px;
+            width: 16px;
+            text-align: center;
+        }
+
+        .profile-dropdown .dropdown-item.text-danger {
+            color: #e74c3c !important;
+        }
+
+        .profile-dropdown .dropdown-item.text-danger:hover {
+            background: #fadbd8 !important;
+            border-left-color: #e74c3c;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <div class="wrapper">
-        <!-- Sidebar -->
+                <!-- Sidebar -->
         <nav id="sidebar">
             <div class="sidebar-header">
                 <h5 class="mb-0">
                     <img src="{% static 'logo.png' %}" alt="Clinic Logo" style="height:2em; width:auto; margin:0 6px 0 0; vertical-align:middle;">
-                    Admin Dashboard
                 </h5>
             </div>
 
-            <ul class="list-unstyled components">
+            <ul class="list-unstyled components flex-grow-1">
                 <li>
                     <a href="{% url 'admin_dashboard' %}" class="{% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
                         <i class="fas fa-home"></i> Dashboard
@@ -174,20 +282,33 @@
                         <i class="fas fa-users-cog"></i> Users
                     </a>
                 </li>
-                <li class="mt-auto">
+                <li>
                     <a href="{% url 'home-dashboard' %}">
                         <i class="fas fa-arrow-left"></i> Back to Site
                     </a>
                 </li>
-                <li>
-                    <form method="post" action="{% url 'admin_logout' %}" style="margin: 0; padding: 0;">
-                        {% csrf_token %}
-                        <button type="submit" class="logout-btn">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </button>
-                    </form>
-                </li>
             </ul>
+
+            {% if user.is_authenticated and user.is_superuser %}
+            <div class="sidebar-profile d-flex align-items-center mb-3 px-3 w-100" id="sidebarProfile" tabindex="0" aria-expanded="false">
+                <div class="avatar rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                     style="width:2rem;height:2rem;font-size:1rem;">
+                    {{ user.first_name|slice:':1' }}{{ user.last_name|slice:':1' }}
+                </div>
+                <span class="fw-semibold">{{ user.first_name }} {{ user.last_name }}</span>
+                <i class="fas fa-caret-down"></i>
+
+                <div class="profile-dropdown dropdown-menu shadow" id="profileDropdown"
+                     style="display:none;">
+                  <form id="logoutForm" method="post" action="{% url 'admin_logout' %}" style="display:none;">
+                    {% csrf_token %}
+                  </form>
+                  <button class="dropdown-item text-danger" id="profileLogoutBtn" type="button">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                  </button>
+                </div>
+            </div>
+            {% endif %}
         </nav>
 
         <!-- Mobile Toggle Button -->
@@ -245,6 +366,73 @@
             }, 100);
         });
     </script>
-    {% block extra_js %}{% endblock %}
+    {% block extra_js %}
+        {% if user.is_authenticated and user.is_superuser %}
+        <script>
+        $(document).ready(function() {
+            var $profile = $('#sidebarProfile');
+            var $dropdown = $('#profileDropdown');
+            
+            function positionDropdown() {
+                var profileRect = $profile[0].getBoundingClientRect();
+                var sidebarWidth = 250; // var(--sidebar-width)
+                $dropdown.css({
+                    'top': (profileRect.top + profileRect.height - 110) + 'px',
+                    'left': (sidebarWidth + 15) + 'px'
+                });
+            }
+            
+            $profile.on('click keydown', function(e) {
+                if(e.type === 'click' || e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const isVisible = $dropdown.is(':visible');
+                    
+                    if(isVisible) {
+                        $dropdown.addClass('hide');
+                        setTimeout(() => {
+                            $dropdown.hide().removeClass('hide');
+                            $profile.attr('aria-expanded', 'false');
+                        }, 300);
+                    } else {
+                        positionDropdown();
+                        $dropdown.show();
+                        $profile.attr('aria-expanded', 'true');
+                    }
+                }
+            });
+            
+            // Hide dropdown on click outside
+            $(document).on('mousedown', function(e) {
+                if (!$profile.is(e.target) && $profile.has(e.target).length === 0 && 
+                    !$dropdown.is(e.target) && $dropdown.has(e.target).length === 0) {
+                    if($dropdown.is(':visible')) {
+                        $dropdown.addClass('hide');
+                        setTimeout(() => {
+                            $dropdown.hide().removeClass('hide');
+                            $profile.attr('aria-expanded', 'false');
+                        }, 300);
+                    }
+                }
+            });
+
+            // Logout button click
+            $('#profileLogoutBtn').on('click', function() {
+                document.getElementById('logoutForm').submit();
+            });
+            
+            // Hide dropdown on Esc
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape' && $dropdown.is(':visible')) {
+                    $dropdown.addClass('hide');
+                    setTimeout(() => {
+                        $dropdown.hide().removeClass('hide');
+                        $profile.attr('aria-expanded', 'false');
+                    }, 300);
+                }
+            });
+        });
+        </script>
+        {% endif %}
+    {% endblock %}
 </body>
-</html> 
+</html>

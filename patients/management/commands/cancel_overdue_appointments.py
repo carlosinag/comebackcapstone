@@ -86,3 +86,5 @@ class Command(BaseCommand):
                     f'\nSuccessfully cancelled {cancelled_count} overdue appointment(s).'
                 )
             )
+
+
