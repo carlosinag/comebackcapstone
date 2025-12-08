@@ -1,5 +1,113 @@
 {% extends 'base.html' %}
 
+{% block skeleton_content %}
+<div class="container mt-4">
+
+    <!-- Header + Buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="skeleton" style="width: 200px; height: 32px;"></div>
+
+        <div class="d-flex gap-2">
+            <div class="skeleton" style="width: 140px; height: 38px; border-radius: 6px;"></div>
+            <div class="skeleton" style="width: 150px; height: 38px; border-radius: 6px;"></div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Section -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+
+            <!-- Search Row -->
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-md-6">
+                    <div class="skeleton" style="width: 100px; height: 16px; margin-bottom: 6px;"></div>
+                    <div class="skeleton" style="width: 100%; height: 38px; border-radius: 4px;"></div>
+                </div>
+                <div class="col-md-3">
+                    <div class="skeleton" style="width: 100%; height: 38px; border-radius: 4px;"></div>
+                </div>
+                <div class="col-md-3">
+                    <div class="skeleton" style="width: 100%; height: 38px; border-radius: 4px;"></div>
+                </div>
+            </div>
+
+            <!-- Advanced Filters Block -->
+            <div class="row g-2">
+                {% for i in "12345" %}
+                <div class="col-md-2">
+                    <div class="skeleton" style="width: 80px; height: 16px; margin-bottom: 6px;"></div>
+                    <div class="skeleton" style="width: 100%; height: 38px; border-radius: 4px;"></div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="row g-2 mt-3">
+                <div class="col-md-4">
+                    <div class="skeleton" style="width: 140px; height: 16px; margin-bottom: 6px;"></div>
+                    <div class="skeleton" style="width: 100%; height: 38px; border-radius: 4px;"></div>
+                </div>
+                <div class="col-md-4">
+                    <div class="skeleton" style="width: 160px; height: 16px; margin-bottom: 6px;"></div>
+                    <div class="skeleton" style="width: 100%; height: 38px; border-radius: 4px;"></div>
+                </div>
+                <div class="col-md-2">
+                    <div class="skeleton" style="width: 80px; height: 16px; margin-bottom: 6px;"></div>
+                    <div class="skeleton" style="width: 100%; height: 38px; border-radius: 4px;"></div>
+                </div>
+            </div>
+
+            <!-- Filter Buttons -->
+            <div class="d-flex flex-wrap gap-3 mt-3">
+                <div class="skeleton" style="width: 120px; height: 38px; border-radius: 4px;"></div>
+                <div class="skeleton" style="width: 220px; height: 38px; border-radius: 4px;"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Patient Table -->
+    <div class="card shadow">
+        <div class="card-body">
+
+            <!-- Table Header -->
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            {% for i in "123456" %}
+                            <th><div class="skeleton" style="width: 80px; height: 18px;"></div></th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        {% for _ in "123456789" %}
+                        <tr>
+                            <td><div class="skeleton" style="width: 140px; height: 16px;"></div></td>
+                            <td><div class="skeleton" style="width: 50px; height: 16px;"></div></td>
+                            <td><div class="skeleton" style="width: 40px; height: 16px;"></div></td>
+                            <td><div class="skeleton" style="width: 110px; height: 16px;"></div></td>
+                            <td><div class="skeleton" style="width: 100px; height: 16px;"></div></td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <div class="skeleton" style="width: 70px; height: 28px; border-radius: 4px;"></div>
+                                    <div class="skeleton" style="width: 70px; height: 28px; border-radius: 4px;"></div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
 {% block title %}Patient List{% endblock %}
 
 {% block content %}
@@ -169,65 +277,6 @@
             {% endif %}
         </div>
     </div>
-
-    <!-- Pagination Top
-    {% if is_paginated %}
-    <div class="d-flex justify-content-start mb-3">
-        <nav aria-label="Page navigation">
-            <ul class="pagination">
-                {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}#patient-list">Previous</a>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">Previous</span>
-                </li>
-                {% endif %}
-
-                {% if page_obj.number <= 3 %}
-                {% for page_num in page_obj.paginator.page_range %}
-                    {% if page_num <= 5 %}
-                        {% if page_num == page_obj.number %}
-                        <li class="page-item active">
-                            <span class="page-link">{{ page_num }}</span>
-                        </li>
-                        {% else %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_num }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}#patient-list">{{ page_num }}</a>
-                        </li>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-                {% else %}
-                {% for page_num in page_obj.paginator.page_range %}
-                    {% if page_num >= page_obj.number|add:-2 and page_num <= page_obj.number|add:2 %}
-                        {% if page_num == page_obj.number %}
-                        <li class="page-item active">
-                            <span class="page-link">{{ page_num }}</span>
-                        </li>
-                        {% else %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_num }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}#patient-list">{{ page_num }}</a>
-                        </li>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-                {% endif %}
-
-                {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}#patient-list">Next</a>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">Next</span>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-    </div>
-    {% endif %} -->
 
     <!-- Patient List -->
     <div id="patient-list" class="card shadow">

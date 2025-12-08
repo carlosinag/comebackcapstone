@@ -2,6 +2,9 @@
 {% load widget_tweaks %}
 {% load static %}
 
+{% block skeleton %}
+{% endblock %}
+
 {% block title %}{% if form.instance.pk %}Edit Patient{% else %}New Patient{% endif %}{% endblock %}
 
 {% block content %}

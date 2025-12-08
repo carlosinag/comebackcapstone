@@ -13,6 +13,150 @@
     <meta name="user-id" content="{{ user.id }}">
     {% endif %}
     <style>
+        /* ========== SKELETON LOADING STYLES ========== */
+        #skeleton-loader {
+            position: fixed;
+            top: 0;
+            left: var(--sidebar-width);
+            right: 0;
+            height: 100vh;
+            background: #ecf0f1;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            opacity: 1;
+            transition: opacity 0.3s ease-out, left 0.3s ease;
+            padding: 30px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        #skeleton-loader.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #skeleton-loader.removed {
+            display: none;
+        }
+
+        /* Prevent skeleton from rendering under sidebar */
+        #content {
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Mobile: Full width (sidebar is hidden) */
+        @media (max-width: 768px) {
+            #skeleton-loader {
+                left: 0;
+                width: 100%;
+            }
+        }
+
+        #skeleton-loader.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #skeleton-loader.removed {
+            display: none;
+        }
+
+        @keyframes skeleton-shimmer {
+            0% { background-position: -468px 0; }
+            100% { background-position: 468px 0; }
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #e0e0e0 0px, #f0f0f0 40px, #e0e0e0 80px);
+            background-size: 800px 100%;
+            animation: skeleton-shimmer 1.8s infinite linear;
+            border-radius: 4px;
+        }
+
+        .skeleton-pulse {
+            animation: skeleton-pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes skeleton-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Content area positioning for skeleton */
+        #content {
+            position: relative; /* Important for absolute positioning of skeleton */
+        }
+
+        /* Skeleton Content Layouts */
+        .skeleton-title {
+            width: 35%;
+            height: 36px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-subtitle {
+            width: 50%;
+            height: 20px;
+            margin-bottom: 30px;
+        }
+
+        .skeleton-text {
+            height: 16px;
+            margin-bottom: 10px;
+        }
+
+        .skeleton-text.short { width: 40%; }
+        .skeleton-text.medium { width: 60%; }
+        .skeleton-text.long { width: 85%; }
+
+        .skeleton-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .skeleton-card {
+            height: 140px;
+            border-radius: 8px;
+        }
+
+        .skeleton-table {
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        .skeleton-table-header {
+            height: 50px;
+            margin-bottom: 2px;
+        }
+
+        .skeleton-table-row {
+            height: 60px;
+            margin-bottom: 2px;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            #skeleton-loader {
+                padding: 15px;
+            }
+            .skeleton-title { width: 60%; }
+            .skeleton-cards-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Page content visibility control */
+        #content.skeleton-loading > *:not(#skeleton-loader) {
+            opacity: 0;
+        }
+
+        #content.skeleton-loaded > *:not(#skeleton-loader) {
+            opacity: 1;
+            transition: opacity 0.3s ease-in;
+        }
+
         /* Input Capitalization */
         input[type="text"]:not([class*="search"]):not([class*="username"]):not([class*="email"]):not([class*="password"]),
         textarea:not([class*="no-caps"]) {
@@ -247,7 +391,74 @@
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="skeleton-active">
+<!-- ========== SKELETON LOADER ========== -->
+{% block skeleton %}
+{% if not disable_skeleton %}
+<div id="skeleton-loader">
+    {% block skeleton_content %}
+    <!-- Default Skeleton Layout - Header, Search Bar, and Banners -->
+    <div style="max-width: 100%; overflow: hidden;">
+        <!-- Page Header -->
+        <div class="skeleton skeleton-title" style="width: 180px; height: 32px; margin-bottom: 25px;"></div>
+
+        <!-- Search Section -->
+        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);">
+            <!-- "Search Patients" label -->
+            <div class="skeleton" style="width: 130px; height: 20px; margin-bottom: 15px;"></div>
+            
+            <!-- Search bar with button -->
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <div class="skeleton" style="flex: 1; height: 42px; border-radius: 4px;"></div>
+                <div class="skeleton" style="width: 90px; height: 42px; border-radius: 4px;"></div>
+            </div>
+        </div>
+
+        <!-- Quick Action Cards Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+            <!-- Card 1: New Patient -->
+            <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1); display: flex; align-items: center; gap: 20px;">
+                <div style="flex: 1;">
+                    <div class="skeleton" style="width: 120px; height: 22px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="width: 150px; height: 16px;"></div>
+                </div>
+                <div class="skeleton" style="width: 40px; height: 40px; border-radius: 4px; flex-shrink: 0;"></div>
+            </div>
+
+            <!-- Card 2: Patient List -->
+            <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1); display: flex; align-items: center; gap: 20px;">
+                <div style="flex: 1;">
+                    <div class="skeleton" style="width: 100px; height: 22px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="width: 170px; height: 16px;"></div>
+                </div>
+                <div class="skeleton" style="width: 40px; height: 40px; border-radius: 4px; flex-shrink: 0;"></div>
+            </div>
+
+            <!-- Card 3: Billing -->
+            <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1); display: flex; align-items: center; gap: 20px;">
+                <div style="flex: 1;">
+                    <div class="skeleton" style="width: 80px; height: 22px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="width: 160px; height: 16px;"></div>
+                </div>
+                <div class="skeleton" style="width: 40px; height: 40px; border-radius: 4px; flex-shrink: 0;"></div>
+            </div>
+
+            <!-- Card 4: Appointments -->
+            <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1); display: flex; align-items: center; gap: 20px;">
+                <div style="flex: 1;">
+                    <div class="skeleton" style="width: 140px; height: 22px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="width: 180px; height: 16px;"></div>
+                </div>
+                <div class="skeleton" style="width: 40px; height: 40px; border-radius: 4px; flex-shrink: 0;"></div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+</div>
+{% endif %}
+{% endblock %}
+
+    <!-- ========== WRAPPER ========== -->
     <div class="wrapper">
         <!-- Sidebar -->
         <nav id="sidebar">
@@ -584,6 +795,77 @@
     </script>
     {% endif %}
     
+    <script>
+        function showSkeleton() {
+            const el = document.getElementById('skeleton-loader');
+            if (el) el.classList.remove('hidden');
+        }
+
+        function hideSkeleton() {
+            const el = document.getElementById('skeleton-loader');
+            if (el) el.classList.add('hidden');
+        }
+
+        window.addEventListener("beforeunload", () => {
+            // only show if skeleton exists inside page
+            const el = document.getElementById("skeleton-loader");
+            if (el) showSkeleton();
+        });
+    </script>
+
     {% block extra_js %}{% endblock %}
+    <!-- ========== SKELETON LOADING SCRIPT ========== -->
+    <script>
+        {% if not disable_skeleton %}
+        (function() {
+            const skeletonLoader = document.getElementById('skeleton-loader');
+            const contentDiv = document.getElementById('content');
+            
+            // ⏱️ DELAY CONFIGURATION (in milliseconds)
+            const SKELETON_MIN_DISPLAY = 100;  // Minimum time to show skeleton (prevents flash)
+            const SKELETON_TEST_DELAY = 0;  // Extra delay for testing (SET TO 0 for production)
+            
+            const startTime = performance.now();
+            
+            function hideSkeletonLoader() {
+                const elapsed = performance.now() - startTime;
+                const totalDelay = SKELETON_MIN_DISPLAY + SKELETON_TEST_DELAY;
+                const remainingDelay = Math.max(0, totalDelay - elapsed);
+                
+                setTimeout(() => {
+                    if (skeletonLoader) {
+                        skeletonLoader.classList.add('hidden');
+                    }
+                    if (contentDiv) {
+                        contentDiv.classList.remove('skeleton-loading');
+                        contentDiv.classList.add('skeleton-loaded');
+                    }
+                    
+                    // Remove from DOM after fade transition
+                    setTimeout(() => {
+                        if (skeletonLoader) {
+                            skeletonLoader.classList.add('removed');
+                        }
+                    }, 300);
+                }, remainingDelay);
+            }
+            
+            // Hide skeleton when page fully loaded
+            if (document.readyState === 'complete') {
+                hideSkeletonLoader();
+            } else {
+                window.addEventListener('load', hideSkeletonLoader);
+            }
+            
+            // Fallback: force hide after max time
+            const maxTimeout = SKELETON_MIN_DISPLAY + SKELETON_TEST_DELAY + 3000;
+            setTimeout(() => {
+                if (skeletonLoader && !skeletonLoader.classList.contains('hidden')) {
+                    hideSkeletonLoader();
+                }
+            }, maxTimeout);
+        })();
+        {% endif %}
+    </script>
 </body>
 </html>

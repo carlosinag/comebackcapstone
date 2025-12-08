@@ -2,6 +2,76 @@
 
 {% block title %}Patient Management{% endblock %}
 
+{% block skeleton_content %}
+<div class="container-fluid">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="skeleton" style="width: 240px; height: 32px;"></div>
+
+        <div class="skeleton" style="width: 150px; height: 38px; border-radius: 6px;"></div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+
+        {% for _ in "1234" %}
+        <div class="col-md-3">
+            <div class="card shadow h-100">
+                <div class="card-body">
+
+                    <div class="skeleton" style="width: 120px; height: 16px; margin-bottom: 10px;"></div>
+
+                    <div class="skeleton" style="width: 80px; height: 28px;"></div>
+
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+    </div>
+
+    <!-- Search Section -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <div class="skeleton" style="width: 180px; height: 20px;"></div>
+        </div>
+        <div class="card-body">
+
+            <div class="row g-3">
+                <div class="col-md-10">
+                    <div class="skeleton" style="width: 100%; height: 40px; border-radius: 4px;"></div>
+                </div>
+                <div class="col-md-2">
+                    <div class="skeleton" style="width: 100%; height: 40px; border-radius: 4px;"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Simplified Table Skeleton -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <div class="skeleton" style="width: 150px; height: 20px;"></div>
+        </div>
+
+        <div class="card-body">
+
+            <!-- One big skeleton block to simulate table -->
+            <div class="skeleton" style="
+                width: 100%;
+                height: 320px;
+                border-radius: 8px;
+                margin-bottom: 10px;
+            "></div>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
 {% block extra_css %}
 <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
 <style>

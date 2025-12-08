@@ -2,6 +2,127 @@
 
 {% block title %}Admin Dashboard{% endblock %}
 
+{% block skeleton_content %}
+<div class="container-fluid">
+
+    <!-- Page Title -->
+    <div class="skeleton" style="width: 220px; height: 32px; margin-bottom: 25px;"></div>
+
+    <!-- Stats Cards Row -->
+    <div class="row">
+
+        {% for _ in "1234" %}
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+
+                        <div class="col mr-2">
+                            <!-- Label -->
+                            <div class="skeleton" style="width: 120px; height: 15px; margin-bottom: 8px;"></div>
+
+                            <!-- Value -->
+                            <div class="skeleton" style="width: 90px; height: 22px;"></div>
+                        </div>
+
+                        <div class="col-auto">
+                            <div class="skeleton" style="width: 40px; height: 40px; border-radius: 6px;"></div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+    </div>
+
+    <!-- Two-Column Section -->
+    <div class="row">
+
+        <!-- Recent Patients -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4 h-100">
+
+                <!-- Card Header -->
+                <div class="card-header py-3">
+                    <div class="skeleton" style="width: 160px; height: 20px;"></div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="card-body h-100">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    {% for _ in "123" %}
+                                    <th><div class="skeleton" style="width: 90px; height: 16px;"></div></th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+
+                                {% for _ in "123456" %}
+                                <tr style="height: 40px;">
+                                    <td><div class="skeleton" style="width: 140px; height: 16px;"></div></td>
+                                    <td><div class="skeleton" style="width: 70px; height: 18px; border-radius: 6px;"></div></td>
+                                    <td><div class="skeleton" style="width: 110px; height: 16px;"></div></td>
+                                </tr>
+                                {% endfor %}
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Recent Bills -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4 h-100">
+
+                <!-- Card Header -->
+                <div class="card-header py-3">
+                    <div class="skeleton" style="width: 140px; height: 20px;"></div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="card-body h-100">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    {% for _ in "1234" %}
+                                    <th><div class="skeleton" style="width: 90px; height: 16px;"></div></th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+
+                                {% for _ in "123456" %}
+                                <tr style="height: 40px;">
+                                    <td><div class="skeleton" style="width: 150px; height: 16px;"></div></td>
+                                    <td><div class="skeleton" style="width: 80px; height: 16px;"></div></td>
+                                    <td><div class="skeleton" style="width: 70px; height: 18px; border-radius: 6px;"></div></td>
+                                    <td><div class="skeleton" style="width: 110px; height: 16px;"></div></td>
+                                </tr>
+                                {% endfor %}
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <h1 class="h3 mb-4">Admin Dashboard</h1>

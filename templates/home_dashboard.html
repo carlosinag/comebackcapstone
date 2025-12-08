@@ -121,6 +121,91 @@
 </style>
 {% endblock %}
 
+{% block skeleton_content %}
+<!-- Copy your actual content structure and replace with skeletons -->
+<div class="container-fluid py-4">
+    <!-- Page Title -->
+    <div class="skeleton" style="width: 180px; height: 32px; margin-bottom: 25px;"></div>
+    
+    <!-- Search Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card dashboard-card">
+                <div class="card-header py-3">
+                    <div class="skeleton" style="width: 130px; height: 20px;"></div>
+                </div>
+                <div class="card-body">
+                    <div style="display: flex; gap: 10px;">
+                        <div class="skeleton" style="flex: 1; height: 42px;"></div>
+                        <div class="skeleton" style="width: 90px; height: 42px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Action Cards - USE SAME GRID -->
+    <div class="row mb-5">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card quick-action-card h-100">
+                <div class="card-body">
+                    <div class="skeleton" style="width: 120px; height: 20px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="width: 150px; height: 16px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card quick-action-card h-100">
+                <div class="card-body">
+                    <div class="skeleton" style="width: 100px; height: 20px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="width: 170px; height: 16px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card quick-action-card h-100">
+                <div class="card-body">
+                    <div class="skeleton" style="width: 80px; height: 20px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="width: 160px; height: 16px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card quick-action-card h-100">
+                <div class="card-body">
+                    <div class="skeleton" style="width: 140px; height: 20px; margin-bottom: 8px;"></div>
+                    <div class="skeleton" style="width: 180px; height: 16px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Analytics Charts -->
+    <div class="row mb-5">
+        <div class="col-xl-8 col-lg-7 mb-4">
+            <div class="card shadow-lg border-0" style="height: 300px;">
+                <div class="card-header bg-white border-0 py-4">
+                    <div class="skeleton" style="width: 180px; height: 24px;"></div>
+                </div>
+                <div class="card-body">
+                    <div class="skeleton" style="width: 100%; height: 200px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-lg-5 mb-4">
+            <div class="card shadow-lg border-0" style="height: 300px;">
+                <div class="card-header bg-white border-0 py-4">
+                    <div class="skeleton" style="width: 150px; height: 24px;"></div>
+                </div>
+                <div class="card-body">
+                    <div class="skeleton" style="width: 100%; height: 200px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-4">
     <h1 class="h3 mb-4">Dashboard</h1>
@@ -648,5 +733,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-
+{% endblock %}
+{% block skeleton_loader %}
+{% include "components/skeleton.html" %}
 {% endblock %} 
