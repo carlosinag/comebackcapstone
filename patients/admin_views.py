@@ -720,19 +720,19 @@ def add_expense(request):
 @require_POST
 def delete_expense(request):
     try:
+        from billing.models import Expense
         expense_id = request.POST.get('expense_id')
         if not expense_id:
             return JsonResponse({'success': False, 'error': 'Expense ID is required'})
 
-        expenses = request.session.get('expenses', [])
-        expenses = [exp for exp in expenses if str(exp['id']) != str(expense_id)]
-        request.session['expenses'] = expenses
-        
-        # Update total expenses
-        total_expenses = sum(Decimal(exp['amount']) for exp in expenses)
-        request.session['other_expenses'] = str(total_expenses)
-        
-        return JsonResponse({'success': True})
+        # Delete expense from database
+        try:
+            expense = Expense.objects.get(id=expense_id)
+            expense.delete()
+            return JsonResponse({'success': True})
+        except Expense.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Expense not found'})
+
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Error deleting expense: {str(e)}'})
 
