@@ -110,8 +110,9 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'  # Or your email provider's SMTP server
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'carlosinagx@gmail.com'  
-EMAIL_HOST_PASSWORD = 'dqmq bhcs kvcu tasv'  
+EMAIL_HOST_USER = 'ivan.sinaon21@gmail.com'  
+EMAIL_HOST_PASSWORD = 'pidy kzdu bcnh kenf'  
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER 
 
 # Messages Framework Configuration
 from django.contrib.messages import constants as messages

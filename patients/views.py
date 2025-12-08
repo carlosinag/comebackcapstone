@@ -27,6 +27,7 @@ import os
 import logging
 from django.conf import settings
 from functools import wraps
+from .utils import send_appointment_accepted_email
 
 logger = logging.getLogger(__name__)
 
@@ -2008,6 +2009,7 @@ def staff_confirm_appointment(request, appointment_id):
     if request.method == 'POST':
         appointment.status = 'CONFIRMED'
         appointment.save()
+        send_appointment_accepted_email(appointment)
         
         # Automatically create UltrasoundExam when appointment is confirmed
         try:
