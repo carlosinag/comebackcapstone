@@ -84,6 +84,7 @@ urlpatterns = [
     path('custom-admin/users/add/', admin_views.admin_add_user, name='admin_add_user'),
     path('custom-admin/users/<int:user_id>/edit/', admin_views.admin_edit_user, name='admin_edit_user'),
     path('custom-admin/users/<int:user_id>/change-password/', admin_views.admin_change_user_password, name='admin_change_user_password'),
+    path('custom-admin/patients/<int:pk>/archive-confirm/', admin_views.admin_archive_patient_confirm, name='admin_archive_patient_confirm'),
     path('custom-admin/patients/<int:pk>/archive/', admin_views.admin_archive_patient, name='admin_archive_patient'),
     path('custom-admin/patients/<int:pk>/unarchive/', admin_views.admin_unarchive_patient, name='admin_unarchive_patient'),
 
@@ -91,4 +92,5 @@ urlpatterns = [
     path('forbidden/', views.forbidden_page, name='forbidden'),
     path('custom-admin/elevate/', views.elevate_to_admin, name='elevate_to_admin'),
     path('custom-admin/revert/', views.revert_from_admin, name='revert_from_admin'),
+    path('custom-admin/logout/', views.admin_logout, name='admin_logout'),
 ]

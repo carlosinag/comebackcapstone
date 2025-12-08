@@ -324,7 +324,7 @@
             content: '';
             position: absolute;
             left: -8px;
-            top: 75%;
+            top: 50%;
             transform: translateY(-50%);
             width: 0;
             height: 0;
@@ -568,9 +568,6 @@
                         </button>
                     <!-- Staff Logout -->
                     {% else %}
-                        <button class="dropdown-item" id="profileSettingsBtn" type="button">
-                            <i class="fas fa-sliders-h"></i> Settings
-                        </button>
                         <button class="dropdown-item text-danger" id="profileLogoutBtn" type="button">
                             <i class="fas fa-sign-out-alt"></i> Logout
                         </button>
@@ -579,6 +576,27 @@
             </div>
             {% endif %}
         </nav>
+
+        <!-- Logout Confirmation Modal -->
+        {% if user.is_authenticated and user.is_staff or user.is_superuser %}
+        <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="logoutModalLabel">Confirm Logout</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Are you sure you want to logout?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="confirmLogoutBtn">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Mobile Toggle Button -->
         <button class="btn btn-primary sidebar-toggle" type="button">
@@ -734,7 +752,7 @@
             var profileRect = $profile[0].getBoundingClientRect();
             var sidebarWidth = 250; // var(--sidebar-width)
             $dropdown.css({
-                'top': (profileRect.top + profileRect.height - 110) + 'px',
+                'top': (profileRect.top - 10) + 'px',
                 'left': (sidebarWidth + 15) + 'px'
             });
         }
@@ -774,6 +792,12 @@
 
         // Logout button click
         $('#profileLogoutBtn').on('click', function() {
+            $('#logoutModal').modal('show');
+        });
+
+        // Confirm logout button click
+        $('#confirmLogoutBtn').on('click', function() {
+            $('#logoutModal').modal('hide');
             {% if user.is_superuser %}
                 document.getElementById('logoutForm').submit();
             {% else %}

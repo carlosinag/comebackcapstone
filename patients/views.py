@@ -2233,6 +2233,12 @@ def forbidden_page(request):
     """
     return render(request, 'forbidden.html')
 
+def admin_logout(request):
+    """Admin logout view with success message."""
+    logout(request)
+    messages.success(request, 'You have been successfully logged out.')
+    return redirect('landing')
+
 def patient_register(request):
     """Patient registration view."""
     # Check if user is already logged in and has a patient account

@@ -1029,6 +1029,11 @@ def admin_examinations(request):
     return render(request, 'admin/examinations.html', context)
 
 @custom_admin_required
+def admin_archive_patient_confirm(request, pk):
+    patient = get_object_or_404(Patient, pk=pk)
+    return render(request, 'patients/patient_confirm_delete.html', {'patient': patient})
+
+@custom_admin_required
 def admin_archive_patient(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
     patient.is_archived = True
