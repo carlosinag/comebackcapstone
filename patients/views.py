@@ -1939,39 +1939,42 @@ def patient_list_export_excel(request):
 
 @custom_staff_member_required
 def staff_appointments(request):
-    """Staff view to manage all appointments."""
     # Automatically cancel appointments that are 3+ days overdue
     try:
         cancelled_count = Appointment.cancel_overdue_appointments(days_overdue=3)
         if cancelled_count > 0:
-            logger.info(f"Automatically cancelled {cancelled_count} overdue appointment(s) when accessing staff appointments page")
-            messages.info(request, f'Automatically cancelled {cancelled_count} appointment(s) that were 3+ days overdue.')
+            logger.info(f"Automatically cancelled {cancelled_count} overdue appointment(s)")
+            messages.info(request, f'Automatically cancelled {cancelled_count} overdue overdue.')
     except Exception as e:
         logger.error(f"Error cancelling overdue appointments: {str(e)}", exc_info=True)
-    
+
     # Get filter parameters
     status_filter = request.GET.get('status', '')
     date_filter = request.GET.get('date', '')
-    
-    # Base queryset - newest booked first (by creation time)
+
+    # ⭐ DEFAULT BEHAVIOR: show today's appointments when no filters are applied
+    if not status_filter and not date_filter:
+        date_filter = timezone.now().date().isoformat()
+
+    # Base queryset - newest booked first
     appointments = (
         Appointment.objects.select_related('patient')
         .order_by('-created_at', '-appointment_date', '-appointment_time')
     )
-    
+
     # Apply filters
     if status_filter:
         appointments = appointments.filter(status=status_filter)
-    
+
     if date_filter:
         appointments = appointments.filter(appointment_date=date_filter)
-    
+
     # Get statistics
     total_appointments = Appointment.objects.count()
     pending_appointments = Appointment.objects.filter(status='PENDING').count()
     confirmed_appointments = Appointment.objects.filter(status='CONFIRMED').count()
     today_appointments = Appointment.objects.filter(appointment_date=timezone.now().date()).count()
-    
+
     context = {
         'appointments': appointments,
         'total_appointments': total_appointments,
@@ -1981,6 +1984,7 @@ def staff_appointments(request):
         'status_filter': status_filter,
         'date_filter': date_filter,
     }
+
     return render(request, 'patients/staff_appointments.html', context)
 
 @custom_staff_member_required

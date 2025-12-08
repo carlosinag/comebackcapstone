@@ -388,19 +388,19 @@
         return date > today;
     }
     
-    // Check if we can navigate to future months (only if displayed month is before current month)
+    // Check if we can navigate to future months (allow if displayed month is past or current)
     function canNavigateToFuture() {
         const today = new Date();
         const currentYear = currentDate.getFullYear();
         const currentMonth = currentDate.getMonth();
         const todayYear = today.getFullYear();
         const todayMonth = today.getMonth();
-        
-        // Can navigate forward if displayed month/year is before current month/year
+
+        // Can navigate forward if displayed month/year is past or current
         if (currentYear < todayYear) {
             return true;
         }
-        if (currentYear === todayYear && currentMonth < todayMonth) {
+        if (currentYear === todayYear && currentMonth <= todayMonth) {
             return true;
         }
         return false;
