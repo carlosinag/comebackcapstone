@@ -238,3 +238,33 @@ class Payment(models.Model):
                     f"Error marking appointments as completed after payment for bill {bill.bill_number}: {str(e)}",
                     exc_info=True
                 )
+
+
+class Expense(models.Model):
+    """Model for tracking other business expenses"""
+    CATEGORY_CHOICES = [
+        ('UTILITIES', 'Utilities'),
+        ('RENT', 'Rent'),
+        ('SALARY', 'Salary'),
+        ('EQUIPMENT', 'Equipment'),
+        ('SUPPLIES', 'Supplies'),
+        ('MAINTENANCE', 'Maintenance'),
+        ('MARKETING', 'Marketing'),
+        ('INSURANCE', 'Insurance'),
+        ('OTHER', 'Other'),
+    ]
+
+    description = models.CharField(max_length=200)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='OTHER')
+    date = models.DateField()
+    notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+
+    def __str__(self):
+        return f"{self.description} - ₱{self.amount} ({self.date})"
+

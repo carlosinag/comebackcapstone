@@ -14,11 +14,23 @@ from .forms import StaffUserForm, StaffPasswordChangeForm, ServiceForm, StaffUse
 from .views import require_valid_navigation, custom_staff_member_required, custom_admin_required
 import json
 
-def get_analytics_context():
-    """Helper function to generate analytics context data"""
+def get_analytics_context(start_date=None, end_date=None):
+    """Helper function to generate analytics context data with optional date filtering"""
     today = timezone.now().date()
+    
+    # Base queryset filters
+    exam_filter = {}
+    bill_filter = {}
+    
+    if start_date:
+        exam_filter['exam_date__gte'] = start_date
+        bill_filter['bill_date__gte'] = start_date
+    
+    if end_date:
+        exam_filter['exam_date__lte'] = end_date
+        bill_filter['bill_date__lte'] = end_date
 
-    # Weekly revenue
+    # Weekly revenue (always use week_start, not affected by global filter for this metric)
     week_start = today - timedelta(days=today.weekday())
     weekly_bills = Bill.objects.filter(
         bill_date__gte=week_start,
@@ -27,49 +39,49 @@ def get_analytics_context():
     weekly_total = weekly_bills.aggregate(Sum('total_amount'))['total_amount__sum']
     weekly_revenue = "{:,.2f}".format(weekly_total if weekly_total else 0)
 
-    # Active patients in last 90 days
-    ninety_days_ago = today - timedelta(days=90)
-    active_patients_qs = UltrasoundExam.objects.filter(
-        exam_date__gte=ninety_days_ago
-    ).values('patient').distinct()
+    # Active patients in last 90 days (or filtered range)
+    if start_date and end_date:
+        active_patients_qs = UltrasoundExam.objects.filter(**exam_filter).values('patient').distinct()
+    else:
+        ninety_days_ago = today - timedelta(days=90)
+        active_patients_qs = UltrasoundExam.objects.filter(
+            exam_date__gte=ninety_days_ago
+        ).values('patient').distinct()
     active_patients_90d = active_patients_qs.count()
 
-    # New patients this month
-    month_start = today.replace(day=1)
-    new_patients_month = Patient.objects.filter(created_at__date__gte=month_start).count()
+    # New patients this month (or filtered range)
+    if start_date and end_date:
+        new_patients_month = Patient.objects.filter(
+            created_at__date__gte=start_date,
+            created_at__date__lte=end_date
+        ).count()
+    else:
+        month_start = today.replace(day=1)
+        new_patients_month = Patient.objects.filter(created_at__date__gte=month_start).count()
 
-    # Average procedures per patient (lifetime)
-    distinct_patients_with_exam = UltrasoundExam.objects.values('patient').distinct().count()
-    total_exams = UltrasoundExam.objects.count()
+    # Average procedures per patient (apply filter)
+    exam_qs = UltrasoundExam.objects.filter(**exam_filter) if exam_filter else UltrasoundExam.objects.all()
+    distinct_patients_with_exam = exam_qs.values('patient').distinct().count()
+    total_exams = exam_qs.count()
     avg_procs = (total_exams / distinct_patients_with_exam) if distinct_patients_with_exam else 0
     avg_procedures_per_patient = f"{avg_procs:.2f}"
 
-    # Returning patient rate (last 6 months)
-    six_months_ago = today - timedelta(days=180)
-    recent_exam_counts = (
-        UltrasoundExam.objects.filter(exam_date__gte=six_months_ago)
-        .values('patient')
-        .annotate(num=Count('id'))
-    )
-    num_recent_unique = recent_exam_counts.count()
-    num_returning = sum(1 for r in recent_exam_counts if r['num'] >= 2)
-    returning_rate = (num_returning / num_recent_unique * 100) if num_recent_unique else 0
-    returning_rate_percent = f"{returning_rate:.1f}"
-
-    # Procedure distribution
-    procedures = UltrasoundExam.objects.values('procedure_type__name').annotate(count=Count('id'))
+    # Procedure distribution (apply filter)
+    procedures = exam_qs.values('procedure_type__name').annotate(count=Count('id'))
     procedure_distribution_data = json.dumps([p['count'] for p in procedures])
     procedure_distribution_labels = json.dumps([p['procedure_type__name'] for p in procedures])
 
-    # Findings distribution (recommendations)
-    findings = UltrasoundExam.objects.values('recommendations').annotate(count=Count('id'))
+    # Findings distribution (apply filter)
+    findings = exam_qs.values('recommendations').annotate(count=Count('id'))
     recommendation_map = dict(UltrasoundExam.RECOMMENDATION_CHOICES)
     findings_distribution_data = json.dumps([f['count'] for f in findings])
     findings_distribution_labels = json.dumps([recommendation_map.get(f['recommendations'], f['recommendations']) for f in findings])
 
-    # Monthly revenue (last 6 months)
+    # Monthly revenue (last 6 months - NOT affected by filters)
     monthly_revenue_dates = []
     monthly_revenue_values = []
+    
+    # Always show last 6 months regardless of filters
     for i in range(6):
         month_date = (today.replace(day=1) - timedelta(days=i*30)).replace(day=1)
         month_start = month_date
@@ -83,17 +95,22 @@ def get_analytics_context():
         monthly_revenue_values.append(float(month_total))
     monthly_revenue_dates.reverse()
     monthly_revenue_values.reverse()
+    
     monthly_revenue_dates = json.dumps(monthly_revenue_dates)
     monthly_revenue_values = json.dumps(monthly_revenue_values)
 
-    # Weekly procedures (this week)
-    week_procedures = UltrasoundExam.objects.filter(
-        exam_date__gte=week_start
-    ).values('exam_date').annotate(count=Count('id')).order_by('exam_date')
+    # Weekly procedures (apply filter if provided, otherwise this week)
+    if start_date and end_date:
+        week_procedures = exam_qs.values('exam_date').annotate(count=Count('id')).order_by('exam_date')
+    else:
+        week_procedures = UltrasoundExam.objects.filter(
+            exam_date__gte=week_start
+        ).values('exam_date').annotate(count=Count('id')).order_by('exam_date')
+    
     week_procedures_dates = [entry['exam_date'].strftime('%Y-%m-%d') for entry in week_procedures]
     week_procedures_counts = [entry['count'] for entry in week_procedures]
 
-    # Demographics
+    # Demographics (not filtered by date - lifetime stats)
     gender_counts = Patient.objects.values('sex').annotate(count=Count('id'))
     gender_label_map = dict(Patient.GENDER_CHOICES)
     gender_distribution_labels = [gender_label_map.get(g['sex'], g['sex']) for g in gender_counts]
@@ -104,7 +121,7 @@ def get_analytics_context():
     patient_type_labels = [type_label_map.get(t['patient_type'], t['patient_type']) for t in type_counts]
     patient_type_values = [t['count'] for t in type_counts]
 
-    # Age buckets (computed in Python)
+    # Age buckets (lifetime)
     age_buckets = {'0-17': 0, '18-29': 0, '30-44': 0, '45-59': 0, '60+': 0}
     for p in Patient.objects.exclude(birthday__isnull=True).only('birthday'):
         try:
@@ -124,19 +141,21 @@ def get_analytics_context():
     age_bucket_labels = list(age_buckets.keys())
     age_bucket_values = list(age_buckets.values())
 
-    # Top patients by revenue
+    # Top patients by revenue (apply filter)
+    bill_qs = Bill.objects.filter(**bill_filter, status__in=['PAID', 'PARTIAL']) if bill_filter else Bill.objects.filter(status__in=['PAID', 'PARTIAL'])
+    
     top_revenue = (
-        Bill.objects.values('patient__first_name', 'patient__last_name')
+        bill_qs.values('patient__first_name', 'patient__last_name')
         .annotate(total=Sum('total_amount'))
         .order_by('-total')[:10]
     )
     top_patients_labels = [f"{t['patient__first_name']} {t['patient__last_name']}".strip() for t in top_revenue]
     top_patients_revenue = [float(t['total']) if t['total'] else 0 for t in top_revenue]
 
-    # Revenue by Procedure Type
+    # Revenue by Procedure Type (apply filter)
     from billing.models import BillItem
     procedure_revenue = (
-        BillItem.objects.filter(bill__status__in=['PAID', 'PARTIAL'])
+        BillItem.objects.filter(bill__in=bill_qs, bill__status__in=['PAID', 'PARTIAL'])
         .values('service__name')
         .annotate(total_revenue=Sum('amount'), procedure_count=Count('id'))
         .order_by('-total_revenue')
@@ -145,30 +164,72 @@ def get_analytics_context():
     procedure_revenue_values = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in procedure_revenue]
     procedure_revenue_counts = [p['procedure_count'] for p in procedure_revenue]
 
-    # Revenue by Region
+    # Load region and city JSON data for decoding
+    import json as json_module
+    import os
+    from django.conf import settings
+    
+    def load_json_data(filename):
+        """Load JSON data from static files"""
+        try:
+            file_path = os.path.join(settings.BASE_DIR, 'static', 'philippine-addresses', filename)
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return json_module.load(f)
+        except:
+            return []
+    
+    regions_data = load_json_data('region.json')
+    cities_data = load_json_data('city.json')
+    
+    # Create mapping dictionaries
+    region_code_to_name = {r['region_code']: r['region_name'] for r in regions_data}
+    city_code_to_name = {c['city_code']: c['city_name'] for c in cities_data}
+
+    # Revenue by Region (apply filter and decode region codes to names)
     location_revenue = (
-        Bill.objects.filter(status__in=['PAID', 'PARTIAL'])
+        bill_qs.exclude(patient__region__isnull=True)
+        .exclude(patient__region='')
         .values('patient__region')
         .annotate(total_revenue=Sum('total_amount'), patient_count=Count('patient', distinct=True))
         .order_by('-total_revenue')
     )
-    location_revenue_labels = [l['patient__region'] for l in location_revenue]
-    location_revenue_values = [float(l['total_revenue']) if l['total_revenue'] else 0 for l in location_revenue]
+    location_revenue_filtered = []
+    for l in location_revenue:
+        region_code = l['patient__region']
+        region_name = region_code_to_name.get(region_code, region_code)
+        # Include all entries with their decoded names
+        location_revenue_filtered.append({
+            'patient__region': region_name,
+            'total_revenue': l['total_revenue']
+        })
+    location_revenue_labels = [l['patient__region'] for l in location_revenue_filtered]
+    location_revenue_values = [float(l['total_revenue']) if l['total_revenue'] else 0 for l in location_revenue_filtered]
 
-    # Revenue by City (Top 10)
+    # Revenue by City (apply filter and decode city codes to names)
     city_revenue = (
-        Bill.objects.filter(status__in=['PAID', 'PARTIAL'])
+        bill_qs.exclude(patient__city__isnull=True)
+        .exclude(patient__city='')
         .values('patient__city')
         .annotate(total_revenue=Sum('total_amount'), patient_count=Count('patient', distinct=True))
-        .order_by('-total_revenue')[:10]
+        .order_by('-total_revenue')
     )
-    city_revenue_labels = [c['patient__city'] for c in city_revenue]
-    city_revenue_values = [float(c['total_revenue']) if c['total_revenue'] else 0 for c in city_revenue]
+    city_revenue_filtered = []
+    for c in city_revenue:
+        city_code = c['patient__city']
+        # City codes are already in the correct format (6 digits like "012801")
+        city_name = city_code_to_name.get(city_code, city_code)
+        # Include all entries with their decoded names
+        city_revenue_filtered.append({
+            'patient__city': city_name,
+            'total_revenue': c['total_revenue']
+        })
+    city_revenue_filtered = city_revenue_filtered[:10]
+    city_revenue_labels = [c['patient__city'] for c in city_revenue_filtered]
+    city_revenue_values = [float(c['total_revenue']) if c['total_revenue'] else 0 for c in city_revenue_filtered]
 
-    # Revenue by Payment Method
+    # Revenue by Payment Method (apply filter)
     payment_method_revenue = (
-        Bill.objects.filter(status__in=['PAID', 'PARTIAL'])
-        .values('payments__payment_method')
+        bill_qs.values('payments__payment_method')
         .annotate(total_revenue=Sum('total_amount'), payment_count=Count('payments'))
         .filter(payments__payment_method__isnull=False)
         .order_by('-total_revenue')
@@ -176,10 +237,9 @@ def get_analytics_context():
     payment_method_labels = [p['payments__payment_method'] for p in payment_method_revenue]
     payment_method_values = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in payment_method_revenue]
 
-    # Revenue by Patient Type
+    # Revenue by Patient Type (apply filter)
     patient_type_revenue = (
-        Bill.objects.filter(status__in=['PAID', 'PARTIAL'])
-        .values('patient__patient_type')
+        bill_qs.values('patient__patient_type')
         .annotate(total_revenue=Sum('total_amount'), patient_count=Count('patient', distinct=True))
         .order_by('-total_revenue')
     )
@@ -187,8 +247,14 @@ def get_analytics_context():
     patient_type_revenue_labels = [patient_type_map.get(p['patient__patient_type'], p['patient__patient_type']) for p in patient_type_revenue]
     patient_type_revenue_values = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in patient_type_revenue]
 
-    # Monthly Revenue Trends (Last 12 months)
+    # Monthly Revenue Trends (last 12 months - NOT affected by filters)
+    # Always show last 12 months regardless of filters
+    # Get other expenses from database
+    from billing.models import Expense
+    total_expenses = Expense.objects.aggregate(Sum('amount'))['amount__sum'] or Decimal('0')
+    
     monthly_trends = []
+    monthly_net_trends = []
     for i in range(12):
         month_date = today.replace(day=1) - timedelta(days=30*i)
         month_revenue = Bill.objects.filter(
@@ -196,46 +262,78 @@ def get_analytics_context():
             bill_date__month=month_date.month,
             status__in=['PAID', 'PARTIAL']
         ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        month_expenses = Expense.objects.filter(
+            date__year=month_date.year,
+            date__month=month_date.month
+        ).aggregate(Sum('amount'))['amount__sum'] or 0
+        month_net_revenue = float(month_revenue) - float(month_expenses)
         monthly_trends.append({'month': month_date.strftime('%b %Y'), 'revenue': float(month_revenue)})
+        monthly_net_trends.append({'month': month_date.strftime('%b %Y'), 'net_revenue': month_net_revenue})
     monthly_trends.reverse()
+    monthly_net_trends.reverse()
+    
     monthly_trend_labels = [m['month'] for m in monthly_trends]
     monthly_trend_values = [m['revenue'] for m in monthly_trends]
+    monthly_net_trend_values = [m['net_revenue'] for m in monthly_net_trends]
+
+    # Insights for banners (apply filter)
+    revenue_total_raw = bill_qs.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    filtered_revenue_total = "{:,.2f}".format(revenue_total_raw)
+
+    top_proc_qs = exam_qs.values('procedure_type__name').annotate(count=Count('id')).order_by('-count')
+    filtered_top_procedure_name = top_proc_qs[0]['procedure_type__name'] if top_proc_qs else None
+    filtered_top_procedure_count = top_proc_qs[0]['count'] if top_proc_qs else 0
+
+    region_qs = bill_qs.values('patient__region').annotate(
+        total=Sum('total_amount')).order_by('-total')
+    if region_qs:
+        region_code = region_qs[0]['patient__region']
+        filtered_top_region_label = region_code_to_name.get(region_code, region_code)
+        filtered_top_region_revenue = "{:,.2f}".format(region_qs[0]['total'])
+    else:
+        filtered_top_region_label = None
+        filtered_top_region_revenue = None
 
     return {
         'weekly_revenue': weekly_revenue,
         'active_patients_90d': active_patients_90d,
         'new_patients_month': new_patients_month,
         'avg_procedures_per_patient': avg_procedures_per_patient,
-        'returning_rate_percent': returning_rate_percent,
         'procedure_distribution_data': procedure_distribution_data,
         'procedure_distribution_labels': procedure_distribution_labels,
         'findings_distribution_data': findings_distribution_data,
         'findings_distribution_labels': findings_distribution_labels,
         'monthly_revenue_dates': monthly_revenue_dates,
         'monthly_revenue_values': monthly_revenue_values,
-        'week_procedures_dates': week_procedures_dates,
-        'week_procedures_counts': week_procedures_counts,
-        'gender_distribution_labels': gender_distribution_labels,
-        'gender_distribution_values': gender_distribution_values,
-        'patient_type_labels': patient_type_labels,
-        'patient_type_values': patient_type_values,
-        'age_bucket_labels': age_bucket_labels,
-        'age_bucket_values': age_bucket_values,
-        'top_patients_labels': top_patients_labels,
-        'top_patients_revenue': top_patients_revenue,
-        'procedure_revenue_labels': procedure_revenue_labels,
-        'procedure_revenue_values': procedure_revenue_values,
-        'procedure_revenue_counts': procedure_revenue_counts,
-        'location_revenue_labels': location_revenue_labels,
-        'location_revenue_values': location_revenue_values,
-        'city_revenue_labels': city_revenue_labels,
-        'city_revenue_values': city_revenue_values,
-        'payment_method_labels': payment_method_labels,
-        'payment_method_values': payment_method_values,
-        'patient_type_revenue_labels': patient_type_revenue_labels,
-        'patient_type_revenue_values': patient_type_revenue_values,
-        'monthly_trend_labels': monthly_trend_labels,
-        'monthly_trend_values': monthly_trend_values,
+        'week_procedures_dates': json.dumps(week_procedures_dates),
+        'week_procedures_counts': json.dumps(week_procedures_counts),
+        'gender_distribution_labels': json.dumps(gender_distribution_labels),
+        'gender_distribution_values': json.dumps(gender_distribution_values),
+        'patient_type_labels': json.dumps(patient_type_labels),
+        'patient_type_values': json.dumps(patient_type_values),
+        'age_bucket_labels': json.dumps(age_bucket_labels),
+        'age_bucket_values': json.dumps(age_bucket_values),
+        'top_patients_labels': json.dumps(top_patients_labels),
+        'top_patients_revenue': json.dumps(top_patients_revenue),
+        'procedure_revenue_labels': json.dumps(procedure_revenue_labels),
+        'procedure_revenue_values': json.dumps(procedure_revenue_values),
+        'procedure_revenue_counts': json.dumps(procedure_revenue_counts),
+        'location_revenue_labels': json.dumps(location_revenue_labels),
+        'location_revenue_values': json.dumps(location_revenue_values),
+        'city_revenue_labels': json.dumps(city_revenue_labels),
+        'city_revenue_values': json.dumps(city_revenue_values),
+        'payment_method_labels': json.dumps(payment_method_labels),
+        'payment_method_values': json.dumps(payment_method_values),
+        'patient_type_revenue_labels': json.dumps(patient_type_revenue_labels),
+        'patient_type_revenue_values': json.dumps(patient_type_revenue_values),
+        'monthly_trend_labels': json.dumps(monthly_trend_labels),
+        'monthly_trend_values': json.dumps(monthly_trend_values),
+        'monthly_net_trend_values': json.dumps(monthly_net_trend_values),
+        'filtered_revenue_total': filtered_revenue_total,
+        'filtered_top_procedure_name': filtered_top_procedure_name,
+        'filtered_top_procedure_count': filtered_top_procedure_count,
+        'filtered_top_region_label': filtered_top_region_label,
+        'filtered_top_region_revenue': filtered_top_region_revenue,
     }
 
 @custom_admin_required
@@ -261,11 +359,84 @@ def admin_add_user(request):
 
 @custom_admin_required
 def admin_analytics(request):
-    # Get analytics context
-    analytics_context = get_analytics_context()
-
+    from datetime import datetime, timedelta
+    from django.utils import timezone
+    
+    # Get filter parameters from request
+    filter_preset = request.GET.get('preset', 'all')  # Changed default from 'last_30' to 'all'
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+    
+    today = timezone.now().date()
+    filter_start_date = None
+    filter_end_date = None
+    filters_applied = False
+    
+    # Handle preset filters
+    if filter_preset == 'last_7':
+        filter_start_date = today - timedelta(days=7)
+        filter_end_date = today
+        filters_applied = True
+    elif filter_preset == 'last_30':
+        filter_start_date = today - timedelta(days=30)
+        filter_end_date = today
+        filters_applied = True
+    elif filter_preset == 'this_month':
+        filter_start_date = today.replace(day=1)
+        filter_end_date = today
+        filters_applied = True
+    elif filter_preset == 'this_year':
+        filter_start_date = today.replace(month=1, day=1)
+        filter_end_date = today
+        filters_applied = True
+    elif filter_preset == 'all':
+        filter_start_date = None
+        filter_end_date = None
+        filters_applied = False  # All time = no filter applied
+    
+    # Handle custom date range (overrides preset)
+    if start_date_str:
+        try:
+            filter_start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            filters_applied = True
+            filter_preset = 'custom'  # Mark as custom when dates are manually set
+        except ValueError:
+            pass
+    
+    if end_date_str:
+        try:
+            filter_end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            filters_applied = True
+            filter_preset = 'custom'
+        except ValueError:
+            pass
+    
+    # Get analytics context with filters
+    analytics_context = get_analytics_context(
+        start_date=filter_start_date,
+        end_date=filter_end_date
+    )
+    
+    # Check if we have data in the filtered range
+    has_filtered_data = True  # Default to True for "all time"
+    if filters_applied:
+        filtered_exams = UltrasoundExam.objects.all()
+        if filter_start_date:
+            filtered_exams = filtered_exams.filter(exam_date__gte=filter_start_date)
+        if filter_end_date:
+            filtered_exams = filtered_exams.filter(exam_date__lte=filter_end_date)
+        has_filtered_data = filtered_exams.exists()
+    
+    # Add filter info to context
     context = analytics_context
-
+    context.update({
+        'filter_start_date': filter_start_date,
+        'filter_end_date': filter_end_date,
+        'filter_preset': filter_preset,
+        'filters_applied': filters_applied,
+        'has_filtered_data': has_filtered_data,
+    })
+    
     return render(request, 'admin/analytics.html', context)
 
 @custom_admin_required
@@ -328,8 +499,9 @@ def admin_billing_report(request):
     total_revenue = all_bills.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
     pending_amount = all_bills.filter(status='PENDING').aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
 
-    # Get other expenses from session or default to 0
-    other_expenses = Decimal(str(request.session.get('other_expenses', '0')))
+    # Get other expenses from database
+    from billing.models import Expense
+    other_expenses = Expense.objects.aggregate(Sum('amount'))['amount__sum'] or Decimal('0')
 
     # Calculate net revenue
     net_revenue = total_revenue - other_expenses
@@ -388,8 +560,17 @@ def admin_billing_report(request):
 @require_POST
 def update_expenses(request):
     try:
-        expenses = Decimal(str(request.POST.get('expenses', '0')))
-        request.session['other_expenses'] = str(expenses)  # Store as string in session
+        from billing.models import Expense
+        from django.utils import timezone
+        amount = Decimal(str(request.POST.get('amount', '0')))
+        # Create a new expense entry
+        Expense.objects.create(
+            description=request.POST.get('description', 'Other Expense'),
+            amount=amount,
+            category=request.POST.get('category', 'OTHER'),
+            date=timezone.now().date(),
+            notes=request.POST.get('notes', '')
+        )
         return JsonResponse({'success': True})
     except (ValueError, TypeError):
         return JsonResponse({'success': False, 'error': 'Invalid expense value'})
@@ -455,7 +636,8 @@ def admin_billing_export(request):
     # Add summary at the bottom
     summary_row = len(bills) + 3
     total_revenue = Bill.objects.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0')
-    other_expenses = Decimal(str(request.session.get('other_expenses', '0')))
+    from billing.models import Expense
+    other_expenses = Expense.objects.aggregate(Sum('amount'))['amount__sum'] or Decimal('0')
     net_revenue = total_revenue - other_expenses
 
     # Add summary with bold format
@@ -483,19 +665,21 @@ def admin_billing_export(request):
 @require_POST
 def add_expense(request):
     try:
+        from billing.models import Expense
         description = request.POST.get('description', '').strip()
         amount = request.POST.get('amount', '0')
-        date = request.POST.get('date', '0')
+        category = request.POST.get('category', 'OTHER')
+        date = request.POST.get('date', '')
         notes = request.POST.get('notes', '').strip()
 
         if not description:
             return JsonResponse({'success': False, 'error': 'Description is required'})
-        
+
         try:
             amount = Decimal(str(amount))
         except (ValueError, TypeError):
             return JsonResponse({'success': False, 'error': 'Invalid amount value'})
-        
+
         if amount <= 0:
             return JsonResponse({'success': False, 'error': 'Amount must be greater than 0'})
 
@@ -507,28 +691,25 @@ def add_expense(request):
             except ValueError:
                 return JsonResponse({'success': False, 'error': 'Invalid date format'})
 
-        # Store expense in session for now (simple approach)
-        expenses = request.session.get('expenses', [])
-        expense_id = len(expenses) + 1
-        
-        expense = {
-            'id': expense_id,
-            'description': description,
-            'amount': str(amount),
-            'date': date.strftime('%Y-%m-%d'),
-            'notes': notes
-        }
-        
-        expenses.append(expense)
-        request.session['expenses'] = expenses
-        
-        # Update total expenses
-        total_expenses = sum(Decimal(exp['amount']) for exp in expenses)
-        request.session['other_expenses'] = str(total_expenses)
+        # Create expense in database
+        expense = Expense.objects.create(
+            description=description,
+            amount=amount,
+            category=category,
+            date=date,
+            notes=notes
+        )
 
         return JsonResponse({
             'success': True,
-            'expense': expense
+            'expense': {
+                'id': expense.id,
+                'description': expense.description,
+                'amount': str(expense.amount),
+                'category': expense.category,
+                'date': expense.date.strftime('%Y-%m-%d'),
+                'notes': expense.notes
+            }
         })
     except (ValueError, TypeError) as e:
         return JsonResponse({'success': False, 'error': f'Invalid data: {str(e)}'})
@@ -558,10 +739,21 @@ def delete_expense(request):
 @custom_admin_required
 def get_expenses(request):
     try:
-        expenses = request.session.get('expenses', [])
+        from billing.models import Expense
+        expenses = Expense.objects.all().order_by('-date', '-created_at')
+        expenses_data = []
+        for expense in expenses:
+            expenses_data.append({
+                'id': expense.id,
+                'description': expense.description,
+                'amount': str(expense.amount),
+                'category': expense.category,
+                'date': expense.date.strftime('%Y-%m-%d'),
+                'notes': expense.notes
+            })
         return JsonResponse({
             'success': True,
-            'expenses': expenses
+            'expenses': expenses_data
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Error retrieving expenses: {str(e)}'})
@@ -569,10 +761,11 @@ def get_expenses(request):
 @custom_admin_required
 def get_total_expenses(request):
     try:
-        total_expenses = request.session.get('other_expenses', '0')
+        from billing.models import Expense
+        total_expenses = Expense.objects.aggregate(Sum('amount'))['amount__sum'] or Decimal('0')
         return JsonResponse({
             'success': True,
-            'total_expenses': total_expenses
+            'total_expenses': str(total_expenses)
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Error retrieving total expenses: {str(e)}'})

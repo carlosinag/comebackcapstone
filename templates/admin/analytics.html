@@ -370,18 +370,18 @@
                         <div class="form-group">
                             <label for="modal_preset" class="small mb-1">Quick range</label>
                             <select id="modal_preset" name="preset" class="form-control">
+                                <option value="all" {% if filter_preset == 'all' or not filter_preset %}selected{% endif %}>All time</option>
                                 <option value="last_7" {% if filter_preset == 'last_7' %}selected{% endif %}>Last 7 days</option>
-                                <option value="last_30" {% if filter_preset == 'last_30' or not filter_preset %}selected{% endif %}>Last 30 days</option>
+                                <option value="last_30" {% if filter_preset == 'last_30' %}selected{% endif %}>Last 30 days</option>
                                 <option value="this_month" {% if filter_preset == 'this_month' %}selected{% endif %}>This month</option>
                                 <option value="this_year" {% if filter_preset == 'this_year' %}selected{% endif %}>This year</option>
-                                <option value="all" {% if filter_preset == 'all' %}selected{% endif %}>All time</option>
                             </select>
                         </div>
                         <small class="text-muted d-block">
-                            {% if filter_start_date and filter_end_date %}
-                                Currently showing data from {{ filter_start_date }} to {{ filter_end_date }}.
-                            {% elif filter_preset == 'all' %}
+                            {% if filter_preset == 'all' and not filter_start_date %}
                                 Currently showing all available data.
+                            {% elif filter_start_date and filter_end_date %}
+                                Currently showing data from {{ filter_start_date }} to {{ filter_end_date }}.
                             {% else %}
                                 Currently showing default period.
                             {% endif %}
@@ -757,7 +757,8 @@
                     backgroundColor: chartColors.secondary,
                     borderColor: chartColors.secondary,
                     borderWidth: 1,
-                    yAxisID: 'y'
+                    yAxisID: 'y',
+                    order: 2
                 },
                 {
                     type: 'line',
@@ -768,7 +769,13 @@
                     borderWidth: 2,
                     tension: 0.3,
                     pointRadius: 3,
-                    yAxisID: 'y1'
+                    pointBackgroundColor: chartColors.primary,
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    yAxisID: 'y1',
+                    borderDash: [],
+                    fill: false,
+                    order: 1
                 }
             ]
         },
@@ -777,6 +784,9 @@
             maintainAspectRatio: false,
             plugins: {
                 legend: { position: 'top' },
+                filler: {
+                    propagate: true
+                },
                 tooltip: {
                     callbacks: {
                         label: function (context) {
@@ -981,30 +991,45 @@
     // Monthly Revenue Trends (Last 12 Months, respects selected date range) - Line
     const monthlyTrendLabels = {{ monthly_trend_labels|default:'[]'|safe }};
     const monthlyTrendValues = {{ monthly_trend_values|default:'[]'|safe }};
+    const monthlyNetTrendValues = {{ monthly_net_trend_values|default:'[]'|safe }};
     createChart('monthlyTrendChart', {
         type: 'line',
         data: {
             labels: monthlyTrendLabels,
-            datasets: [{
-                label: 'Revenue',
-                data: monthlyTrendValues,
-                borderColor: chartColors.primary,
-                backgroundColor: 'rgba(78, 115, 223, 0.1)',
-                borderWidth: 2,
-                tension: 0.3,
-                pointRadius: 3,
-                pointBackgroundColor: chartColors.primary
-            }]
+            datasets: [
+                {
+                    label: 'Total Revenue',
+                    data: monthlyTrendValues,
+                    borderColor: chartColors.primary,
+                    backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    pointBackgroundColor: chartColors.primary,
+                    fill: false
+                },
+                {
+                    label: 'Net Revenue',
+                    data: monthlyNetTrendValues,
+                    borderColor: chartColors.secondary,
+                    backgroundColor: 'rgba(28, 200, 138, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    pointBackgroundColor: chartColors.secondary,
+                    fill: false
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false },
+                legend: { position: 'top' },
                 tooltip: {
                     callbacks: {
                         label: function (context) {
-                            return pesoFormatter(context.parsed.y);
+                            return context.dataset.label + ': ' + pesoFormatter(context.parsed.y);
                         }
                     }
                 }

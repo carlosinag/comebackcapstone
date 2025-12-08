@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.safestring import mark_safe
-from .models import Bill, Payment, ServiceType, BillItem
+from .models import Bill, Payment, ServiceType, BillItem, Expense
 
 @admin.register(ServiceType)
 class ServiceTypeAdmin(admin.ModelAdmin):
@@ -69,3 +69,21 @@ class BillItemAdmin(admin.ModelAdmin):
     list_filter = ['service', 'exam__exam_date']
     search_fields = ['bill__bill_number', 'service__name']
     ordering = ['-bill__created_at']
+
+@admin.register(Expense)
+class ExpenseAdmin(admin.ModelAdmin):
+    list_display = ['description', 'amount', 'category', 'date', 'created_at']
+    list_filter = ['category', 'date', 'created_at']
+    search_fields = ['description', 'notes']
+    readonly_fields = ['created_at', 'updated_at']
+    ordering = ['-date', '-created_at']
+    
+    fieldsets = (
+        ('Expense Information', {
+            'fields': ('description', 'amount', 'category', 'date')
+        }),
+        ('Additional Details', {
+            'fields': ('notes', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
