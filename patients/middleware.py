@@ -124,6 +124,7 @@ class NavigationControlMiddleware(MiddlewareMixin):
                 valid_referrer_patterns = [
                     r'/patients/',
                     r'/patient/\d+/',
+                    r'/exam/\d+/',
                     r'/custom-admin/',
                     r'/patient-portal/',
                     r'/patient-appointments/',
