@@ -218,14 +218,7 @@
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Ultrasound Image Gallery</h5>
                     <span class="badge bg-light text-primary" id="imageCount">
-                        {% with total_images=0 %}
-                            {% for exam in exams %}
-                                {% for image in exam.images.all %}
-                                    {% with total_images=total_images|add:1 %}{% endwith %}
-                                {% endfor %}
-                            {% endfor %}
-                            {{ total_images }} Image{% if total_images != 1 %}s{% endif %}
-                        {% endwith %}
+                        0 Images
                     </span>
                 </div>
                 <div class="card-body">
@@ -243,18 +236,18 @@
                                             <div class="accordion-body">
                                                 <div class="row g-3">
                                                     {% for image in exam.images.all %}
-                                                        <div class="col-md-6">
+                                                        <div class="col-md-6 gallery-image-item">
                                                             <div class="card h-100 shadow-sm">
                                                                 <div class="row g-0">
                                                                     <!-- Original Image -->
                                                                     <div class="col-md-6">
                                                                         <div class="position-relative">
                                                                             <img src="{{ image.image.url }}" 
-                                                                                 class="card-img-top img-fluid" 
-                                                                                 alt="Original Ultrasound Image"
-                                                                                 style="height: 200px; object-fit: cover; cursor: pointer;"
-                                                                                 data-bs-toggle="modal" 
-                                                                                 data-bs-target="#imageModal{{ image.pk }}">
+                                                                                class="card-img-top img-fluid" 
+                                                                                alt="Original Ultrasound Image"
+                                                                                style="height: 200px; object-fit: cover; cursor: pointer;"
+                                                                                data-bs-toggle="modal" 
+                                                                                data-bs-target="#imageModal{{ image.pk }}">
                                                                             <span class="badge bg-primary position-absolute top-0 start-0 m-2">Original</span>
                                                                         </div>
                                                                     </div>
@@ -263,11 +256,11 @@
                                                                         <div class="position-relative">
                                                                             {% if image.annotated_image %}
                                                                                 <img src="{{ image.annotated_image.url }}" 
-                                                                                     class="card-img-top img-fluid" 
-                                                                                     alt="Annotated Ultrasound Image"
-                                                                                     style="height: 200px; object-fit: cover; cursor: pointer;"
-                                                                                     data-bs-toggle="modal" 
-                                                                                     data-bs-target="#annotatedModal{{ image.pk }}">
+                                                                                    class="card-img-top img-fluid" 
+                                                                                    alt="Annotated Ultrasound Image"
+                                                                                    style="height: 200px; object-fit: cover; cursor: pointer;"
+                                                                                    data-bs-toggle="modal" 
+                                                                                    data-bs-target="#annotatedModal{{ image.pk }}">
                                                                                 <span class="badge bg-success position-absolute top-0 start-0 m-2">Annotated</span>
                                                                             {% else %}
                                                                                 <div class="d-flex align-items-center justify-content-center h-100 bg-light">
@@ -309,9 +302,9 @@
                                                                     </div>
                                                                     <div class="modal-body text-center bg-black">
                                                                         <img src="{{ image.image.url }}" 
-                                                                             class="img-fluid" 
-                                                                             alt="Full-size Ultrasound Image"
-                                                                             style="max-height: 80vh;">
+                                                                            class="img-fluid" 
+                                                                            alt="Full-size Ultrasound Image"
+                                                                            style="max-height: 80vh;">
                                                                         {% if image.caption %}
                                                                             <p class="mt-2 text-light">{{ image.caption }}</p>
                                                                         {% endif %}
@@ -339,9 +332,9 @@
                                                                     </div>
                                                                     <div class="modal-body text-center bg-black">
                                                                         <img src="{{ image.annotated_image.url }}" 
-                                                                             class="img-fluid" 
-                                                                             alt="Full-size Annotated Image"
-                                                                             style="max-height: 80vh;">
+                                                                            class="img-fluid" 
+                                                                            alt="Full-size Annotated Image"
+                                                                            style="max-height: 80vh;">
                                                                         {% if image.caption %}
                                                                             <p class="mt-2 text-light">{{ image.caption }}</p>
                                                                         {% endif %}
@@ -474,5 +467,29 @@ document.addEventListener('click', function(e) {
     }
 });
 </script>
+
+    <script>
+    // Function to update the image count
+    function updateImageCount() {
+        const imageItems = document.querySelectorAll('.gallery-image-item');
+        const count = imageItems.length;
+        const imageCountSpan = document.getElementById('imageCount');
+        
+        if (imageCountSpan) {
+            imageCountSpan.textContent = `${count} Image${count !== 1 ? 's' : ''}`;
+        }
+    }
+
+    // Update count when page loads
+    document.addEventListener('DOMContentLoaded', updateImageCount);
+
+    // If you have delete functionality, update count after deletion
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('delete-image') || e.target.closest('.delete-image')) {
+            // Wait a bit for the deletion to complete, then update count
+            setTimeout(updateImageCount, 500);
+        }
+    });
+    </script>
 {% endblock %}
 {% endblock %} 
