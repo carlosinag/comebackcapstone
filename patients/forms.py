@@ -213,7 +213,7 @@ class AppointmentForm(forms.ModelForm):
 
     class Meta:
         model = Appointment
-        fields = ['procedure_type', 'appointment_date', 'appointment_time', 'reason', 'notes']
+        fields = ['procedure_type', 'appointment_date', 'appointment_time', 'reason', 'notes', 'referral_image']
         widgets = {
             'appointment_date': forms.DateInput(attrs={
                 'class': 'form-control',
@@ -233,7 +233,12 @@ class AppointmentForm(forms.ModelForm):
                 'class': 'form-control',
                 'rows': 3,
                 'placeholder': 'Any additional notes or special requirements'
-            })
+            }),
+            'referral_image': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*,.pdf',
+                'required': 'required'  # Make it required in the form
+            }),
         }
     
     def __init__(self, *args, **kwargs):
@@ -244,6 +249,23 @@ class AppointmentForm(forms.ModelForm):
         self.fields['procedure_type'].choices = [('', '---')] + [(st.name, f"{st.name} - ₱{st.base_price}") for st in ServiceType.objects.filter(is_active=True)]
         # Set default to empty (which shows '---')
         self.initial['procedure_type'] = ''
+        # Make referral_image required for new appointments
+        self.fields['referral_image'].required = True
+
+    def clean_referral_image(self):
+        image = self.cleaned_data.get('referral_image')
+        if image:
+            # Check file size (5MB limit)
+            if image.size > 5*1024*1024:
+                raise forms.ValidationError("Image file too large (max 5MB)")
+            
+            # Check file extension
+            valid_extensions = ['.jpg', '.jpeg', '.png', '.pdf']
+            ext = os.path.splitext(image.name)[1].lower()
+            if ext not in valid_extensions:
+                raise forms.ValidationError("Unsupported file type. Use JPG, PNG, or PDF")
+        
+        return image
     
     def clean_appointment_date(self):
         appointment_date = self.cleaned_data.get('appointment_date')

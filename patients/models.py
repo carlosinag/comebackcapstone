@@ -277,6 +277,11 @@ class Appointment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     completed_on = models.DateTimeField(null=True, blank=True)
+    referral_image = models.ImageField(
+        upload_to='referrals/%Y/%m/%d/',
+        help_text='Upload referral paper/document',
+        null=True, 
+        blank=True)  
     
     class Meta:
         ordering = ['-appointment_date', '-appointment_time']

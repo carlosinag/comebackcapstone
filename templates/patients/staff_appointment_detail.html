@@ -105,6 +105,21 @@
                                             <dt class="col-sm-4">Completed On</dt>
                                             <dd class="col-sm-8">{{ appointment.completed_on|date:"M d, Y g:i A" }}</dd>
                                         {% endif %}
+
+                                        {% if appointment.referral_image %}
+                                            <dt class="col-sm-4">Referral Paper</dt>
+                                            <dd class="col-sm-8">
+                                                <div class="referral-thumbnail" data-bs-toggle="modal" data-bs-target="#referralModal" style="cursor: pointer;">
+                                                    <img src="{{ appointment.referral_image.url }}" 
+                                                         alt="Referral Document" 
+                                                         class="img-thumbnail"
+                                                         style="max-width: 120px; max-height: 120px; object-fit: cover;">
+                                                    <div class="text-muted small mt-1">
+                                                        <i class="fas fa-search-plus me-1"></i>Click to enlarge
+                                                    </div>
+                                                </div>
+                                            </dd>
+                                        {% endif %}
                                     </dl>
                                 </div>
                             </div>
@@ -206,6 +221,43 @@
         </div>
     </div>
 </div>
+
+<!-- Referral Image Modal -->
+{% if appointment.referral_image %}
+<div class="modal fade" id="referralModal" tabindex="-1" aria-labelledby="referralModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="referralModalLabel">
+                    <i class="fas fa-file-medical me-2"></i>Referral Document
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-0">
+                <img src="{{ appointment.referral_image.url }}" 
+                     alt="Referral Document" 
+                     class="img-fluid"
+                     style="max-height: 80vh; width: auto;">
+            </div>
+            <div class="modal-footer">
+                <a href="{{ appointment.referral_image.url }}" 
+                   target="_blank" 
+                   class="btn btn-primary">
+                    <i class="fas fa-external-link-alt me-2"></i>Open in New Tab
+                </a>
+                <a href="{{ appointment.referral_image.url }}" 
+                   download 
+                   class="btn btn-success">
+                    <i class="fas fa-download me-2"></i>Download
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -217,5 +269,30 @@
     .card:hover {
         transform: translateY(-2px);
     }
+
+    .referral-thumbnail {
+        transition: transform 0.2s;
+    }
+
+    .referral-thumbnail:hover {
+        transform: scale(1.05);
+    }
+
+    .referral-thumbnail img {
+        border: 2px solid #0dcaf0;
+        transition: border-color 0.2s;
+    }
+
+    .referral-thumbnail:hover img {
+        border-color: #0a6ebd;
+    }
+
+    #referralModal .modal-body {
+        background-color: #f8f9fa;
+    }
+
+    #referralModal .modal-body img {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
 </style>
-{% endblock %} 
+{% endblock %}

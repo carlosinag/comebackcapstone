@@ -1660,7 +1660,7 @@ def patient_book_appointment(request):
         return redirect('patient-appointments')
     
     if request.method == 'POST':
-        form = AppointmentForm(request.POST)
+        form = AppointmentForm(request.POST, request.FILES)  # Added request.FILES
         if form.is_valid():
             # Double-check on POST to avoid race conditions / bypass
             if Appointment.objects.filter(patient=patient, status='PENDING').exists():

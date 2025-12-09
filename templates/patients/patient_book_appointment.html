@@ -28,7 +28,7 @@
                         {% endfor %}
                     {% endif %}
 
-                    <form method="post">
+                    <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
                         
                         <div class="row">
@@ -91,7 +91,7 @@
                             <div class="form-text">Please describe your symptoms or reason for the appointment</div>
                         </div>
 
-                        <div class="mb-4">
+                        <div class="mb-3">
                             <label for="{{ form.notes.id_for_label }}" class="form-label">
                                 <i class="fas fa-edit me-2"></i>Additional Notes (Optional)
                             </label>
@@ -102,6 +102,20 @@
                                 </div>
                             {% endif %}
                             <div class="form-text">Any special requirements or additional information</div>
+                        </div>
+
+                        <!-- NEW: Referral Image Field -->
+                        <div class="mb-4">
+                            <label for="{{ form.referral_image.id_for_label }}" class="form-label">
+                                <i class="fas fa-file-image me-2"></i>Referral Paper <span class="text-danger">*</span>
+                            </label>
+                            {{ form.referral_image }}
+                            {% if form.referral_image.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.referral_image.errors|join:", " }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Upload a clear image or PDF of your referral paper (Required, max 5MB)</div>
                         </div>
 
                         <div class="d-flex gap-2">
