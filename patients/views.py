@@ -28,6 +28,7 @@ import logging
 from django.conf import settings
 from functools import wraps
 from .utils import send_appointment_accepted_email
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 logger = logging.getLogger(__name__)
 
@@ -1052,9 +1053,28 @@ def patient_portal(request):
         return redirect('landing')
     
     patient = request.user.patient
+
+    # Get all exams for this patient
+    all_exams = UltrasoundExam.objects.filter(
+        patient=patient
+    ).order_by('-exam_date')  # Most recent first
+    
+    # Paginate - 5 exams per page
+    paginator = Paginator(all_exams, 5)
+    page = request.GET.get('page')
+    
+    try:
+        recent_exams = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page
+        recent_exams = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range, deliver last page
+        recent_exams = paginator.page(paginator.num_pages)
+    
     context = {
         'patient': patient,
-        'recent_exams': patient.ultrasound_exams.order_by('-exam_date', '-exam_time')[:5]
+        'recent_exams': recent_exams,
     }
     return render(request, 'patients/patient_portal.html', context)
 

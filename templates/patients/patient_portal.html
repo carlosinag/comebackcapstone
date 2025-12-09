@@ -127,6 +127,71 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Pagination Controls -->
+                        {% if recent_exams.has_other_pages %}
+                        <nav aria-label="Exam pagination">
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if recent_exams.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1" aria-label="First">
+                                        <span aria-hidden="true">&laquo;&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ recent_exams.previous_page_number }}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">&laquo;&laquo;</span>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link">&laquo;</span>
+                                </li>
+                                {% endif %}
+
+                                {% for num in recent_exams.paginator.page_range %}
+                                    {% if recent_exams.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                    {% elif num > recent_exams.number|add:'-3' and num < recent_exams.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if recent_exams.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ recent_exams.next_page_number }}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ recent_exams.paginator.num_pages }}" aria-label="Last">
+                                        <span aria-hidden="true">&raquo;&raquo;</span>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">&raquo;</span>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link">&raquo;&raquo;</span>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        
+                        <div class="text-center mt-2">
+                            <small class="text-muted">
+                                Showing {{ recent_exams.start_index }} to {{ recent_exams.end_index }} of {{ recent_exams.paginator.count }} exams
+                            </small>
+                        </div>
+                        {% endif %}
                     {% else %}
                         <p class="text-muted text-center my-4">You don't have any ultrasound examinations yet.</p>
                     {% endif %}
@@ -147,5 +212,18 @@
     
     .bg-primary-subtle { background-color: #cfe2ff; }
     .text-primary { color: #0d6efd; }
+
+    .pagination {
+        margin-top: 1rem;
+    }
+
+    .page-link {
+        color: #0d6efd;
+    }
+
+    .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
 </style>
-{% endblock %} 
+{% endblock %}

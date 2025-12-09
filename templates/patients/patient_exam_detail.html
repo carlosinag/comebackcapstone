@@ -84,10 +84,12 @@
                                         <!-- Original Image -->
                                         <div class="position-relative">
                                             <img src="{{ image.image.url }}"
-                                                 class="img-fluid w-100"
-                                                 alt="Original Ultrasound Image"
-                                                 style="height: 250px; object-fit: cover; cursor: pointer;"
-                                                 onclick="openModal('originalModal{{ image.pk }}')">
+                                                class="img-fluid w-100 clickable-image"
+                                                alt="Original Ultrasound Image"
+                                                style="height: 250px; object-fit: cover; cursor: pointer;"
+                                                data-img-src="{{ image.image.url }}"
+                                                data-img-title="Original Image - Image {{ forloop.counter }}"
+                                                data-img-type="original">
                                             <div class="position-absolute top-0 start-0 m-2">
                                                 <span class="badge bg-info">Click to enlarge</span>
                                             </div>
@@ -101,10 +103,12 @@
                                             </h6>
                                             <div class="position-relative">
                                                 <img src="{{ image.annotated_image.url }}"
-                                                     class="img-fluid w-100"
-                                                     alt="Annotated Ultrasound Image"
-                                                     style="height: 250px; object-fit: cover; cursor: pointer;"
-                                                     onclick="openModal('annotatedModal{{ image.pk }}')">
+                                                    class="img-fluid w-100 clickable-image"
+                                                    alt="Annotated Ultrasound Image"
+                                                    style="height: 250px; object-fit: cover; cursor: pointer;"
+                                                    data-img-src="{{ image.annotated_image.url }}"
+                                                    data-img-title="Annotated Analysis - Image {{ forloop.counter }}"
+                                                    data-img-type="annotated">
                                                 <div class="position-absolute top-0 start-0 m-2">
                                                     <span class="badge bg-info">Click to enlarge</span>
                                                 </div>
@@ -117,52 +121,6 @@
                                             <p class="card-text small mb-0">{{ image.caption }}</p>
                                         </div>
                                         {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Modal for enlarged annotated image -->
-                            {% if image.annotated_image %}
-                            <div class="modal fade" id="annotatedModal{{ image.pk }}" tabindex="-1" aria-labelledby="annotatedModalLabel{{ image.pk }}" aria-hidden="true">
-                                <div class="modal-dialog modal-lg">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title" id="annotatedModalLabel{{ image.pk }}">
-                                                <i class="fas fa-draw-polygon me-2"></i>Annotated Analysis - Image {{ forloop.counter }}
-                                            </h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body text-center">
-                                            <img src="{{ image.annotated_image.url }}"
-                                                 class="img-fluid"
-                                                 alt="Annotated Ultrasound Image">
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-
-                            <!-- Modal for enlarged original image -->
-                            <div class="modal fade" id="originalModal{{ image.pk }}" tabindex="-1" aria-labelledby="originalModalLabel{{ image.pk }}" aria-hidden="true">
-                                <div class="modal-dialog modal-lg">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title" id="originalModalLabel{{ image.pk }}">
-                                                <i class="fas fa-image me-2"></i>Original Image - Image {{ forloop.counter }}
-                                            </h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body text-center">
-                                            <img src="{{ image.image.url }}"
-                                                 class="img-fluid"
-                                                 alt="Original Ultrasound Image">
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -257,46 +215,157 @@
     </div>
 </div>
 
+<!-- Single Modal - Placed at the end of content block -->
+<div class="modal" id="imageViewerModal" tabindex="-1" role="dialog" aria-labelledby="imageViewerTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageViewerTitle">
+                    <i class="fas fa-image me-2"></i><span id="imageTitle">Image</span>
+                </h5>
+                <button type="button" class="btn-close" id="closeModalBtn" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-3">
+                <img id="enlargedImage" src="" class="img-fluid" alt="Ultrasound Image" style="max-height: 70vh; object-fit: contain;">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="closeModalFooterBtn">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Print-only content -->
 <div class="print-only">
-CASE NUMBER	  :      	{{ exam.id|stringformat:"03d" }}           	DATE:  {{ exam.exam_date|date:"F j, Y"|upper }}
+    <div class="print-header">
+        <div class="print-logo-section">
+            <img src="{% static 'logo.png' %}" alt="MSRA Ultrasound Clinic Logo" class="print-logo">
+        </div>
+        <div class="print-clinic-info">
+            <h1>MSRA ULTRASOUND CLINIC</h1>
+            <p class="clinic-subtitle">Diagnostic Imaging & Ultrasound Services</p>
+        </div>
+    </div>
 
-NAME OF PATIENT	:      {{ patient.last_name }}, {{ patient.first_name }}
+    <div class="print-divider"></div>
 
-AGE	             		:       {{ patient.age|default:"N/A" }}
+    <h2 class="print-document-title">ULTRASOUND EXAMINATION REPORT</h2>
 
-GENDER	               :     {{ patient.get_sex_display }}
+    <div class="print-section">
+        <table class="print-info-table">
+            <tr>
+                <td class="print-label">CASE NUMBER:</td>
+                <td class="print-value">{{ exam.id|stringformat:"03d" }}</td>
+                <td class="print-label">DATE:</td>
+                <td class="print-value">{{ exam.exam_date|date:"F j, Y"|upper }}</td>
+            </tr>
+            <tr>
+                <td class="print-label">TIME:</td>
+                <td class="print-value">{{ exam.exam_time }}</td>
+                <td class="print-label">AMOUNT PAID:</td>
+                <td class="print-value">{{ bill.total_amount|default:"0.00" }}</td>
+            </tr>
+        </table>
+    </div>
 
-MARITAL STATUS             : {{ patient.get_marital_status_display|default:"" }}
+    <div class="print-section">
+        <h3 class="print-section-title">PATIENT INFORMATION</h3>
+        <table class="print-info-table">
+            <tr>
+                <td class="print-label">NAME:</td>
+                <td class="print-value" colspan="3">{{ patient.last_name|upper }}, {{ patient.first_name|upper }}</td>
+            </tr>
+            <tr>
+                <td class="print-label">AGE:</td>
+                <td class="print-value">{{ patient.age|default:"N/A" }}</td>
+                <td class="print-label">GENDER:</td>
+                <td class="print-value">{{ patient.get_sex_display|upper }}</td>
+            </tr>
+            <tr>
+                <td class="print-label">MARITAL STATUS:</td>
+                <td class="print-value">{{ patient.get_marital_status_display|upper|default:"N/A" }}</td>
+                <td class="print-label">PATIENT STATUS:</td>
+                <td class="print-value">{{ patient.get_patient_status_display|upper }}</td>
+            </tr>
+        </table>
+    </div>
 
-EXAMINATION PERFORMED:                       	{{ exam.procedure_type.name }}	 ULTRASOUND
+    <div class="print-section">
+        <h3 class="print-section-title">EXAMINATION DETAILS</h3>
+        <table class="print-info-table">
+            <tr>
+                <td class="print-label">PROCEDURE:</td>
+                <td class="print-value" colspan="3">{{ exam.procedure_type.name|upper }} ULTRASOUND</td>
+            </tr>
+            <tr>
+                <td class="print-label">REFERRING PHYSICIAN:</td>
+                <td class="print-value" colspan="3">{{ exam.referring_physician|default:"N/A"|upper }}</td>
+            </tr>
+            {% if exam.get_recommendations_display %}
+            <tr>
+                <td class="print-label">RECOMMENDATIONS:</td>
+                <td class="print-value" colspan="3">{{ exam.get_recommendations_display|upper }}</td>
+            </tr>
+            {% endif %}
+            {% if exam.followup_duration %}
+            <tr>
+                <td class="print-label">FOLLOW-UP:</td>
+                <td class="print-value" colspan="3">{{ exam.followup_duration }}</td>
+            </tr>
+            {% endif %}
+            {% if exam.specialist_referral %}
+            <tr>
+                <td class="print-label">SPECIALIST REFERRAL:</td>
+                <td class="print-value" colspan="3">{{ exam.specialist_referral|upper }}</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
 
-		              O.R.				             AMOUNT PAID: {{ bill.total_amount|default:0 }}
+    <div class="print-section">
+        <h3 class="print-section-title">RADIOLOGICAL FINDINGS</h3>
+        <div class="print-text-content">
+            {{ exam.findings|default:"No specific findings recorded."|linebreaks }}
+        </div>
+    </div>
 
-REQUESTING PHYSICIAN:					{{ exam.referring_physician|default:"N/A" }}		WARD:    {{ patient.get_patient_status_display }}
+    <div class="print-section">
+        <h3 class="print-section-title">IMPRESSION</h3>
+        <div class="print-text-content">
+            {{ exam.impression|default:"No impression recorded."|linebreaks }}
+        </div>
+    </div>
 
+    {% if exam.images.exists %}
+    <div class="print-section print-images-section">
+        <h3 class="print-section-title">ULTRASOUND IMAGES</h3>
+        {% for image in exam.images.all %}
+        <div class="print-image-container">
+            <div class="print-image-header">Image {{ forloop.counter }}: Original</div>
+            <img src="{{ image.image.url }}" alt="Original Ultrasound Image" class="print-image">
+            {% if image.caption %}
+            <div class="print-image-caption">{{ image.caption }}</div>
+            {% endif %}
+        </div>
+        {% if image.annotated_image %}
+        <div class="print-image-container">
+            <div class="print-image-header">Image {{ forloop.counter }}: Annotated Analysis</div>
+            <img src="{{ image.annotated_image.url }}" alt="Annotated Ultrasound Image" class="print-image">
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
 
-RADIOLOGICAL FINDINGS:
-
-{{ exam.findings|default:"No specific findings recorded." }}
-
-
-IMPRESSION:
-
-{{ exam.impression|default:"No impression recorded." }}
-
-{% if exam.images.exists %}
-ULTRASOUND IMAGES:
-
-{% for image in exam.images.all %}
-Image {{ forloop.counter }}:
-<img src="{{ image.image.url }}" alt="Original Ultrasound Image" style="max-width: 100%; height: auto;">
-{% if image.annotated_image %}
-Annotated Image {{ forloop.counter }}:
-<img src="{{ image.annotated_image.url }}" alt="Annotated Ultrasound Image" style="max-width: 100%; height: auto;">
-{% endif %}
-{% endfor %}
-{% endif %}
+    <div class="print-footer">
+        <div class="print-divider"></div>
+        <p class="print-footer-text">
+            This report is intended for medical use only. All findings should be correlated clinically.
+        </p>
+        <p class="print-footer-text">
+            <strong>MSRA Ultrasound Clinic</strong> | Diagnostic Imaging & Ultrasound Services
+        </p>
+    </div>
 </div>
 {% endblock %}
 
@@ -314,13 +383,41 @@ Annotated Image {{ forloop.counter }}:
         transform: none;
     }
 
-    .modal-body img {
-        max-height: 70vh;
-        object-fit: contain;
-    }
-
     .badge {
         font-size: 0.75rem;
+    }
+
+    /* Custom modal styles to prevent flickering */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1050;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        outline: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal.show {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-dialog {
+        margin: 0;
+    }
+
+    .modal-content {
+        border-radius: 0.5rem;
+    }
+
+    #enlargedImage {
+        max-height: 70vh;
+        object-fit: contain;
     }
 
     /* Print-only content */
@@ -337,22 +434,177 @@ Annotated Image {{ forloop.counter }}:
         /* Show print-only content */
         .print-only {
             display: block !important;
-            font-family: 'Courier New', monospace;
-            font-size: 12pt;
-            line-height: 1.5;
-            white-space: pre-wrap;
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            color: #000;
             margin: 0;
             padding: 0;
         }
 
-        /* Ensure proper page margins */
+        /* Page setup */
         @page {
-            margin: 1in;
+            margin: 0.75in 1in;
+            size: letter;
         }
 
         body {
             margin: 0;
             padding: 0;
+            background: white;
+        }
+
+        /* Header styling */
+        .print-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+        }
+
+        .print-logo-section {
+            flex: 0 0 100px;
+            margin-right: 20px;
+        }
+
+        .print-logo {
+            width: 80px;
+            height: auto;
+        }
+
+        .print-clinic-info {
+            flex: 1;
+        }
+
+        .print-clinic-info h1 {
+            font-size: 20pt;
+            font-weight: bold;
+            margin: 0;
+            color: #1a5490;
+            letter-spacing: 1px;
+        }
+
+        .clinic-subtitle {
+            font-size: 10pt;
+            color: #666;
+            margin: 2px 0 0 0;
+            font-style: italic;
+        }
+
+        .print-divider {
+            border-top: 2px solid #1a5490;
+            margin: 10px 0;
+        }
+
+        /* Document title */
+        .print-document-title {
+            font-size: 14pt;
+            font-weight: bold;
+            text-align: center;
+            margin: 15px 0;
+            padding: 8px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            text-transform: uppercase;
+        }
+
+        /* Section styling */
+        .print-section {
+            margin-bottom: 15px;
+            page-break-inside: avoid;
+        }
+
+        .print-section-title {
+            font-size: 12pt;
+            font-weight: bold;
+            margin: 10px 0 8px 0;
+            padding: 5px 0;
+            border-bottom: 2px solid #333;
+            text-transform: uppercase;
+        }
+
+        /* Info table styling */
+        .print-info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        .print-info-table td {
+            padding: 4px 8px;
+            vertical-align: top;
+        }
+
+        .print-label {
+            font-weight: bold;
+            width: 25%;
+            color: #333;
+        }
+
+        .print-value {
+            width: 25%;
+            border-bottom: 1px solid #ddd;
+        }
+
+        /* Text content */
+        .print-text-content {
+            padding: 10px;
+            background-color: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            text-align: justify;
+            min-height: 60px;
+        }
+
+        /* Images section */
+        .print-images-section {
+            page-break-before: always;
+        }
+
+        .print-image-container {
+            margin: 15px 0;
+            page-break-inside: avoid;
+            text-align: center;
+        }
+
+        .print-image-header {
+            font-weight: bold;
+            font-size: 11pt;
+            margin-bottom: 8px;
+            padding: 5px;
+            background-color: #f0f0f0;
+            border-left: 4px solid #1a5490;
+            text-align: left;
+        }
+
+        .print-image {
+            max-width: 100%;
+            height: auto;
+            max-height: 400px;
+            border: 1px solid #ddd;
+            padding: 5px;
+            background: white;
+        }
+
+        .print-image-caption {
+            font-size: 10pt;
+            font-style: italic;
+            color: #666;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        /* Footer */
+        .print-footer {
+            margin-top: 30px;
+            padding-top: 15px;
+        }
+
+        .print-footer-text {
+            text-align: center;
+            font-size: 9pt;
+            color: #666;
+            margin: 5px 0;
         }
     }
 </style>
@@ -360,12 +612,99 @@ Annotated Image {{ forloop.counter }}:
 
 {% block extra_js %}
 <script>
-function openModal(modalId) {
-    const modalElement = document.getElementById(modalId);
-    if (modalElement) {
-        const modal = new bootstrap.Modal(modalElement);
-        modal.show();
-    }
-}
+(function() {
+    'use strict';
+    
+    // Wait for DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get modal and its elements
+        const modal = document.getElementById('imageViewerModal');
+        const modalImg = document.getElementById('enlargedImage');
+        const modalTitle = document.getElementById('imageTitle');
+        const modalTitleContainer = document.getElementById('imageViewerTitle');
+        const closeBtn = document.getElementById('closeModalBtn');
+        const closeFooterBtn = document.getElementById('closeModalFooterBtn');
+        
+        // Verify all elements exist
+        if (!modal || !modalImg || !modalTitle) {
+            console.error('Modal elements not found');
+            return;
+        }
+
+        // Function to open modal
+        function openImageModal(imageSrc, imageTitle, imageType) {
+            // Update image and title
+            modalImg.src = imageSrc;
+            modalTitle.textContent = imageTitle;
+            
+            // Update icon based on type
+            const iconClass = imageType === 'annotated' ? 'fa-draw-polygon' : 'fa-image';
+            const iconHTML = '<i class="fas ' + iconClass + ' me-2"></i><span id="imageTitle">' + imageTitle + '</span>';
+            modalTitleContainer.innerHTML = iconHTML;
+            
+            // Show modal
+            modal.classList.add('show');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Function to close modal
+        function closeImageModal() {
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            
+            // Clear image after animation
+            setTimeout(function() {
+                modalImg.src = '';
+            }, 300);
+        }
+
+        // Add click listeners to all clickable images
+        const clickableImages = document.querySelectorAll('.clickable-image');
+        clickableImages.forEach(function(img) {
+            img.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const imgSrc = this.getAttribute('data-img-src');
+                const imgTitle = this.getAttribute('data-img-title');
+                const imgType = this.getAttribute('data-img-type');
+                
+                openImageModal(imgSrc, imgTitle, imgType);
+            });
+        });
+
+        // Close modal on close button click
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                closeImageModal();
+            });
+        }
+
+        // Close modal on footer button click
+        if (closeFooterBtn) {
+            closeFooterBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                closeImageModal();
+            });
+        }
+
+        // Close modal on backdrop click
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeImageModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal.classList.contains('show')) {
+                closeImageModal();
+            }
+        });
+    });
+})();
 </script>
 {% endblock %}
