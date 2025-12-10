@@ -183,7 +183,7 @@
                                                 <i class="fas fa-chevron-left"></i>
                                             </button>
                                             <span id="currentMonthYear" class="align-self-center px-3 fw-bold"></span>
-                                            <button id="nextMonth" class="btn btn-sm btn-outline-secondary" disabled>
+                                            <button id="nextMonth" class="btn btn-sm btn-outline-secondary">
                                                 <i class="fas fa-chevron-right"></i>
                                             </button>
                                         </div>
@@ -464,10 +464,6 @@
                           'July', 'August', 'September', 'October', 'November', 'December'];
         $('#currentMonthYear').text(`${monthNames[month]} ${year}`);
         
-        // Update next button state
-        const canGoNext = canNavigateToFuture();
-        $('#nextMonth').prop('disabled', !canGoNext);
-        
         // Clear calendar
         const calendarDays = $('#calendarDays');
         calendarDays.empty();
@@ -534,12 +530,10 @@
         loadAppointmentCounts();
     });
     
-    // Next month (only if not in future)
+    // Next month
     $('#nextMonth').on('click', function() {
-        if (canNavigateToFuture()) {
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            loadAppointmentCounts();
-        }
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        loadAppointmentCounts();
     });
     
     // Parse date from URL if present
