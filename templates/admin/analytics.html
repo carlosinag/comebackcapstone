@@ -175,23 +175,47 @@
         <div class="col-xl-6 col-lg-6">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Monthly Revenue (Last 6 Months)</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Daily Revenue (Current Month)</h6>
                 </div>
                 <div class="card-body">
-                    <canvas id="monthlyRevenueChart" style="height: 400px;"></canvas>
+                    <div style="position: relative; height: 400px;">
+                        <canvas id="monthlyRevenueChart"></canvas>
+                    </div>
+                    <!-- Month Navigation -->
+                    <div class="d-flex justify-content-center align-items-center mt-3 gap-3">
+                        <button id="prevMonthBtn" class="btn btn-sm btn-outline-primary" style="width: 40px;">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="currentMonth" class="font-weight-bold mx-3" style="min-width: 120px; text-align: center;">December 2025</span>
+                        <button id="nextMonthBtn" class="btn btn-sm btn-outline-primary" style="width: 40px;">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-6 col-lg-6">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Daily Procedures (This Week)</h6>
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Daily Procedures (Current Week)</h6>
+            </div>
+            <div class="card-body">
+                <div style="position: relative; height: 400px;">
+                    <canvas id="weekProceduresChart"></canvas>
                 </div>
-                <div class="card-body">
-                    <canvas id="weekProceduresChart" style="height: 400px;"></canvas>
+                <!-- Week Navigation -->
+                <div class="d-flex justify-content-center align-items-center mt-3 gap-3">
+                    <button id="prevWeekBtn" class="btn btn-sm btn-outline-primary" style="width: 40px;">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span id="currentWeek" class="font-weight-bold mx-3" style="min-width: 200px; text-align: center;">Week of Dec 8, 2025</span>
+                    <button id="nextWeekBtn" class="btn btn-sm btn-outline-primary" style="width: 40px;">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <!-- Charts Row 3: Demographics -->
@@ -319,10 +343,22 @@
         <div class="col-xl-12 col-lg-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Monthly Revenue Trends (Last 12 Months)</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Monthly Revenue Trends</h6>
                 </div>
                 <div class="card-body">
-                    <canvas id="monthlyTrendChart" style="height: 400px;"></canvas>
+                    <div style="position: relative; height: 400px;">
+                        <canvas id="monthlyTrendChart"></canvas>
+                    </div>
+                    <!-- Year Navigation -->
+                    <div class="d-flex justify-content-center align-items-center mt-3 gap-3">
+                        <button id="prevYearBtn" class="btn btn-sm btn-outline-primary" style="width: 40px;">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="currentYear" class="font-weight-bold mx-3" style="min-width: 60px; text-align: center;">2025</span>
+                        <button id="nextYearBtn" class="btn btn-sm btn-outline-primary" style="width: 40px;">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -476,14 +512,50 @@
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    left: 10,
+                    right: 10
+                }
+            },
             plugins: {
-                legend: { position: 'bottom' },
+                legend: {
+                    position: 'right',
+                    align: 'center',
+                    labels: {
+                        boxWidth: 15,
+                        boxHeight: 15,
+                        padding: 10,
+                        font: {
+                            size: 11
+                        },
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return {
+                                        text: `${label}: ${value} (${percentage}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        hidden: false,
+                                        index: i
+                                    };
+                                });
+                            }
+                            return [];
+                        }
+                    }
+                },
                 tooltip: {
                     callbacks: {
                         label: function (context) {
                             const label = context.label || '';
                             const value = context.parsed;
-                            return label + ': ' + value.toLocaleString();
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value.toLocaleString()} (${percentage}%)`;
                         }
                     }
                 }
@@ -508,88 +580,389 @@
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    left: 10,
+                    right: 10
+                }
+            },
             plugins: {
-                legend: { position: 'bottom' }
-            }
-        }
-    });
-
-    // Monthly Revenue (Last 6 Months) - Line
-    const monthlyRevenueLabels = {{ monthly_revenue_dates|default:'[]'|safe }};
-    const monthlyRevenueValues = {{ monthly_revenue_values|default:'[]'|safe }};
-    createChart('monthlyRevenueChart', {
-        type: 'line',
-        data: {
-            labels: monthlyRevenueLabels,
-            datasets: [{
-                label: 'Revenue',
-                data: monthlyRevenueValues,
-                borderColor: chartColors.primary,
-                backgroundColor: 'rgba(78, 115, 223, 0.1)',
-                borderWidth: 2,
-                tension: 0.3,
-                pointRadius: 3,
-                pointBackgroundColor: chartColors.primary
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
+                legend: {
+                    position: 'right',
+                    align: 'center',
+                    labels: {
+                        boxWidth: 15,
+                        boxHeight: 15,
+                        padding: 10,
+                        font: {
+                            size: 11
+                        },
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return {
+                                        text: `${label}: ${value} (${percentage}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        hidden: false,
+                                        index: i
+                                    };
+                                });
+                            }
+                            return [];
+                        }
+                    }
+                },
                 tooltip: {
                     callbacks: {
                         label: function (context) {
-                            return pesoFormatter(context.parsed.y);
+                            const label = context.label || '';
+                            const value = context.parsed;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value.toLocaleString()} (${percentage}%)`;
                         }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    ticks: { maxRotation: 0, autoSkip: true }
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function (value) { return pesoFormatter(value); }
                     }
                 }
             }
         }
     });
 
-    // Daily Procedures (This Week) - Bar
-    const weekProceduresLabels = {{ week_procedures_dates|default:'[]'|safe }};
-    const weekProceduresCounts = {{ week_procedures_counts|default:'[]'|safe }};
-    createChart('weekProceduresChart', {
-        type: 'bar',
-        data: {
-            labels: weekProceduresLabels,
-            datasets: [{
-                label: 'Procedures',
-                data: weekProceduresCounts,
-                backgroundColor: chartColors.secondary,
-                borderColor: chartColors.secondary,
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
+    // Daily Revenue (Current Month) - Line with Month Navigation
+    const dailyRevenueLabels = {{ daily_revenue_dates|default:'[]'|safe }};
+    const dailyRevenueValues = {{ daily_revenue_values|default:'[]'|safe }};
+
+    // Parse the data to organize by month-year
+    const allDailyData = {};
+    dailyRevenueLabels.forEach((label, index) => {
+        const date = new Date(label);
+        const monthYear = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+        const day = date.getDate();
+        
+        if (!allDailyData[monthYear]) {
+            allDailyData[monthYear] = {
+                labels: [],
+                revenue: [],
+                dates: []
+            };
+        }
+        allDailyData[monthYear].labels.push(day);
+        allDailyData[monthYear].revenue.push(dailyRevenueValues[index]);
+        allDailyData[monthYear].dates.push(date);
+    });
+
+    // Get available months and set current month
+    const availableMonths = Object.keys(allDailyData).sort((a, b) => {
+        return new Date(b) - new Date(a);
+    });
+
+    const currentDate = new Date();
+    const currentMonthYear = currentDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    let currentDisplayMonth = availableMonths.includes(currentMonthYear) ? currentMonthYear : (availableMonths.length > 0 ? availableMonths[0] : currentMonthYear);
+
+    // Create the chart
+    let monthlyRevenueChart = null;
+
+    function updateMonthlyRevenueChart(monthYear) {
+        const canvas = document.getElementById('monthlyRevenueChart');
+        if (!canvas) return;
+
+        const monthData = allDailyData[monthYear];
+        const hasData = monthData && monthData.labels.length > 0;
+
+        // Destroy existing chart
+        if (monthlyRevenueChart) {
+            monthlyRevenueChart.destroy();
+            monthlyRevenueChart = null;
+        }
+
+        if (!hasData) {
+            // Show "No Data" message
+            const ctx = canvas.getContext('2d');
+            const container = canvas.parentElement;
+            const containerHeight = container.clientHeight;
+            const containerWidth = container.clientWidth;
+            
+            canvas.width = containerWidth;
+            canvas.height = containerHeight;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.font = '20px Arial';
+            ctx.fillStyle = '#858796';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('No data', canvas.width / 2, canvas.height / 2);
+            ctx.restore();
+            return;
+        }
+        
+        monthlyRevenueChart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: monthData.labels,
+                datasets: [{
+                    label: 'Revenue',
+                    data: monthData.revenue,
+                    borderColor: chartColors.primary,
+                    backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointBackgroundColor: chartColors.primary,
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    fill: true
+                }]
             },
-            scales: {
-                x: {
-                    ticks: { maxRotation: 0 }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                const index = context[0].dataIndex;
+                                const date = monthData.dates[index];
+                                return date.toLocaleDateString('en-US', { 
+                                    month: 'long', 
+                                    day: 'numeric', 
+                                    year: 'numeric' 
+                                });
+                            },
+                            label: function (context) {
+                                return pesoFormatter(context.parsed.y);
+                            }
+                        }
+                    }
                 },
-                y: {
-                    beginAtZero: true,
-                    ticks: { stepSize: 1 }
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Day of Month' },
+                        ticks: { maxRotation: 0, autoSkip: true }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function (value) { return pesoFormatter(value); }
+                        }
+                    }
                 }
             }
+        });
+    }
+
+    // Initialize chart with current month
+    updateMonthlyRevenueChart(currentDisplayMonth);
+    document.getElementById('currentMonth').textContent = currentDisplayMonth;
+
+    // Month navigation button handlers
+    document.getElementById('prevMonthBtn').addEventListener('click', function() {
+        const currentIndex = availableMonths.indexOf(currentDisplayMonth);
+        if (currentIndex !== -1 && currentIndex < availableMonths.length - 1) {
+            currentDisplayMonth = availableMonths[currentIndex + 1];
+        } else {
+            // Go to previous month (might not have data)
+            const [month, year] = currentDisplayMonth.split(' ');
+            const date = new Date(`${month} 1, ${year}`);
+            date.setMonth(date.getMonth() - 1);
+            currentDisplayMonth = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
         }
+        document.getElementById('currentMonth').textContent = currentDisplayMonth;
+        updateMonthlyRevenueChart(currentDisplayMonth);
+    });
+
+    document.getElementById('nextMonthBtn').addEventListener('click', function() {
+        const currentIndex = availableMonths.indexOf(currentDisplayMonth);
+        if (currentIndex !== -1 && currentIndex > 0) {
+            currentDisplayMonth = availableMonths[currentIndex - 1];
+        } else {
+            // Go to next month (might not have data)
+            const [month, year] = currentDisplayMonth.split(' ');
+            const date = new Date(`${month} 1, ${year}`);
+            date.setMonth(date.getMonth() + 1);
+            currentDisplayMonth = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+        }
+        document.getElementById('currentMonth').textContent = currentDisplayMonth;
+        updateMonthlyRevenueChart(currentDisplayMonth);
+    });
+
+    // Daily Procedures (Current Week) - Stacked Bar with Week Navigation
+    const dailyProceduresData = {{ daily_procedures_data|default:'[]'|safe }};
+
+    // Organize data by week
+    const allWeeklyData = {};
+    const procedureTypes = new Set();
+
+    dailyProceduresData.forEach(day => {
+        const date = new Date(day.date);
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay()); // Sunday as start of week
+        const weekKey = weekStart.toISOString().split('T')[0];
+        
+        if (!allWeeklyData[weekKey]) {
+            allWeeklyData[weekKey] = {};
+        }
+        
+        const dayKey = day.date;
+        allWeeklyData[weekKey][dayKey] = {};
+        
+        day.procedures.forEach(proc => {
+            procedureTypes.add(proc.procedure_type__name);
+            allWeeklyData[weekKey][dayKey][proc.procedure_type__name] = proc.count;
+        });
+    });
+
+    // Get available weeks and set current week
+    const availableWeeks = Object.keys(allWeeklyData).sort((a, b) => new Date(b) - new Date(a));
+    const currentWeekStart = new Date(currentDate);
+    currentWeekStart.setDate(currentDate.getDate() - currentDate.getDay());
+    const currentWeekKey = currentWeekStart.toISOString().split('T')[0];
+    let currentDisplayWeek = availableWeeks.includes(currentWeekKey) ? currentWeekKey : (availableWeeks.length > 0 ? availableWeeks[0] : currentWeekKey);
+
+    // Create the chart
+    let weekProceduresChart = null;
+    const procedureTypesArray = Array.from(procedureTypes);
+
+    function updateWeekProceduresChart(weekKey) {
+        const canvas = document.getElementById('weekProceduresChart');
+        if (!canvas) return;
+
+        const weekData = allWeeklyData[weekKey] || {};
+        const weekStart = new Date(weekKey);
+        
+        // Generate all 7 days of the week
+        const daysOfWeek = [];
+        const dayLabels = [];
+        for (let i = 0; i < 7; i++) {
+            const day = new Date(weekStart);
+            day.setDate(weekStart.getDate() + i);
+            daysOfWeek.push(day.toISOString().split('T')[0]);
+            dayLabels.push(day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
+        }
+        
+        // Prepare datasets for each procedure type
+        const datasets = procedureTypesArray.map((procType, index) => {
+            return {
+                label: procType,
+                data: daysOfWeek.map(dayKey => {
+                    return weekData[dayKey] && weekData[dayKey][procType] ? weekData[dayKey][procType] : 0;
+                }),
+                backgroundColor: categoricalColors[index % categoricalColors.length],
+                borderColor: categoricalColors[index % categoricalColors.length],
+                borderWidth: 1
+            };
+        });
+        
+        const hasData = datasets.some(ds => ds.data.some(v => v > 0));
+
+        // Destroy existing chart
+        if (weekProceduresChart) {
+            weekProceduresChart.destroy();
+            weekProceduresChart = null;
+        }
+
+        if (!hasData) {
+            // Show "No Data" message
+            const ctx = canvas.getContext('2d');
+            const container = canvas.parentElement;
+            const containerHeight = container.clientHeight;
+            const containerWidth = container.clientWidth;
+            
+            canvas.width = containerWidth;
+            canvas.height = containerHeight;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.font = '20px Arial';
+            ctx.fillStyle = '#858796';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('No data', canvas.width / 2, canvas.height / 2);
+            ctx.restore();
+            return;
+        }
+        
+        weekProceduresChart = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: dayLabels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        align: 'center',
+                        labels: {
+                            boxWidth: 15,
+                            boxHeight: 15,
+                            padding: 10,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        filter: function(tooltipItem) { 
+                            return tooltipItem.parsed.y !== 0;
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        ticks: { maxRotation: 45, minRotation: 0 }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+        
+        // Update week display
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        document.getElementById('currentWeek').textContent = `Week of ${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    }
+
+    // Initialize chart with current week
+    updateWeekProceduresChart(currentDisplayWeek);
+
+    // Week navigation button handlers
+    document.getElementById('prevWeekBtn').addEventListener('click', function() {
+        const currentIndex = availableWeeks.indexOf(currentDisplayWeek);
+        if (currentIndex !== -1 && currentIndex < availableWeeks.length - 1) {
+            currentDisplayWeek = availableWeeks[currentIndex + 1];
+        } else {
+            // Go to previous week
+            const date = new Date(currentDisplayWeek);
+            date.setDate(date.getDate() - 7);
+            currentDisplayWeek = date.toISOString().split('T')[0];
+        }
+        updateWeekProceduresChart(currentDisplayWeek);
+    });
+
+    document.getElementById('nextWeekBtn').addEventListener('click', function() {
+        const currentIndex = availableWeeks.indexOf(currentDisplayWeek);
+        if (currentIndex !== -1 && currentIndex > 0) {
+            currentDisplayWeek = availableWeeks[currentIndex - 1];
+        } else {
+            // Go to next week
+            const date = new Date(currentDisplayWeek);
+            date.setDate(date.getDate() + 7);
+            currentDisplayWeek = date.toISOString().split('T')[0];
+        }
+        updateWeekProceduresChart(currentDisplayWeek);
     });
 
     // Gender Distribution (Doughnut)
@@ -610,7 +983,15 @@
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { position: 'bottom' }
+                legend: {
+                    position: 'right',
+                    align: 'center',
+                    labels: {
+                        boxWidth: 15,
+                        boxHeight: 15,
+                        padding: 10,
+                    }
+                }
             }
         }
     });
@@ -633,7 +1014,15 @@
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { position: 'bottom' }
+                legend: {
+                    position: 'right',
+                    align: 'center',
+                    labels: {
+                        boxWidth: 15,
+                        boxHeight: 15,
+                        padding: 10,
+                    }
+                }
             }
         }
     });
@@ -729,7 +1118,33 @@
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { position: 'bottom' },
+                legend: {
+                    position: 'right',
+                    align: 'center',
+                    labels: {
+                        boxWidth: 15,
+                        boxHeight: 15,
+                        padding: 10,
+                        font: {
+                            size: 11
+                        },
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    return {
+                                        text: `${label}: ${pesoFormatter(value)}`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        hidden: false,
+                                        index: i
+                                    };
+                                });
+                            }
+                            return [];
+                        }   
+                    }
+                },
                 tooltip: {
                     callbacks: {
                         label: function (context) {
@@ -988,65 +1403,157 @@
         }
     });
 
-    // Monthly Revenue Trends (Last 12 Months, respects selected date range) - Line
+    // Monthly Revenue Trends (Last 12 Months) - Line with Year Navigation
     const monthlyTrendLabels = {{ monthly_trend_labels|default:'[]'|safe }};
     const monthlyTrendValues = {{ monthly_trend_values|default:'[]'|safe }};
     const monthlyNetTrendValues = {{ monthly_net_trend_values|default:'[]'|safe }};
-    createChart('monthlyTrendChart', {
-        type: 'line',
-        data: {
-            labels: monthlyTrendLabels,
-            datasets: [
-                {
-                    label: 'Total Revenue',
-                    data: monthlyTrendValues,
-                    borderColor: chartColors.primary,
-                    backgroundColor: 'rgba(78, 115, 223, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    pointRadius: 3,
-                    pointBackgroundColor: chartColors.primary,
-                    fill: false
+
+    // Parse the data to organize by year
+    const allMonthlyData = {};
+    monthlyTrendLabels.forEach((label, index) => {
+        const [month, year] = label.split(' ');
+        if (!allMonthlyData[year]) {
+            allMonthlyData[year] = {
+                labels: [],
+                totalRevenue: [],
+                netRevenue: []
+            };
+        }
+        allMonthlyData[year].labels.push(month);
+        allMonthlyData[year].totalRevenue.push(monthlyTrendValues[index]);
+        allMonthlyData[year].netRevenue.push(monthlyNetTrendValues[index]);
+    });
+
+    // Get available years and set current year
+    const availableYears = Object.keys(allMonthlyData).sort((a, b) => b - a);
+    let currentTrendYear = availableYears.length > 0 ? availableYears[0] : new Date().getFullYear().toString();
+
+    // Create the chart
+    let monthlyTrendChart = null;
+
+    function updateMonthlyTrendChart(year) {
+        const canvas = document.getElementById('monthlyTrendChart');
+        if (!canvas) return;
+
+        const yearData = allMonthlyData[year];
+        const hasData = yearData && yearData.labels.length > 0;
+
+        // Destroy existing chart
+        if (monthlyTrendChart) {
+            monthlyTrendChart.destroy();
+            monthlyTrendChart = null;
+        }
+
+        if (!hasData) {
+            // Show "No Data" message
+            const ctx = canvas.getContext('2d');
+            // Get the parent container's dimensions
+            const container = canvas.parentElement;
+            const containerHeight = container.clientHeight;
+            const containerWidth = container.clientWidth;
+            
+            // Set canvas to match container
+            canvas.width = containerWidth;
+            canvas.height = containerHeight;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.font = '20px Arial';
+            ctx.fillStyle = '#858796';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('No data', canvas.width / 2, canvas.height / 2);
+            ctx.restore();
+            return;
+        }
+        
+        monthlyTrendChart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: yearData.labels,
+                datasets: [
+                    {
+                        label: 'Total Revenue',
+                        data: yearData.totalRevenue,
+                        borderColor: chartColors.primary,
+                        backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointBackgroundColor: chartColors.primary,
+                        fill: false
+                    },
+                    {
+                        label: 'Net Revenue',
+                        data: yearData.netRevenue,
+                        borderColor: chartColors.secondary,
+                        backgroundColor: 'rgba(28, 200, 138, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointBackgroundColor: chartColors.secondary,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return context.dataset.label + ': ' + pesoFormatter(context.parsed.y);
+                            }
+                        }
+                    }
                 },
-                {
-                    label: 'Net Revenue',
-                    data: monthlyNetTrendValues,
-                    borderColor: chartColors.secondary,
-                    backgroundColor: 'rgba(28, 200, 138, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    pointRadius: 3,
-                    pointBackgroundColor: chartColors.secondary,
-                    fill: false
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'top' },
-                tooltip: {
-                    callbacks: {
-                        label: function (context) {
-                            return context.dataset.label + ': ' + pesoFormatter(context.parsed.y);
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Month' },
+                        ticks: { autoSkip: true, maxRotation: 45 }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function (value) { return pesoFormatter(value); }
                         }
                     }
                 }
-            },
-            scales: {
-                x: {
-                    title: { display: true, text: 'Month' },
-                    ticks: { autoSkip: true, maxRotation: 45 }
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function (value) { return pesoFormatter(value); }
-                    }
-                }
             }
+        });
+    }
+
+    // Initialize chart with current year
+    updateMonthlyTrendChart(currentTrendYear);
+    document.getElementById('currentYear').textContent = currentTrendYear;
+
+    // Year navigation button handlers
+    document.getElementById('prevYearBtn').addEventListener('click', function() {
+        const currentIndex = availableYears.indexOf(currentTrendYear);
+        if (currentIndex !== -1 && currentIndex < availableYears.length - 1) {
+            // Navigate to previous year in available data
+            currentTrendYear = availableYears[currentIndex + 1];
+        } else {
+            // Go to year before (might not have data)
+            currentTrendYear = (parseInt(currentTrendYear) - 1).toString();
         }
+        document.getElementById('currentYear').textContent = currentTrendYear;
+        updateMonthlyTrendChart(currentTrendYear);
+    });
+
+    document.getElementById('nextYearBtn').addEventListener('click', function() {
+        const currentIndex = availableYears.indexOf(currentTrendYear);
+        if (currentIndex !== -1 && currentIndex > 0) {
+            // Navigate to next year in available data
+            currentTrendYear = availableYears[currentIndex - 1];
+        } else {
+            // Go to year after (might not have data)
+            currentTrendYear = (parseInt(currentTrendYear) + 1).toString();
+        }
+        document.getElementById('currentYear').textContent = currentTrendYear;
+        updateMonthlyTrendChart(currentTrendYear);
     });
 </script>
 {% endblock %}

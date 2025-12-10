@@ -77,38 +77,43 @@ def get_analytics_context(start_date=None, end_date=None):
     findings_distribution_data = json.dumps([f['count'] for f in findings])
     findings_distribution_labels = json.dumps([recommendation_map.get(f['recommendations'], f['recommendations']) for f in findings])
 
-    # Monthly revenue (last 6 months - NOT affected by filters)
-    monthly_revenue_dates = []
-    monthly_revenue_values = []
-    
-    # Always show last 6 months regardless of filters
-    for i in range(6):
-        month_date = (today.replace(day=1) - timedelta(days=i*30)).replace(day=1)
-        month_start = month_date
-        month_end = (month_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
-        month_total = Bill.objects.filter(
-            bill_date__gte=month_start,
-            bill_date__lte=month_end,
+    # Daily revenue for current month navigation (NOT affected by filters)
+    daily_revenue_dates = []
+    daily_revenue_values = []
+
+    # Get data for last 12 months, organized by day
+    from datetime import datetime
+    for i in range(365):  # Get last year of data
+        date = today - timedelta(days=i)
+        daily_total = Bill.objects.filter(
+            bill_date=date,
             status__in=['PAID', 'PARTIAL']
         ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-        monthly_revenue_dates.append(month_date.strftime('%Y-%m'))
-        monthly_revenue_values.append(float(month_total))
-    monthly_revenue_dates.reverse()
-    monthly_revenue_values.reverse()
-    
-    monthly_revenue_dates = json.dumps(monthly_revenue_dates)
-    monthly_revenue_values = json.dumps(monthly_revenue_values)
+        daily_revenue_dates.append(date.strftime('%Y-%m-%d'))
+        daily_revenue_values.append(float(daily_total))
 
-    # Weekly procedures (apply filter if provided, otherwise this week)
-    if start_date and end_date:
-        week_procedures = exam_qs.values('exam_date').annotate(count=Count('id')).order_by('exam_date')
-    else:
-        week_procedures = UltrasoundExam.objects.filter(
-            exam_date__gte=week_start
-        ).values('exam_date').annotate(count=Count('id')).order_by('exam_date')
-    
-    week_procedures_dates = [entry['exam_date'].strftime('%Y-%m-%d') for entry in week_procedures]
-    week_procedures_counts = [entry['count'] for entry in week_procedures]
+    daily_revenue_dates.reverse()
+    daily_revenue_values.reverse()
+
+    daily_revenue_dates_json = json.dumps(daily_revenue_dates)
+    daily_revenue_values_json = json.dumps(daily_revenue_values)
+
+    # Daily procedures with procedure type breakdown (last 90 days for navigation)
+    daily_procedures = []
+    for i in range(90):  # Get last 90 days of data
+        date = today - timedelta(days=i)
+        day_exams = exam_qs.filter(exam_date=date)
+        
+        # Get procedure type breakdown for this day
+        procedure_breakdown = day_exams.values('procedure_type__name').annotate(count=Count('id'))
+        
+        daily_procedures.append({
+            'date': date.strftime('%Y-%m-%d'),
+            'procedures': list(procedure_breakdown)
+        })
+
+    daily_procedures.reverse()
+    daily_procedures_json = json.dumps(daily_procedures)
 
     # Demographics (not filtered by date - lifetime stats)
     gender_counts = Patient.objects.values('sex').annotate(count=Count('id'))
@@ -303,10 +308,9 @@ def get_analytics_context(start_date=None, end_date=None):
         'procedure_distribution_labels': procedure_distribution_labels,
         'findings_distribution_data': findings_distribution_data,
         'findings_distribution_labels': findings_distribution_labels,
-        'monthly_revenue_dates': monthly_revenue_dates,
-        'monthly_revenue_values': monthly_revenue_values,
-        'week_procedures_dates': json.dumps(week_procedures_dates),
-        'week_procedures_counts': json.dumps(week_procedures_counts),
+        'daily_revenue_dates': daily_revenue_dates_json,
+        'daily_revenue_values': daily_revenue_values_json,
+        'daily_procedures_data': daily_procedures_json,
         'gender_distribution_labels': json.dumps(gender_distribution_labels),
         'gender_distribution_values': json.dumps(gender_distribution_values),
         'patient_type_labels': json.dumps(patient_type_labels),
