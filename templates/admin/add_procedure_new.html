@@ -1,21 +1,148 @@
 {% extends 'base.html' %}
 
+{% block skeleton %}
+{% endblock %}
+
 {% block title %}Add New Procedure{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root{
+    --blue-600: #1d60c7;
+    --blue-500: #3c89e8;
+    --bg: #fbfdff;
+    --muted: #6c757d;
+    --card-radius: 8px;
+    --card-shadow: 0 8px 22px rgba(15, 32, 63, 0.07);
+    --gap: 12px;
+    --control-border: #dce4ec;
+    --success: #16a34a;
+    --gray-300: #d1d5db;
+  }
+
+  .page-wrap { max-width: 1200px; margin: 0 auto; color: #213547; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+  .page-header { margin-bottom: 8px; }
+  .title { font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--blue-600); display:flex; align-items:center; gap:8px; }
+  .title-icon { background: rgba(60,137,232,0.12); color: var(--blue-600); padding: 6px; border-radius: 6px; display:inline-flex; align-items:center; justify-content:center; }
+  .subtitle { font-size: .92rem; color: var(--muted); margin: 4px 0 0; }
+
+  .breadcrumb { background: transparent; padding:0; margin:0; }
+
+  .main-card { width: 100%; max-width: 920px; border-radius: var(--card-radius); overflow: hidden; box-shadow: var(--card-shadow); background: white; }
+  .card-top { background: linear-gradient(135deg, rgba(60,137,232,0.95), rgba(29,96,199,0.95)); color: #fff; padding: 12px 18px; display:flex; align-items:center; gap:12px; }
+  .card-top .fa-stethoscope { font-size: 1.05rem; opacity: 0.95; }
+  .card-title { font-weight: 600; font-size: 1rem; }
+
+  .card-body { padding: 18px; }
+
+  .field-label { font-size: .92rem; font-weight: 600; display:block; color:#26384a; margin-bottom:6px; }
+  .field-icon { color: var(--blue-500); margin-right:6px; opacity: .95; }
+  .req { color: #d9534f; margin-left:4px; font-weight:600; }
+
+  input[type="text"], input[type="number"], .form-control, textarea, select {
+    width:100%; border-radius: 8px; border: 1.5px solid var(--control-border);
+    padding: .55rem .65rem; font-size: .95rem; outline: none;
+    transition: all .15s ease; background: #fff; color: #213547; box-sizing: border-box;
+  }
+
+  textarea { min-height: 150px; resize: vertical; padding-top: .7rem; }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--blue-500);
+    box-shadow: 0 0 0 6px rgba(60,137,232,0.07);
+  }
+
+  .input-group.compact { display:flex; align-items:center; gap:8px; }
+  .input-group-prepend { width:38px; height:38px; border-radius:6px; background:#f3f7fb; color: var(--muted); border:1px solid var(--control-border); display:flex; align-items:center; justify-content:center; }
+  .input-group-prepend .fa-money-bill-wave { font-size: .95rem; }
+
+  .field-help { color: var(--muted); font-size: .87rem; margin-top:4px; }
+
+  /* Toggle switch */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--gray-300);
+    transition: .3s;
+    border-radius: 34px;
+  }
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  input:checked + .slider {
+    background-color: var(--success);
+  }
+  input:checked + .slider:before {
+    transform: translateX(24px);
+  }
+
+  .status-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: #2c3e50;
+  }
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #d3dbe4;
+    transition: background .2s;
+  }
+  .status-dot.active {
+    background: #16a34a;
+    box-shadow: 0 0 0 4px rgba(22,163,74,0.15);
+  }
+
+  .divider { height:1px; background: rgba(0,0,0,0.06); margin: 20px 0; }
+
+  .btn { border-radius: 8px; padding: 10px 16px; font-weight:600; font-size:.95rem; border: none; cursor: pointer; display:inline-flex; align-items:center; gap:8px; transition: all .2s; }
+  .btn-ghost { background: #f7f9fb; color:#23394f; border:1px solid #e6eef6; }
+  .btn-outline-warning { background: transparent; border: 1.5px solid #f0b429; color:#7a5a02; }
+  .btn-primary { background: linear-gradient(135deg, var(--blue-500), var(--blue-600)); color:#fff; }
+
+  .tips-box { background: #f8fbff; border: 1px solid #e6f0ff; padding: 14px 18px; border-radius:8px; width:100%; max-width:920px; }
+  .tips-header { font-weight:700; color:var(--blue-600); margin-bottom:10px; }
+  .tips-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; font-size:.92rem; color:#325063; }
+
+  @media (max-width: 640px) {
+    .tips-grid { grid-template-columns:1fr; }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-wrap px-3 py-4">
 
   <!-- Header -->
-  <div class="page-header d-flex justify-content-between align-items-start mb-3">
+  <div class="page-header d-flex justify-content-between align-items-start mb-4">
     <div>
       <h1 class="title">
-        <span class="title-icon"> <i class="fas fa-plus-circle"></i> </span>
+        <span class="title-icon"><i class="fas fa-plus-circle"></i></span>
         Add New Procedure
       </h1>
       <p class="subtitle">Create a new medical procedure for your clinic</p>
     </div>
 
-    <nav aria-label="breadcrumb" class="breadcrumb-wrap">
+    <nav aria-label="breadcrumb">
       <ol class="breadcrumb small mb-0">
         <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
         <li class="breadcrumb-item"><a href="{% url 'admin_prices' %}">Prices</a></li>
@@ -24,106 +151,86 @@
     </nav>
   </div>
 
-  <!-- Main content area -->
+  <!-- Main Card -->
   <div class="d-flex justify-content-center">
     <div class="main-card">
 
-      <!-- Card header -->
       <div class="card-top">
-        <div class="card-top-left">
+        <div class="d-flex align-items-center gap-3">
           <i class="fas fa-stethoscope"></i>
           <span class="card-title">Procedure Information</span>
         </div>
       </div>
 
-      <!-- Card body / Form -->
       <div class="card-body">
         <form method="POST" action="{% url 'add_service' %}" novalidate id="procedure-form">
           {% csrf_token %}
 
-          <div class="row gx-3 gy-3">
-            <!-- Left column -->
+          <div class="row gx-4 gy-4">
+
             <div class="col-md-6">
-              <label for="{{ form.name.id_for_label }}" class="field-label">
-                <i class="fas fa-tag field-icon"></i> Procedure Name <span class="req">*</span>
-              </label>
+              <label class="field-label"><i class="fas fa-tag field-icon"></i> Procedure Name <span class="req">*</span></label>
               {{ form.name }}
-              {% if form.name.errors %}
-                <div class="invalid-feedback d-block small mt-1">{{ form.name.errors.0 }}</div>
-              {% endif %}
-              <div class="field-help small text-muted mt-1">Enter a descriptive name for the medical procedure</div>
             </div>
 
-            <!-- Right column -->
             <div class="col-md-6">
-              <label for="{{ form.base_price.id_for_label }}" class="field-label">
-                <i class="fas fa-peso-sign field-icon"></i> Base Price (₱) <span class="req">*</span>
-              </label>
-
+              <label class="field-label"><i class="fas fa-peso-sign field-icon"></i> Base Price (₱) <span class="req">*</span></label>
               <div class="input-group compact">
                 <span class="input-group-prepend"><i class="fas fa-money-bill-wave"></i></span>
                 {{ form.base_price }}
               </div>
-              {% if form.base_price.errors %}
-                <div class="invalid-feedback d-block small mt-1">{{ form.base_price.errors.0 }}</div>
-              {% endif %}
-              <div class="field-help small text-muted mt-1">Set the standard price for this procedure</div>
             </div>
 
-            <!-- Description - full width -->
             <div class="col-12">
-              <label for="{{ form.description.id_for_label }}" class="field-label">
-                <i class="fas fa-align-left field-icon"></i> Description
-              </label>
+              <label class="field-label"><i class="fas fa-align-left field-icon"></i> Description</label>
               {{ form.description }}
-              {% if form.description.errors %}
-                <div class="invalid-feedback d-block small mt-1">{{ form.description.errors.0 }}</div>
-              {% endif %}
-              <div class="field-help small text-muted mt-1">Provide details about what this procedure involves</div>
             </div>
 
-            <!-- Status / Toggle -->
-            <div class="col-12 d-flex align-items-center gap-3 mt-1">
-              <div class="form-check form-switch">
-                {{ form.is_active }}
-              </div>
-
-              <div>
-                <div class="d-flex align-items-center">
-                  <span id="status-bullet" class="status-bullet active"></span>
-                  <span id="status-text" class="status-label">Active</span>
+            <div class="col-12">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div>
+                  <div class="field-label mb-2">
+                    <i class="fas fa-power-off field-icon"></i> Status
+                  </div>
+                  <div class="status-display">
+                    <span class="status-dot" id="status-dot"></span>
+                    <span id="status-label">Active</span>
+                  </div>
                 </div>
-                <div class="field-help small text-muted mt-1">Enable this procedure for patient bookings</div>
+
+                <label class="switch">
+                  {{ form.is_active }}
+                  <span class="slider round"></span>
+                </label>
               </div>
             </div>
+
           </div>
 
-          <!-- Separator -->
           <div class="divider"></div>
 
-          <!-- Action bar -->
-          <div class="action-row d-flex justify-content-between align-items-center">
+          <!-- Buttons -->
+          <div class="action-row d-flex justify-content-between align-items-center flex-wrap gap-3">
             <a href="{% url 'admin_prices' %}" class="btn btn-ghost">
-              <i class="fas fa-arrow-left me-2"></i> Back to Prices
+              <i class="fas fa-arrow-left"></i> Back to Prices
             </a>
 
-            <div class="action-buttons d-flex align-items-center gap-2">
+            <div class="action-buttons d-flex gap-3">
               <button type="reset" class="btn btn-outline-warning">
                 <i class="fas fa-undo"></i> Reset
               </button>
-
               <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save me-2"></i> Add Procedure
+                <i class="fas fa-save"></i> Add Procedure
               </button>
             </div>
           </div>
+
         </form>
       </div>
-
     </div>
   </div>
 
-  <!-- Tips -->
+  <!-- Tips Section -->
   <div class="info-row d-flex justify-content-center mt-4">
     <div class="tips-box">
       <div class="tips-header"><i class="fas fa-info-circle me-2"></i> Tips for Adding Procedures</div>
@@ -137,238 +244,58 @@
       </div>
     </div>
   </div>
+
 </div>
+{% endblock %}
 
-
-<!-- Styles -->
-<style>
-  :root{
-    --blue-600: #1d60c7;
-    --blue-500: #3c89e8;
-    --bg: #fbfdff;
-    --muted: #6c757d;
-    --card-radius: 8px;
-    --card-shadow: 0 8px 22px rgba(15, 32, 63, 0.07);
-    --gap: 12px;
-    --control-border: #dce4ec;
-  }
-
-  .page-wrap { max-width: 1200px; margin: 0 auto; color: #213547; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
-  .page-header { margin-bottom: 8px; }
-  .title { font-size: 1.4rem; font-weight: 700; margin: 0; color: var(--blue-600); display:flex; align-items:center; gap:8px; }
-  .title-icon { background: rgba(60,137,232,0.12); color: var(--blue-600); padding: 6px; border-radius: 6px; display:inline-flex; align-items:center; justify-content:center; }
-  .subtitle { font-size: .92rem; color: var(--muted); margin: 4px 0 0; }
-
-  .breadcrumb-wrap { align-self: center; }
-  .breadcrumb { background: transparent; padding:0; margin:0; }
-
-  /* Main card */
-  .main-card { width: 100%; max-width: 920px; border-radius: var(--card-radius); overflow: hidden; box-shadow: var(--card-shadow); background: white; }
-  .card-top { background: linear-gradient(135deg, rgba(60,137,232,0.95), rgba(29,96,199,0.95)); color: #fff; padding: 12px 18px; display:flex; align-items:center; gap:12px; }
-  .card-top-left { display:flex; align-items:center; gap:10px; }
-  .card-top .fa-stethoscope { font-size: 1.05rem; opacity: 0.95; }
-  .card-title { font-weight: 600; font-size: 1rem; }
-
-  .card-body { padding: 18px; }
-
-  /* fields */
-  .field-label { font-size: .92rem; font-weight: 600; display:block; color:#26384a; margin-bottom:6px; }
-  .field-icon { color: var(--blue-500); margin-right:6px; opacity: .95; }
-  .req { color: #d9534f; margin-left:4px; font-weight:600; }
-
-  input[type="text"], input[type="number"], .form-control, textarea, select {
-    width:100%;
-    border-radius: 8px;
-    border: 1.5px solid var(--control-border);
-    padding: .55rem .65rem;
-    font-size: .95rem;
-    outline: none;
-    transition: box-shadow .15s ease, border-color .15s ease;
-    background: #fff;
-    color: #213547;
-    box-sizing: border-box;
-  }
-
-  textarea { min-height: 150px; resize: vertical; padding-top: .7rem; }
-
-  input:focus, textarea:focus {
-    border-color: var(--blue-500);
-    box-shadow: 0 0 0 6px rgba(60,137,232,0.07);
-  }
-
-  .input-group.compact { display:flex; align-items:center; gap:8px; }
-  .input-group-prepend { display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:6px; background:#f3f7fb; color: var(--muted); border:1px solid var(--control-border); }
-  .input-group-prepend .fa-money-bill-wave { font-size: .95rem; }
-
-  .field-help { color: var(--muted); }
-
-  /* switch & status */
-  .form-check.form-switch { --bs-switch-height: 22px; margin: 0; padding-right: 6px; }
-  .form-check-input { width: 2.6rem; height: 1.45rem; cursor:pointer; vertical-align: middle; background: #f0f3f7; border-radius: 999px; border: 1px solid #d0d7df; position: relative; }
-  .form-check-input:checked { background: #198754; border-color: #198754; }
-  .form-check-input::after { content:""; position:absolute; top: 2px; left: 2px; width: 12px; height: 12px; background: white; border-radius: 50%; transition: transform .12s ease; }
-  .form-check-input:checked::after { transform: translateX(14px); }
-
-  .status-bullet { width:10px; height:10px; border-radius:50%; margin-right:8px; display:inline-block; background:#e9ecef; }
-  .status-bullet.active { background: #1db954; box-shadow: 0 0 0 4px rgba(29,185,84,0.06); }
-  .status-bullet.inactive { background: #d3dbe4; box-shadow:none; }
-  .status-label { font-weight:600; color:#2c3e50; margin-left:4px; }
-
-  .divider { height:1px; background: linear-gradient(90deg, rgba(0,0,0,0.04), rgba(0,0,0,0.02)); margin: 16px 0; border-radius:2px; }
-
-  /* action row */
-  .action-row { padding: 6px 0; }
-  .btn { border-radius: 8px; padding: 10px 14px; font-weight:600; font-size:.95rem; border: none; cursor: pointer; display:inline-flex; align-items:center; gap:10px; }
-  .btn:focus { outline: none; box-shadow: 0 0 0 6px rgba(60,137,232,0.06); }
-
-  .btn-ghost { background: #f7f9fb; color:#23394f; border:1px solid #e6eef6; }
-  .btn-ghost:hover { background:#f0f6fb; transform: translateY(-1px); box-shadow: 0 6px 14px rgba(19,48,69,0.04); }
-
-  .btn-outline-warning { background: transparent; border: 1.5px solid #f0b429; color:#7a5a02; }
-  .btn-outline-warning:hover { background:#fff5e6; transform: translateY(-1px); }
-
-  .btn-primary { background: linear-gradient(135deg, var(--blue-500), var(--blue-600)); color:#fff; box-shadow: 0 6px 18px rgba(29,96,199,0.14); }
-  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(29,96,199,0.16); }
-
-  .action-buttons .btn { min-width:120px; }
-
-  /* tips box */
-  .tips-box { background: #f8fbff; border: 1px solid #e6f0ff; padding: 14px 18px; border-radius:8px; width:100%; max-width:920px; }
-  .tips-header { font-weight:700; color:var(--blue-600); margin-bottom:10px; }
-  .tips-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; font-size:.92rem; color:#325063; }
-  .tip { display:flex; gap:8px; align-items:center; color:#23536b; }
-
-  .tip .fa-check-circle { color:#26a65b; font-size:.9rem; }
-
-  /* responsive */
-  @media (max-width: 900px) {
-    .tips-grid { grid-template-columns:repeat(2,1fr); }
-    .action-buttons { width:100%; justify-content:flex-end; gap:8px; }
-  }
-  @media (max-width: 640px) {
-    .title { font-size:1.18rem; }
-    .main-card { margin: 0 8px; }
-    .tips-grid { grid-template-columns:1fr; }
-    .action-row { flex-direction: column; gap:10px; align-items:stretch; }
-    .action-buttons { justify-content:flex-end; width:100%; }
-    .action-buttons .btn { width:48%; }
-  }
-</style>
-
+{% block extra_js %}
 <script>
-// Enhanced form interactions
-document.addEventListener('DOMContentLoaded', function() {
-    // Status toggle animation
-    const statusToggle = document.getElementById('{{ form.is_active.id_for_label }}');
-    const statusText = document.getElementById('status-text');
+document.addEventListener('DOMContentLoaded', function () {
+  const toggle = document.querySelector('#{{ form.is_active.id_for_label }}');
+  const statusDot = document.getElementById('status-dot');
+  const statusLabel = document.getElementById('status-label');
 
-    if (statusToggle) {
-        statusToggle.addEventListener('change', function() {
-            if (this.checked) {
-                statusText.innerHTML = '<i class="fas fa-check-circle me-1"></i> Active';
-                statusText.className = 'badge bg-success-subtle text-success';
-            } else {
-                statusText.innerHTML = '<i class="fas fa-times-circle me-1"></i> Inactive';
-                statusText.className = 'badge bg-danger-subtle text-danger';
-            }
-        });
+  function updateStatus() {
+    if (toggle.checked) {
+      statusLabel.textContent = 'Active';
+      statusDot.classList.add('active');
+    } else {
+      statusLabel.textContent = 'Inactive';
+      statusDot.classList.remove('active');
     }
+  }
 
-    // Form validation enhancement
-    const form = document.querySelector('form');
-    const requiredFields = form.querySelectorAll('[required]');
+  updateStatus();
+  toggle.addEventListener('change', updateStatus);
 
-    requiredFields.forEach(field => {
-        field.addEventListener('blur', function() {
-            if (this.value.trim() === '') {
-                this.classList.add('is-invalid');
-            } else {
-                this.classList.remove('is-invalid');
-                this.classList.add('is-valid');
-            }
-        });
-
-        field.addEventListener('input', function() {
-            if (this.classList.contains('is-invalid') && this.value.trim() !== '') {
-                this.classList.remove('is-invalid');
-                this.classList.add('is-valid');
-            }
-        });
+  const priceInput = document.getElementById('{{ form.base_price.id_for_label }}');
+  if (priceInput) {
+    priceInput.addEventListener('input', (e) => {
+      let val = e.target.value.replace(/[^0-9.]/g, '');
+      const parts = val.split('.');
+      if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+      e.target.value = val;
     });
+  }
 
-    // Price input formatting
-    const priceField = document.getElementById('{{ form.base_price.id_for_label }}');
-    if (priceField) {
-        priceField.addEventListener('input', function(e) {
-            // Allow only numbers and decimal point
-            let value = e.target.value.replace(/[^0-9.]/g, '');
-            // Ensure only one decimal point
-            const parts = value.split('.');
-            if (parts.length > 2) {
-                value = parts[0] + '.' + parts.slice(1).join('');
-            }
-            e.target.value = value;
-        });
-    }
-
-    // Auto-resize textarea
-    const textareas = document.querySelectorAll('textarea');
-    textareas.forEach(textarea => {
-        textarea.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-        });
+  document.querySelectorAll('textarea').forEach(ta => {
+    ta.addEventListener('input', function() {
+      ta.style.height = 'auto';
+      ta.style.height = ta.scrollHeight + 'px';
     });
+    ta.dispatchEvent(new Event('input'));
+  });
 });
 </script>
 
-<!-- Small script: add classes to raw form fields & update status label -->
 <script>
-  (function(){
-    const form = document.getElementById('procedure-form');
-    if (!form) return;
-
-    // Add sane default classes to form inputs if not set in widgets
-    const inputs = form.querySelectorAll('input, textarea, select');
-    inputs.forEach(el => {
-      const t = el.tagName.toLowerCase();
-      if (el.classList.length === 0) {
-        if (t === 'input' && (el.type === 'checkbox' || el.type === 'radio')) {
-          el.classList.add('form-check-input');
-        } else {
-          el.classList.add('form-control');
-        }
-      }
-    });
-
-    // Find the status checkbox (is_active)
-    const statusCheckbox = form.querySelector('input[type="checkbox"], input[type="radio"]');
-    const statusText = document.getElementById('status-text');
-    const statusBullet = document.getElementById('status-bullet');
-
-    function updateStatusUI() {
-      if (!statusCheckbox) return;
-      const checked = statusCheckbox.checked;
-      if (checked) {
-        statusText.textContent = 'Active';
-        statusBullet.classList.remove('inactive');
-        statusBullet.classList.add('active');
-      } else {
-        statusText.textContent = 'Inactive';
-        statusBullet.classList.remove('active');
-        statusBullet.classList.add('inactive');
-      }
+(() => {
+  document.querySelectorAll('#procedure-form input, #procedure-form textarea, #procedure-form select').forEach(el => {
+    if (!el.classList.length) {
+      if (el.type === 'checkbox') el.classList.add('form-check-input');
+      else el.classList.add('form-control');
     }
-
-    if (statusCheckbox) {
-      // ensure checkbox has appropriate class
-      if (!statusCheckbox.classList.contains('form-check-input')) {
-        statusCheckbox.classList.add('form-check-input');
-      }
-      statusCheckbox.addEventListener('change', updateStatusUI);
-      // initial
-      updateStatusUI();
-    }
-  })();
+  });
+})();
 </script>
 {% endblock %}
