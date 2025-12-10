@@ -216,6 +216,17 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+// Django template variables - capture BEFORE any JavaScript runs
+window.initialAddressValues = {
+    region: '{{ form.region.value|default:"" }}',
+    province: '{{ form.province.value|default:"" }}',
+    city: '{{ form.city.value|default:"" }}',
+    barangay: '{{ form.barangay.value|default:"" }}'
+};
+console.log('Django passed values:', window.initialAddressValues);
+</script>
+
 {{ block.super }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -273,7 +284,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to update select options
     function updateSelect(selectElement, data, defaultOption = 'Select...') {
         console.log('Updating select element:', selectElement.id, 'with data:', data);
-        const currentValue = selectElement.getAttribute('value') || selectElement.value; // Preserve current value from POST data
+        
+        // CRITICAL: Get the current value BEFORE clearing the select
+        const currentValue = selectElement.value;
+        console.log('Preserving value for', selectElement.id, ':', currentValue);
+        
         selectElement.innerHTML = `<option value="">${defaultOption}</option>`;
         data.forEach(item => {
             const option = document.createElement('option');
@@ -281,19 +296,13 @@ document.addEventListener('DOMContentLoaded', function() {
             option.textContent = item.name || item.province_name || item.city_name || item.brgy_name;
             selectElement.appendChild(option);
         });
-        // Restore the current value if it exists in the new options, or add it if not found
+        
+        // Restore the current value if it exists in the new options
         if (currentValue) {
-            if (selectElement.querySelector(`option[value="${currentValue}"]`)) {
-                selectElement.value = currentValue;
-            } else {
-                // Add the current value as an option to preserve it
-                const preservedOption = document.createElement('option');
-                preservedOption.value = currentValue;
-                preservedOption.textContent = `Previously selected (${currentValue})`;
-                selectElement.appendChild(preservedOption);
-                selectElement.value = currentValue;
-            }
+            selectElement.value = currentValue;
+            console.log('Restored value for', selectElement.id, ':', selectElement.value);
         }
+        
         selectElement.disabled = false;
     }
 
@@ -372,157 +381,211 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Function to populate address fields based on current values (for editing/invalid forms)
-    async function populateAddressFields() {
-        if (!regionSelect.value) return;
+    // Use setTimeout to ensure DOM is fully ready and values are set
+    setTimeout(function() {
+        // Use values passed from Django template
+        const initialRegionValue = window.initialAddressValues.region;
+        const initialProvinceValue = window.initialAddressValues.province;
+        const initialCityValue = window.initialAddressValues.city;
+        const initialBarangayValue = window.initialAddressValues.barangay;
 
-        try {
-            // Load provinces for selected region
-            const selectedRegionCode = regionSelect.value.toString().padStart(2, '0');
-            const provinceResponse = await fetch("{% static 'philippine-addresses/province.json' %}");
-            const provinces = await provinceResponse.json();
-            const filteredProvinces = provinces.filter(p => p.region_code === selectedRegionCode);
-            updateSelect(provinceSelect, filteredProvinces.map(p => ({
-                code: p.province_code,
-                name: p.province_name
-            })), 'Select Province...');
+        console.log('Captured initial values:', { 
+            initialRegionValue, 
+            initialProvinceValue, 
+            initialCityValue, 
+            initialBarangayValue 
+        });
 
-            if (provinceSelect.value) {
-                // Load cities for selected province
-                const selectedProvinceCode = provinceSelect.value;
-                const cityResponse = await fetch("{% static 'philippine-addresses/city.json' %}");
-                const cities = await cityResponse.json();
-                const filteredCities = cities.filter(c => c.province_code === selectedProvinceCode);
-                updateSelect(citySelect, filteredCities.map(c => ({
-                    code: c.city_code,
-                    name: c.city_name
-                })), 'Select City/Municipality...');
+        // Modified populateAddressFields to use captured values
+        async function populateAddressFieldsWithValues() {
+            console.log('Populating with captured values:', { 
+                initialRegionValue, 
+                initialProvinceValue, 
+                initialCityValue, 
+                initialBarangayValue 
+            });
+            
+            if (!initialRegionValue) return;
 
-                if (citySelect.value) {
-                    // Load barangays for selected city
-                    const selectedCityCode = citySelect.value;
-                    const barangayResponse = await fetch("{% static 'philippine-addresses/barangay.json' %}");
-                    const barangays = await barangayResponse.json();
-                    const filteredBarangays = barangays.filter(b => b.city_code === selectedCityCode);
-                    updateSelect(barangaySelect, filteredBarangays.map(b => ({
-                        code: b.brgy_code,
-                        name: b.brgy_name
-                    })), 'Select Barangay...');
-                }
-            }
-        } catch (error) {
-            console.error('Error populating address fields:', error);
-        }
-    }
-
-    // Load regions when page loads
-    console.log('Starting initial region load...');
-    loadInitialRegions().then(() => {
-        // After regions are loaded, populate dependent fields if values exist
-        populateAddressFields().catch(error => console.error('Error populating address fields:', error));
-    }).catch(error => {
-        console.error('Failed to load initial regions:', error);
-    });
-
-    // Region change handler
-    regionSelect.addEventListener('change', async function() {
-        console.log('Region selected:', this.value);
-        resetDependentFields('all');
-
-        if (!this.value) {
-            return;
-        }
-
-        setLoadingState(provinceSelect);
-        try {
-            console.log('Fetching provinces from:', "{% static 'philippine-addresses/province.json' %}");
-            const response = await fetch("{% static 'philippine-addresses/province.json' %}");
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const provinces = await response.json();
-            console.log('All provinces:', provinces);
-
-            // Ensure we're comparing strings
-            const selectedRegionCode = this.value.toString().padStart(2, '0');
-            console.log('Looking for provinces with region_code:', selectedRegionCode);
-
-            const filteredProvinces = provinces.filter(province =>
-                province.region_code === selectedRegionCode
-            );
-            console.log('Filtered provinces:', filteredProvinces);
-
-            if (filteredProvinces.length > 0) {
-                updateSelect(provinceSelect, filteredProvinces.map(province => ({
-                    code: province.province_code,
-                    name: province.province_name
+            try {
+                // Load provinces for selected region
+                const selectedRegionCode = initialRegionValue.toString().padStart(2, '0');
+                const provinceResponse = await fetch("{% static 'philippine-addresses/province.json' %}");
+                const provinces = await provinceResponse.json();
+                const filteredProvinces = provinces.filter(p => p.region_code === selectedRegionCode);
+                updateSelect(provinceSelect, filteredProvinces.map(p => ({
+                    code: p.province_code,
+                    name: p.province_name
                 })), 'Select Province...');
-            } else {
-                setErrorState(provinceSelect, 'No provinces found for this region');
+                
+                // Restore province value
+                if (initialProvinceValue) {
+                    provinceSelect.value = initialProvinceValue;
+                    console.log('Set province to:', provinceSelect.value);
+                }
+
+                if (initialProvinceValue) {
+                    // Load cities for selected province
+                    const cityResponse = await fetch("{% static 'philippine-addresses/city.json' %}");
+                    const cities = await cityResponse.json();
+                    const filteredCities = cities.filter(c => c.province_code === initialProvinceValue);
+                    updateSelect(citySelect, filteredCities.map(c => ({
+                        code: c.city_code,
+                        name: c.city_name
+                    })), 'Select City/Municipality...');
+                    
+                    // Restore city value
+                    if (initialCityValue) {
+                        citySelect.value = initialCityValue;
+                        console.log('Set city to:', citySelect.value);
+                    }
+
+                    if (initialCityValue) {
+                        // Load barangays for selected city
+                        const barangayResponse = await fetch("{% static 'philippine-addresses/barangay.json' %}");
+                        const barangays = await barangayResponse.json();
+                        const filteredBarangays = barangays.filter(b => b.city_code === initialCityValue);
+                        updateSelect(barangaySelect, filteredBarangays.map(b => ({
+                            code: b.brgy_code,
+                            name: b.brgy_name
+                        })), 'Select Barangay...');
+                        
+                        // Restore barangay value
+                        if (initialBarangayValue) {
+                            barangaySelect.value = initialBarangayValue;
+                            console.log('Set barangay to:', barangaySelect.value);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error populating address fields:', error);
             }
-        } catch (error) {
-            console.error('Error loading provinces:', error);
-            setErrorState(provinceSelect, 'Failed to load provinces: ' + error.message);
-        }
-    });
-
-    // Province change handler
-    provinceSelect.addEventListener('change', async function() {
-        resetDependentFields('city');
-
-        if (!this.value) {
-            return;
         }
 
-        setLoadingState(citySelect);
-        try {
-            const cities = await fetchJsonData("{% static 'philippine-addresses/city.json' %}");
-            const selectedProvinceCode = this.value;
-            console.log('Selected province code:', selectedProvinceCode);
-            const filteredCities = cities.filter(city =>
-                city.province_code === selectedProvinceCode
-            );
-            console.log('Filtered cities:', filteredCities);
-            if (filteredCities.length > 0) {
-                updateSelect(citySelect, filteredCities.map(city => ({
-                    code: city.city_code,
-                    name: city.city_name
-                })), 'Select City/Municipality...');
-            } else {
-                setErrorState(citySelect, 'No cities found');
+        // Region change handler
+        regionSelect.addEventListener('change', async function(e) {
+            console.log('Region selected:', this.value);
+            
+            // Only reset if this is a user-initiated change (not on page load)
+            if (e.isTrusted) {
+                resetDependentFields('all');
             }
-        } catch (error) {
-            setErrorState(citySelect, 'Failed to load cities');
-            console.error('Error:', error);
-        }
-    });
 
-    // City change handler
-    citySelect.addEventListener('change', async function() {
-        resetDependentFields('barangay');
-
-        if (!this.value) {
-            return;
-        }
-
-        setLoadingState(barangaySelect);
-        try {
-            const barangays = await fetchJsonData("{% static 'philippine-addresses/barangay.json' %}");
-            const filteredBarangays = barangays.filter(barangay =>
-                barangay.city_code === this.value
-            );
-            if (filteredBarangays.length > 0) {
-                updateSelect(barangaySelect, filteredBarangays.map(barangay => ({
-                    code: barangay.brgy_code,
-                    name: barangay.brgy_name
-                })), 'Select Barangay...');
-            } else {
-                setErrorState(barangaySelect, 'No barangays found');
+            if (!this.value) {
+                return;
             }
-        } catch (error) {
-            setErrorState(barangaySelect, 'Failed to load barangays');
-        }
-    });
+
+            setLoadingState(provinceSelect);
+            try {
+                console.log('Fetching provinces from:', "{% static 'philippine-addresses/province.json' %}");
+                const response = await fetch("{% static 'philippine-addresses/province.json' %}");
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const provinces = await response.json();
+                console.log('All provinces:', provinces);
+
+                // Ensure we're comparing strings
+                const selectedRegionCode = this.value.toString().padStart(2, '0');
+                console.log('Looking for provinces with region_code:', selectedRegionCode);
+
+                const filteredProvinces = provinces.filter(province =>
+                    province.region_code === selectedRegionCode
+                );
+                console.log('Filtered provinces:', filteredProvinces);
+
+                if (filteredProvinces.length > 0) {
+                    updateSelect(provinceSelect, filteredProvinces.map(province => ({
+                        code: province.province_code,
+                        name: province.province_name
+                    })), 'Select Province...');
+                } else {
+                    setErrorState(provinceSelect, 'No provinces found for this region');
+                }
+            } catch (error) {
+                console.error('Error loading provinces:', error);
+                setErrorState(provinceSelect, 'Failed to load provinces: ' + error.message);
+            }
+        });
+
+        // Province change handler
+        provinceSelect.addEventListener('change', async function(e) {
+            // Only reset if this is a user-initiated change
+            if (e.isTrusted) {
+                resetDependentFields('city');
+            }
+
+            if (!this.value) {
+                return;
+            }
+
+            setLoadingState(citySelect);
+            try {
+                const cities = await fetchJsonData("{% static 'philippine-addresses/city.json' %}");
+                const selectedProvinceCode = this.value;
+                console.log('Selected province code:', selectedProvinceCode);
+                const filteredCities = cities.filter(city =>
+                    city.province_code === selectedProvinceCode
+                );
+                console.log('Filtered cities:', filteredCities);
+                if (filteredCities.length > 0) {
+                    updateSelect(citySelect, filteredCities.map(city => ({
+                        code: city.city_code,
+                        name: city.city_name
+                    })), 'Select City/Municipality...');
+                } else {
+                    setErrorState(citySelect, 'No cities found');
+                }
+            } catch (error) {
+                setErrorState(citySelect, 'Failed to load cities');
+                console.error('Error:', error);
+            }
+        });
+
+        // City change handler
+        citySelect.addEventListener('change', async function(e) {
+            // Only reset if this is a user-initiated change
+            if (e.isTrusted) {
+                resetDependentFields('barangay');
+            }
+
+            if (!this.value) {
+                return;
+            }
+
+            setLoadingState(barangaySelect);
+            try {
+                const barangays = await fetchJsonData("{% static 'philippine-addresses/barangay.json' %}");
+                const filteredBarangays = barangays.filter(barangay =>
+                    barangay.city_code === this.value
+                );
+                if (filteredBarangays.length > 0) {
+                    updateSelect(barangaySelect, filteredBarangays.map(barangay => ({
+                        code: barangay.brgy_code,
+                        name: barangay.brgy_name
+                    })), 'Select Barangay...');
+                } else {
+                    setErrorState(barangaySelect, 'No barangays found');
+                }
+            } catch (error) {
+                setErrorState(barangaySelect, 'Failed to load barangays');
+            }
+        });
+
+        // Load regions when page loads
+        console.log('Starting initial region load...');
+        loadInitialRegions().then(() => {
+            // Restore region value first
+            if (initialRegionValue) {
+                regionSelect.value = initialRegionValue;
+                console.log('Set region to:', regionSelect.value);
+            }
+            // After regions are loaded, populate dependent fields if values exist
+            populateAddressFieldsWithValues().catch(error => console.error('Error populating address fields:', error));
+        }).catch(error => {
+            console.error('Failed to load initial regions:', error);
+        });
+    }, 0);
 
     // Age calculation from birthday
     const birthdayInput = document.getElementById('id_birthday');

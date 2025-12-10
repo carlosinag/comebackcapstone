@@ -96,12 +96,12 @@ class PatientForm(forms.ModelForm):
         self.fields['barangay'].help_text = 'Select your barangay'
 
         # Set required fields
-        required_fields = ['first_name', 'last_name', 'birthday', 'sex', 'patient_type', 'patient_status', 'region', 'province', 'city', 'barangay', 'contact_number']
+        required_fields = ['first_name', 'last_name', 'birthday', 'sex', 'patient_type', 'patient_status', 'region', 'province', 'city', 'barangay', 'contact_number', 'email']
         for field in required_fields:
             self.fields[field].required = True
 
         # Set optional fields
-        optional_fields = ['street_address', 'marital_status', 'id_number', 'email']
+        optional_fields = ['street_address', 'marital_status', 'id_number']
         for field in optional_fields:
             self.fields[field].required = False
 
@@ -113,6 +113,29 @@ class PatientForm(forms.ModelForm):
             if len(contact_number) != 11:
                 raise forms.ValidationError("Contact number must be exactly 11 digits.")
         return contact_number
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        
+        # If email is provided, check for duplicates
+        if email:
+            # Normalize email to lowercase for case-insensitive comparison
+            email = email.lower()
+            
+            # Build the query to check for existing emails
+            existing_patients = Patient.objects.filter(email__iexact=email)
+            
+            # If we're editing an existing patient, exclude the current instance
+            if self.instance and self.instance.pk:
+                existing_patients = existing_patients.exclude(pk=self.instance.pk)
+            
+            # Check if any other patient has this email
+            if existing_patients.exists():
+                raise forms.ValidationError(
+                    "This email address is already registered in the system. Please use a different email."
+                )
+        
+        return email
 
 class PatientPasswordChangeForm(PasswordChangeForm):
     """Custom password change form for patients with Bootstrap styling."""
