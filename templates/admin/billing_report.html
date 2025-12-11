@@ -336,16 +336,16 @@
             {% endif %}
         </div>
 
-        <!-- Expenses Management Tab -->
+        <!-- Replace your Expenses Management Tab section with this improved layout -->
         <div class="tab-pane fade" id="expenses" role="tabpanel">
-            <div class="card shadow mt-3">
+            <!-- Add New Expense Section (Top) -->
+            <div class="card shadow mt-3 mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Expenses Management</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Add New Expense</h6>
                 </div>
                 <div class="card-body">
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <h5>Add New Expense</h5>
+                    <div class="row">
+                        <div class="col-md-8">
                             <form id="addExpenseForm">
                                 <div class="row g-3">
                                     <div class="col-md-6">
@@ -378,8 +378,8 @@
                                 </div>
                             </form>
                         </div>
-                        <div class="col-md-6">
-                            <h5>Current Expenses Summary</h5>
+                        <div class="col-md-4">
+                            <h6 class="mb-3">Current Expenses Summary</h6>
                             <div class="card border-danger">
                                 <div class="card-body">
                                     <h6 class="card-title">Total Expenses</h6>
@@ -389,7 +389,37 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
 
+            <!-- Filters and Table Section (Bottom) -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Expenses Records</h6>
+                </div>
+                <div class="card-body">
+                    <!-- Filters -->
+                    <form id="expenseFilterForm">
+                        <div class="row g-3 align-items-end mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label">Date Range</label>
+                                <input type="text" id="expense_date_range" class="form-control" placeholder="Select date range">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-filter"></i> Filter
+                                </button>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-secondary w-100" onclick="clearExpenseFilters()">
+                                    <i class="fas fa-times"></i> Clear
+                                </button>
+                            </div>
+                            <div class="col-md-4"></div>
+                        </div>
+                    </form>
+
+                    <!-- Expenses Table -->
                     <div class="table-responsive">
                         <table class="table table-bordered" id="expensesTable">
                             <thead>
@@ -402,9 +432,27 @@
                                 </tr>
                             </thead>
                             <tbody id="expensesTableBody">
-                                <!-- Expenses will be loaded here dynamically -->
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div id="expensesPaginationContainer" class="d-flex justify-content-center mt-3" style="display: none !important;">
+                        <nav aria-label="Expenses pagination">
+                            <ul class="pagination" id="expensesPagination">
+                                <!-- Pagination will be generated here -->
+                            </ul>
+                        </nav>
+                    </div>
+                    <div id="expensesPageInfo" class="text-center mt-2 text-muted" style="display: none !important;">
+                        <!-- Page info will be shown here -->
                     </div>
                 </div>
             </div>
@@ -419,6 +467,11 @@
 <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script>
+// Add these variables at the top of your script section
+let currentExpensePage = 1;
+let expenseDateRange = '';
+
+// Update the existing DOMContentLoaded section
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded - initializing billing report JS');
 
@@ -437,23 +490,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const netRevenueDisplay = document.getElementById('netRevenueDisplay');
     const totalRevenueDisplay = document.getElementById('totalRevenueDisplay');
 
-    console.log('Initial values:', {
-        rawTotalRevenue: rawTotalRevenue ? rawTotalRevenue.value : 'not found',
-        expenses: expensesInput ? expensesInput.value : 'not found'
-    });
-
     // Add input event listener
     if (expensesInput) {
         expensesInput.addEventListener('input', updateNetRevenue);
-    } else {
-        console.error('Expenses input element not found!');
     }
 
     // Add click event listener to save button
     if (saveButton) {
         saveButton.addEventListener('click', saveExpenses);
-    } else {
-        console.error('Save button not found!');
     }
 
     // Handle expenses form submission
@@ -465,42 +509,77 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Load expenses when expenses tab is shown
-    const expensesTab = document.getElementById('expenses-tab');
-    if (expensesTab) {
-        expensesTab.addEventListener('shown.bs.tab', function() {
+    // Handle expense filter form
+    const expenseFilterForm = document.getElementById('expenseFilterForm');
+    if (expenseFilterForm) {
+        expenseFilterForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            currentExpensePage = 1;
             loadExpenses();
         });
     }
 
+    // Load expenses when expenses tab is shown
+    const expensesTab = document.getElementById('expenses-tab');
+    if (expensesTab) {
+        expensesTab.addEventListener('shown.bs.tab', function() {
+            currentExpensePage = 1;
+            loadExpenses();
+        });
+    }
+
+    // Initialize expense date range picker
+    $('#expense_date_range').daterangepicker({
+        autoUpdateInput: false,
+        ranges: {
+           'Today': [moment(), moment()],
+           'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+           'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+           'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+           'This Month': [moment().startOf('month'), moment().endOf('month')],
+           'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+        }
+    });
+
+    $('#expense_date_range').on('apply.daterangepicker', function(ev, picker) {
+        $(this).val(picker.startDate.format('MM/DD/YYYY') + ' - ' + picker.endDate.format('MM/DD/YYYY'));
+        expenseDateRange = $(this).val();
+    });
+
+    $('#expense_date_range').on('cancel.daterangepicker', function(ev, picker) {
+        $(this).val('');
+        expenseDateRange = '';
+    });
+
+    // Initialize billing date range picker (existing)
+    $('#date_range').daterangepicker({
+        startDate: moment().subtract(29, 'days'),
+        endDate: moment(),
+        ranges: {
+           'Today': [moment(), moment()],
+           'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+           'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+           'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+           'This Month': [moment().startOf('month'), moment().endOf('month')],
+           'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+        }
+    });
+
     function updateNetRevenue() {
         try {
-            console.log('Updating net revenue...');
-            
-            // Get and validate total revenue
             const totalRevenue = parseFloat(rawTotalRevenue.value);
             if (isNaN(totalRevenue)) {
-                throw new Error('Invalid total revenue value: ' + rawTotalRevenue.value);
+                throw new Error('Invalid total revenue value');
             }
             
-            // Get and validate expenses
             const expenses = parseFloat(expensesInput.value) || 0;
             if (isNaN(expenses)) {
-                throw new Error('Invalid expenses value: ' + expensesInput.value);
+                throw new Error('Invalid expenses value');
             }
 
-            console.log('Calculation values:', { totalRevenue, expenses });
-            
-            // Calculate net revenue
             const netRevenue = totalRevenue - expenses;
-            
-            // Update display
             netRevenueDisplay.textContent = '₱' + netRevenue.toFixed(2);
-            
-            // Update styling
             netRevenueDisplay.className = netRevenue >= 0 ? 'net-revenue-positive' : 'net-revenue-negative';
-
-            console.log('Net revenue updated:', netRevenue);
         } catch (error) {
             console.error('Error in updateNetRevenue:', error);
             toastr.error('Error calculating net revenue: ' + error.message);
@@ -509,7 +588,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function saveExpenses() {
         try {
-            console.log('Saving expenses...');
             const expenses = parseFloat(expensesInput.value) || 0;
 
             fetch("{% url 'update_expenses' %}", {
@@ -520,12 +598,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: 'expenses=' + expenses
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     toastr.success('Expenses updated successfully');
@@ -543,71 +616,30 @@ document.addEventListener('DOMContentLoaded', function() {
             toastr.error('Error processing expenses: ' + error.message);
         }
     }
-
-    // Initialize daterangepicker
-    $('#date_range').daterangepicker({
-        startDate: moment().subtract(29, 'days'),
-        endDate: moment(),
-        ranges: {
-           'Today': [moment(), moment()],
-           'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
-           'Last 7 Days': [moment().subtract(6, 'days'), moment()],
-           'Last 30 Days': [moment().subtract(29, 'days'), moment()],
-           'This Month': [moment().startOf('month'), moment().endOf('month')],
-           'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
-        }
-    });
 });
 
-function exportToExcel() {
-    window.location.href = "{% url 'admin_billing_export' %}?" + new URLSearchParams(window.location.search);
+function clearExpenseFilters() {
+    document.getElementById('expense_date_range').value = '';
+    expenseDateRange = '';
+    currentExpensePage = 1;
+    loadExpenses();
 }
 
-function viewDetails(billNumber) {
-    window.location.href = "{% url 'billing:bill_detail' 'PLACEHOLDER' %}".replace('PLACEHOLDER', billNumber);
-}
-
-function addExpense() {
-    const form = document.getElementById('addExpenseForm');
-    const formData = new FormData(form);
-
-    // Add CSRF token to form data
-    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
-    // Debug: Log form data
-    console.log('Form data being sent:');
-    for (let [key, value] of formData.entries()) {
-        console.log(key + ': ' + value);
+function loadExpenses(page = null) {
+    if (page !== null) {
+        currentExpensePage = page;
     }
 
-    fetch("{% url 'add_expense' %}", {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            toastr.success('Expense added successfully');
-            form.reset();
-            loadExpenses();
-            updateTotalExpenses();
-        } else {
-            toastr.error('Error adding expense: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        toastr.error('Error adding expense: ' + error.message);
+    // Build query parameters
+    const params = new URLSearchParams({
+        page: currentExpensePage
     });
-}
 
-function loadExpenses() {
-    fetch("{% url 'get_expenses' %}")
+    if (expenseDateRange) {
+        params.append('expense_date_range', expenseDateRange);
+    }
+
+    fetch("{% url 'get_expenses' %}?" + params.toString())
     .then(response => {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -617,6 +649,7 @@ function loadExpenses() {
     .then(data => {
         if (data.success) {
             displayExpenses(data.expenses);
+            displayPagination(data.pagination);
         } else {
             toastr.error('Error loading expenses: ' + data.error);
         }
@@ -644,12 +677,95 @@ function displayExpenses(expenses) {
             <td>${expense.date}</td>
             <td>${expense.notes || '-'}</td>
             <td>
-                <button class="btn btn-sm btn-danger" onclick="deleteExpense('${expense.id}', '${expense.description}')">
+                <button class="btn btn-sm btn-danger" onclick="deleteExpense('${expense.id}', '${expense.description.replace(/'/g, "\\'")}')">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
         `;
         tbody.appendChild(row);
+    });
+}
+
+function displayPagination(pagination) {
+    const paginationContainer = document.getElementById('expensesPaginationContainer');
+    const paginationUl = document.getElementById('expensesPagination');
+    const pageInfo = document.getElementById('expensesPageInfo');
+
+    if (pagination.total_pages <= 1) {
+        paginationContainer.style.display = 'none';
+        pageInfo.style.display = 'none';
+        return;
+    }
+
+    paginationContainer.style.display = 'flex';
+    pageInfo.style.display = 'block';
+
+    // Clear existing pagination
+    paginationUl.innerHTML = '';
+
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${!pagination.has_previous ? 'disabled' : ''}`;
+    prevLi.innerHTML = pagination.has_previous 
+        ? `<a class="page-link" href="#" onclick="loadExpenses(${pagination.previous_page}); return false;">Previous</a>`
+        : '<span class="page-link">Previous</span>';
+    paginationUl.appendChild(prevLi);
+
+    // Page numbers
+    for (let i = 1; i <= pagination.total_pages; i++) {
+        const pageLi = document.createElement('li');
+        pageLi.className = `page-item ${i === pagination.current_page ? 'active' : ''}`;
+        
+        if (i === pagination.current_page) {
+            pageLi.innerHTML = `<span class="page-link">${i}</span>`;
+        } else {
+            pageLi.innerHTML = `<a class="page-link" href="#" onclick="loadExpenses(${i}); return false;">${i}</a>`;
+        }
+        paginationUl.appendChild(pageLi);
+    }
+
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${!pagination.has_next ? 'disabled' : ''}`;
+    nextLi.innerHTML = pagination.has_next
+        ? `<a class="page-link" href="#" onclick="loadExpenses(${pagination.next_page}); return false;">Next</a>`
+        : '<span class="page-link">Next</span>';
+    paginationUl.appendChild(nextLi);
+
+    // Update page info
+    pageInfo.textContent = `Page ${pagination.current_page} of ${pagination.total_pages} (${pagination.total_count} total expenses)`;
+}
+
+function addExpense() {
+    const form = document.getElementById('addExpenseForm');
+    const formData = new FormData(form);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    fetch("{% url 'add_expense' %}", {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            toastr.success('Expense added successfully');
+            form.reset();
+            // Reset to first page and reload
+            currentExpensePage = 1;
+            loadExpenses();
+            updateTotalExpenses();
+        } else {
+            toastr.error('Error adding expense: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        toastr.error('Error adding expense: ' + error.message);
     });
 }
 
@@ -702,13 +818,23 @@ function updateTotalExpenses() {
             const expensesInput = document.getElementById('expensesInput');
             if (expensesInput) {
                 expensesInput.value = data.total_expenses;
-                updateNetRevenue();
+                // Trigger the updateNetRevenue function
+                const event = new Event('input', { bubbles: true });
+                expensesInput.dispatchEvent(event);
             }
         }
     })
     .catch(error => {
         console.error('Error updating total expenses:', error);
     });
+}
+
+function exportToExcel() {
+    window.location.href = "{% url 'admin_billing_export' %}?" + new URLSearchParams(window.location.search);
+}
+
+function viewDetails(billNumber) {
+    window.location.href = "{% url 'billing:bill_detail' 'PLACEHOLDER' %}".replace('PLACEHOLDER', billNumber);
 }
 </script>
 {% endblock %} 

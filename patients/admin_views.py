@@ -744,20 +744,52 @@ def delete_expense(request):
 def get_expenses(request):
     try:
         from billing.models import Expense
+        from django.core.paginator import Paginator
+        
+        # Get filter parameters
+        date_range = request.GET.get('expense_date_range', '')
+        page = request.GET.get('page', 1)
+        
+        # Start with all expenses
         expenses = Expense.objects.all().order_by('-date', '-created_at')
+        
+        # Apply date range filter
+        if date_range:
+            try:
+                start_date, end_date = date_range.split(' - ')
+                start_date = datetime.strptime(start_date, '%m/%d/%Y').date()
+                end_date = datetime.strptime(end_date, '%m/%d/%Y').date()
+                expenses = expenses.filter(date__range=[start_date, end_date])
+            except (ValueError, AttributeError):
+                pass
+        
+        # Paginate expenses (5 per page)
+        paginator = Paginator(expenses, 5)
+        page_obj = paginator.get_page(page)
+        
+        # Convert to list of dictionaries
         expenses_data = []
-        for expense in expenses:
+        for expense in page_obj:
             expenses_data.append({
-                'id': expense.id,
+                'id': str(expense.id),
                 'description': expense.description,
                 'amount': str(expense.amount),
-                'category': expense.category,
                 'date': expense.date.strftime('%Y-%m-%d'),
-                'notes': expense.notes
+                'notes': expense.notes or ''
             })
+        
         return JsonResponse({
             'success': True,
-            'expenses': expenses_data
+            'expenses': expenses_data,
+            'pagination': {
+                'current_page': page_obj.number,
+                'total_pages': paginator.num_pages,
+                'has_previous': page_obj.has_previous(),
+                'has_next': page_obj.has_next(),
+                'previous_page': page_obj.previous_page_number() if page_obj.has_previous() else None,
+                'next_page': page_obj.next_page_number() if page_obj.has_next() else None,
+                'total_count': paginator.count
+            }
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Error retrieving expenses: {str(e)}'})
