@@ -61,13 +61,21 @@ class Command(BaseCommand):
             app_date = random_date().date()
             app_time = timezone.datetime(2025, 1, 1, hour=random.randint(8, 17), minute=random.randint(0, 59)).time()
 
+            # MODIFICATION 1 & 2: Set status based on date
+            if app_date < now.date():
+                # Past appointments: only COMPLETED or CANCELLED
+                status = random.choice(['COMPLETED', 'CANCELLED'])
+            else:
+                # Future appointments: only PENDING
+                status = random.choice(['CONFIRMED', 'PENDING'])
+
             appointment = Appointment.objects.create(
                 patient=patient,
                 procedure_type=random.choice(["Abdominal Ultrasound", "Pelvic Ultrasound", "Obstetric Ultrasound", "Transvaginal Ultrasound", "Breast Ultrasound", "Thyroid Ultrasound"]),
                 appointment_date=app_date,
                 appointment_time=app_time,
                 reason=random.choice(reasons),
-                status=random.choice(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'])
+                status=status
             )
 
             # 2 exams
@@ -105,28 +113,16 @@ class Command(BaseCommand):
                 # Recalculate totals
                 bill.calculate_totals()
 
-            # At least one payment per patient (70% chance of full payment, rest partial)
+            # MODIFICATION 3: Always full payment (100%)
             if bill:
                 total = bill.total_amount
-                if random.random() < 0.7:
-                    # Full payment
-                    Payment.objects.create(
-                        bill=bill,
-                        amount=total,
-                        payment_date=app_date,
-                        payment_method=random.choice(['CASH', 'GCASH', 'BANK']),
-                        created_by="Admin"
-                    )
-                else:
-                    # Partial payment (30-90% of total)
-                    paid = total * Decimal(random.uniform(0.3, 0.9))
-                    Payment.objects.create(
-                        bill=bill,
-                        amount=paid,
-                        payment_date=app_date,
-                        payment_method=random.choice(['CASH', 'GCASH', 'BANK']),
-                        created_by="Admin"
-                    )
+                Payment.objects.create(
+                    bill=bill,
+                    amount=total,
+                    payment_date=app_date,
+                    payment_method=random.choice(['CASH', 'GCASH', 'BANK']),
+                    created_by="Admin"
+                )
                 # Update status after payment
                 bill.update_status()
 

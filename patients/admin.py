@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils import timezone
-from .models import Patient, UltrasoundExam
+from .models import *
 
 @admin.register(Patient)
 class PatientAdmin(admin.ModelAdmin):
@@ -51,3 +51,6 @@ class UltrasoundExamAdmin(admin.ModelAdmin):
     list_filter = ('procedure_type', 'exam_date')
     search_fields = ('patient__first_name', 'patient__last_name')
     date_hierarchy = 'exam_date' 
+
+admin.site.register(Appointment)
+admin.site.register(UltrasoundImage)
