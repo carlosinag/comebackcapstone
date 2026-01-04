@@ -458,7 +458,10 @@ class PatientDetailView(CustomStaffRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Get all ultrasound exams for this patient
-        context['exams'] = self.object.ultrasound_exams.all().order_by('-exam_date', '-exam_time')
+        all_exams = self.object.ultrasound_exams.all().order_by('-exam_date', '-exam_time')
+        context['exams'] = all_exams
+        # Get only exams that are not yet billed (can still upload images)
+        context['ongoing_exams'] = all_exams.filter(bill_item__isnull=True)
         return context
 
 class PatientCreateView(CustomStaffRequiredMixin, CreateView):

@@ -49,27 +49,37 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="imageUploadForm" method="post" enctype="multipart/form-data" action="{% url 'exam-image-upload' patient.pk %}">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="examSelect" class="form-label">Select Examination:</label>
-                            <select name="exam_id" id="examSelect" class="form-select" required>
-                                <option value="">Select an examination</option>
-                                {% for exam in exams %}
-                                    <option value="{{ exam.id }}">{{ exam.exam_date }} - {{ exam.procedure_type.name }}</option>
-                                {% endfor %}
-                            </select>
+                    {% if ongoing_exams %}
+                        <form id="imageUploadForm" method="post" enctype="multipart/form-data" action="{% url 'exam-image-upload' patient.pk %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="examSelect" class="form-label">Select Examination:</label>
+                                <select name="exam_id" id="examSelect" class="form-select" required>
+                                    <option value="">Select an examination</option>
+                                    {% for exam in ongoing_exams %}
+                                        <option value="{{ exam.id }}">{{ exam.exam_date }} - {{ exam.procedure_type.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="images" class="form-label">Select Images:</label>
+                                <input type="file" class="form-control" id="images" name="images[]" multiple accept="image/*" required>
+                                <div id="selectedFiles" class="mt-2"></div>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>No ongoing examinations available.</strong>
+                            <p class="mb-0 mt-2">All examinations for this patient have been completed and billed. Images can only be uploaded to ongoing examinations.</p>
                         </div>
-                        <div class="mb-3">
-                            <label for="images" class="form-label">Select Images:</label>
-                            <input type="file" class="form-control" id="images" name="images[]" multiple accept="image/*" required>
-                            <div id="selectedFiles" class="mt-2"></div>
-                        </div>
-                    </form>
+                    {% endif %}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" form="imageUploadForm" class="btn btn-primary">Upload Images</button>
+                    {% if ongoing_exams %}
+                        <button type="submit" form="imageUploadForm" class="btn btn-primary">Upload Images</button>
+                    {% endif %}
                 </div>
             </div>
         </div>
