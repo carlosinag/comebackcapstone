@@ -1957,55 +1957,114 @@ def patient_list_export_excel(request):
     wb.save(response)
     return response
 
+from datetime import datetime, timedelta
 @custom_staff_member_required
 def staff_appointments(request):
-    # Automatically cancel appointments that are 3+ days overdue
-    try:
-        cancelled_count = Appointment.cancel_overdue_appointments(days_overdue=3)
-        if cancelled_count > 0:
-            logger.info(f"Automatically cancelled {cancelled_count} overdue appointment(s)")
-            messages.info(request, f'Automatically cancelled {cancelled_count} overdue overdue.')
-    except Exception as e:
-        logger.error(f"Error cancelling overdue appointments: {str(e)}", exc_info=True)
-
+    """
+    Staff view for managing appointments with pagination and filtering
+    """
     # Get filter parameters
     status_filter = request.GET.get('status', '')
     date_filter = request.GET.get('date', '')
-
-    # ⭐ DEFAULT BEHAVIOR: show today's appointments when no filters are applied
-    if not status_filter and not date_filter:
-        date_filter = timezone.now().date().isoformat()
-
-    # Base queryset - newest booked first
-    appointments = (
-        Appointment.objects.select_related('patient')
-        .order_by('-created_at', '-appointment_date', '-appointment_time')
-    )
-
-    # Apply filters
+    page_number = request.GET.get('page', 1)
+    
+    # Base queryset
+    appointments = Appointment.objects.select_related('patient').all()
+    
+    # Apply status filter
     if status_filter:
         appointments = appointments.filter(status=status_filter)
-
+    
+    # Apply date filter or show recent appointments
     if date_filter:
-        appointments = appointments.filter(appointment_date=date_filter)
-
-    # Get statistics
+        # Filter by specific date
+        try:
+            filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+            appointments = appointments.filter(appointment_date=filter_date)
+            appointments = appointments.order_by('appointment_time', '-created_at')
+        except ValueError:
+            # Invalid date format, show recent appointments
+            date_filter = None
+            appointments = appointments.order_by('-created_at', '-appointment_date', '-appointment_time')
+    else:
+        # Show most recent appointments (by creation date)
+        appointments = appointments.order_by('-created_at', '-appointment_date', '-appointment_time')
+    
+    # Mark appointments created in last 24 hours as "new"
+    twenty_four_hours_ago = timezone.now() - timedelta(hours=24)
+    for appointment in appointments:
+        appointment.is_new = appointment.created_at >= twenty_four_hours_ago if hasattr(appointment, 'created_at') else False
+    
+    # Pagination - 5 per page
+    paginator = Paginator(appointments, 5)
+    page_obj = paginator.get_page(page_number)
+    
+    # Statistics
     total_appointments = Appointment.objects.count()
     pending_appointments = Appointment.objects.filter(status='PENDING').count()
     confirmed_appointments = Appointment.objects.filter(status='CONFIRMED').count()
-    today_appointments = Appointment.objects.filter(appointment_date=timezone.now().date()).count()
-
+    today = timezone.now().date()
+    today_appointments = Appointment.objects.filter(appointment_date=today).count()
+    
+    # Count new appointments (created in last 24 hours with pending status)
+    new_appointments_count = Appointment.objects.filter(
+        created_at__gte=twenty_four_hours_ago,
+        status='PENDING'
+    ).count()
+    
     context = {
-        'appointments': appointments,
+        'appointments': page_obj,
+        'page_obj': page_obj,
+        'is_paginated': page_obj.has_other_pages(),
+        'status_filter': status_filter,
+        'date_filter': filter_date if date_filter else None,
         'total_appointments': total_appointments,
         'pending_appointments': pending_appointments,
         'confirmed_appointments': confirmed_appointments,
         'today_appointments': today_appointments,
-        'status_filter': status_filter,
-        'date_filter': date_filter,
+        'new_appointments_count': new_appointments_count,
     }
-
+    
     return render(request, 'patients/staff_appointments.html', context)
+
+
+# API endpoint for calendar counts (AJAX)
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+
+@login_required
+@require_http_methods(["GET"])
+def calendar_appointment_counts(request):
+    """
+    API endpoint to get appointment counts for calendar
+    """
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    
+    if not start_date or not end_date:
+        return JsonResponse({'error': 'start_date and end_date required'}, status=400)
+    
+    try:
+        start = datetime.strptime(start_date, '%Y-%m-%d').date()
+        end = datetime.strptime(end_date, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'error': 'Invalid date format'}, status=400)
+    
+    # Get appointments in date range
+    appointments = Appointment.objects.filter(
+        appointment_date__gte=start,
+        appointment_date__lte=end
+    ).values('appointment_date').annotate(
+        count=models.Count('id')
+    )
+    
+    # Convert to dictionary with date strings as keys
+    counts = {
+        str(item['appointment_date']): item['count']
+        for item in appointments
+    }
+    
+    return JsonResponse({'counts': counts})
 
 @custom_staff_member_required
 def staff_appointment_detail(request, appointment_id):
