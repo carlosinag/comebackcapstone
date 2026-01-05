@@ -54,3 +54,13 @@ class UltrasoundExamAdmin(admin.ModelAdmin):
 
 admin.site.register(Appointment)
 admin.site.register(UltrasoundImage)
+
+from django.contrib import admin
+from .models import Admission
+
+@admin.register(Admission)
+class AdmissionAdmin(admin.ModelAdmin):
+    list_display = ['patient', 'admission_date', 'expected_discharge_date', 'room_number', 'is_active']
+    list_filter = ['is_active', 'admission_date']
+    search_fields = ['patient__first_name', 'patient__last_name', 'room_number', 'attending_physician']
+    readonly_fields = ['created_at', 'updated_at']

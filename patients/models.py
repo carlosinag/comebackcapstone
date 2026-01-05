@@ -136,6 +136,22 @@ class Patient(models.Model):
     def date_of_birth(self):
         """Return the birthday field for template compatibility."""
         return self.birthday
+    
+    # Add these to your Patient class
+    @property
+    def current_admission(self):
+        """Get the current active admission if any"""
+        return self.admissions.filter(is_active=True).first()
+
+    @property
+    def is_currently_admitted(self):
+        """Check if patient is currently admitted"""
+        return self.current_admission is not None
+
+    @property
+    def admission_history(self):
+        """Get all past admissions (discharged)"""
+        return self.admissions.filter(is_active=False).order_by('-admission_date')
 
     class Meta:
         ordering = ['-created_at']
@@ -375,3 +391,46 @@ class Notification(models.Model):
     
     def __str__(self):
         return f"{self.title} - {self.user.username}" 
+
+class Admission(models.Model):
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='admissions')
+    admission_date = models.DateTimeField(verbose_name="Admission Date & Time")
+    expected_discharge_date = models.DateTimeField(verbose_name="Expected Discharge Date & Time")
+    actual_discharge_date = models.DateTimeField(null=True, blank=True, verbose_name="Actual Discharge Date & Time")
+    room_number = models.CharField(max_length=20, verbose_name="Room Number")
+    admission_reason = models.TextField(verbose_name="Reason for Admission")
+    attending_physician = models.CharField(max_length=100, verbose_name="Attending Physician")
+    discharge_notes = models.TextField(blank=True, null=True, verbose_name="Discharge Notes")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-admission_date']
+        verbose_name = 'Admission'
+        verbose_name_plural = 'Admissions'
+    
+    def __str__(self):
+        return f"{self.patient.first_name} {self.patient.last_name} - {self.admission_date.strftime('%Y-%m-%d')}"
+    
+    @property
+    def duration(self):
+        """Calculate the duration of admission"""
+        end_date = self.actual_discharge_date or timezone.now()
+        return end_date - self.admission_date
+    
+    @property
+    def is_overdue(self):
+        """Check if patient is still admitted past expected discharge date"""
+        if self.is_active and self.expected_discharge_date < timezone.now():
+            return True
+        return False
+    
+    def discharge(self, discharge_notes=''):
+        """Discharge the patient"""
+        self.actual_discharge_date = timezone.now()
+        self.discharge_notes = discharge_notes
+        self.is_active = False
+        self.patient.patient_status = 'OUT'
+        self.patient.save(update_fields=['patient_status'])
+        self.save(update_fields=['actual_discharge_date', 'discharge_notes', 'is_active', 'updated_at'])

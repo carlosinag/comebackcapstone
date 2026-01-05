@@ -687,3 +687,87 @@ class PatientRegistrationForm(forms.Form):
         if Patient.objects.filter(contact_number=contact_number).exists():
             raise forms.ValidationError("A patient with this contact number already exists.")
         return contact_number
+
+from django import forms
+from django.utils import timezone
+from .models import Admission
+
+class AdmissionForm(forms.ModelForm):
+    class Meta:
+        model = Admission
+        fields = ['admission_date', 'expected_discharge_date', 'room_number', 
+                  'admission_reason', 'attending_physician']
+        widgets = {
+            'admission_date': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local',
+                'id': 'id_admission_date'
+            }),
+            'expected_discharge_date': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local',
+                'id': 'id_expected_discharge_date'
+            }),
+            'room_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., Room 101'
+            }),
+            'admission_reason': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Enter reason for admission'
+            }),
+            'attending_physician': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter physician name'
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set default admission date to now
+        if not self.instance.pk:
+            self.initial['admission_date'] = timezone.now().strftime('%Y-%m-%dT%H:%M')
+        
+        # Make all fields required
+        for field in self.fields:
+            self.fields[field].required = True
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        admission_date = cleaned_data.get('admission_date')
+        expected_discharge_date = cleaned_data.get('expected_discharge_date')
+        
+        if admission_date and expected_discharge_date:
+            if expected_discharge_date <= admission_date:
+                raise forms.ValidationError(
+                    "Expected discharge date must be after admission date."
+                )
+        
+        return cleaned_data
+
+
+class DischargeForm(forms.Form):
+    discharge_notes = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'Enter discharge notes, recommendations, follow-up instructions, etc.'
+        }),
+        required=True,
+        label='Discharge Notes'
+    )
+    
+    actual_discharge_date = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={
+            'class': 'form-control',
+            'type': 'datetime-local'
+        }),
+        required=False,
+        label='Discharge Date & Time (leave blank for current time)'
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set default to current time
+        self.initial['actual_discharge_date'] = timezone.now().strftime('%Y-%m-%dT%H:%M')

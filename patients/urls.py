@@ -93,4 +93,9 @@ urlpatterns = [
     path('custom-admin/elevate/', views.elevate_to_admin, name='elevate_to_admin'),
     path('custom-admin/revert/', views.revert_from_admin, name='revert_from_admin'),
     path('custom-admin/logout/', views.admin_logout, name='admin_logout'),
+
+    # Admission URLs
+    path('patient/<int:patient_pk>/admission/create/', views.admission_create, name='admission-create'),
+    path('patient/<int:patient_pk>/admission/discharge/', views.admission_discharge, name='admission-discharge'),
+    path('admissions/check-overdue/', views.check_overdue_admissions, name='check-overdue-admissions'),
 ]

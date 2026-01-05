@@ -6,8 +6,8 @@ from django.urls import reverse_lazy
 from django.http import JsonResponse, HttpResponseRedirect, HttpResponse, Http404
 from django.views.decorators.http import require_http_methods
 from django.db import models, transaction
-from .models import Patient, UltrasoundExam, UltrasoundImage, FamilyGroup, Appointment
-from .forms import PatientForm, UltrasoundExamForm, PatientPasswordChangeForm, PatientProfileForm, PatientUserForm, AppointmentForm, AppointmentUpdateForm, PatientRegistrationForm
+from .models import Patient, UltrasoundExam, UltrasoundImage, FamilyGroup, Appointment, Admission
+from .forms import PatientForm, UltrasoundExamForm, PatientPasswordChangeForm, PatientProfileForm, PatientUserForm, AppointmentForm, AppointmentUpdateForm, PatientRegistrationForm, AdmissionForm, DischargeForm
 from django.db.models import Count, Sum
 from django.db.models.functions import ExtractWeek
 from django.utils import timezone
@@ -2383,3 +2383,101 @@ def patient_register(request):
         'form': form,
     }
     return render(request, 'patient_register.html', context)
+
+@login_required
+def admission_create(request, patient_pk):
+    """Create a new admission for a patient"""
+    patient = get_object_or_404(Patient, pk=patient_pk)
+    
+    # Check if patient already has an active admission
+    if patient.is_currently_admitted:
+        messages.error(request, 'This patient already has an active admission.')
+        return redirect('patient-detail', pk=patient_pk)
+    
+    if request.method == 'POST':
+        form = AdmissionForm(request.POST)
+        if form.is_valid():
+            admission = form.save(commit=False)
+            admission.patient = patient
+            admission.is_active = True
+            admission.save()
+            
+            # Update patient status to inpatient
+            patient.patient_status = 'IN'
+            patient.save(update_fields=['patient_status'])
+            
+            messages.success(request, f'Admission created successfully for {patient.first_name} {patient.last_name}.')
+            return redirect('patient-detail', pk=patient_pk)
+    else:
+        form = AdmissionForm()
+    
+    context = {
+        'form': form,
+        'patient': patient
+    }
+    return render(request, 'patients/admission_form.html', context)
+
+
+@login_required
+def admission_discharge(request, patient_pk):
+    """Discharge a patient from active admission"""
+    patient = get_object_or_404(Patient, pk=patient_pk)
+    admission = patient.current_admission
+    
+    if not admission:
+        messages.error(request, 'This patient does not have an active admission.')
+        return redirect('patient-detail', pk=patient_pk)
+    
+    if request.method == 'POST':
+        form = DischargeForm(request.POST)
+        if form.is_valid():
+            discharge_notes = form.cleaned_data['discharge_notes']
+            actual_discharge_date = form.cleaned_data.get('actual_discharge_date')
+            
+            # Set discharge date
+            if actual_discharge_date:
+                admission.actual_discharge_date = actual_discharge_date
+            else:
+                admission.actual_discharge_date = timezone.now()
+            
+            admission.discharge_notes = discharge_notes
+            admission.is_active = False
+            admission.save()
+            
+            # Update patient status to outpatient
+            patient.patient_status = 'OUT'
+            patient.save(update_fields=['patient_status'])
+            
+            messages.success(request, f'{patient.first_name} {patient.last_name} has been discharged successfully.')
+            return redirect('patient-detail', pk=patient_pk)
+    else:
+        form = DischargeForm()
+    
+    context = {
+        'form': form,
+        'patient': patient,
+        'admission': admission
+    }
+    return render(request, 'patients/discharge_form.html', context)
+
+
+def check_overdue_admissions(request):
+    """Auto-discharge patients whose expected discharge date has passed (can be called via cron job)"""
+    overdue_admissions = Admission.objects.filter(
+        is_active=True,
+        expected_discharge_date__lt=timezone.now()
+    )
+    
+    count = 0
+    for admission in overdue_admissions:
+        admission.actual_discharge_date = admission.expected_discharge_date
+        admission.discharge_notes = "Auto-discharged: Expected discharge date reached."
+        admission.is_active = False
+        admission.save()
+        
+        # Update patient status
+        admission.patient.patient_status = 'OUT'
+        admission.patient.save(update_fields=['patient_status'])
+        count += 1
+    
+    return JsonResponse({'message': f'{count} patients auto-discharged', 'count': count})
