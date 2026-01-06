@@ -13,30 +13,44 @@
         </div>
         <div class="col text-end">
             {% if not patient.is_archived %}
-                <!-- Admission Management Button -->
-                {% if patient.is_currently_admitted %}
-                    <button type="button" class="btn btn-danger me-2" data-bs-toggle="modal" data-bs-target="#dischargeModal">
-                        <i class="fas fa-sign-out-alt me-2"></i>Discharge Patient
+                <!-- Button group with dropdowns for better mobile experience -->
+                <div class="btn-group me-2" role="group">
+                    <!-- Admission Management Button -->
+                    {% if patient.is_currently_admitted %}
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#dischargeModal">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span class="d-none d-lg-inline ms-1">Discharge</span>
+                        </button>
+                    {% else %}
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#admissionModal">
+                            <i class="fas fa-hospital-user"></i>
+                            <span class="d-none d-lg-inline ms-1">Admit</span>
+                        </button>
+                    {% endif %}
+                </div>
+
+                <div class="btn-group me-2" role="group">
+                    <a href="{% url 'patient-update' patient.pk %}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i>
+                        <span class="d-none d-lg-inline ms-1">Edit</span>
+                    </a>
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#uploadImagesModal">
+                        <i class="fas fa-upload"></i>
+                        <span class="d-none d-lg-inline ms-1">Upload</span>
                     </button>
-                {% else %}
-                    <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#admissionModal">
-                        <i class="fas fa-hospital-user me-2"></i>Start Admission
-                    </button>
-                {% endif %}
-                
-                <a href="{% url 'patient-update' patient.pk %}" class="btn btn-warning me-2">
-                    <i class="fas fa-edit me-2"></i>Edit Patient
-                </a>
-                <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#uploadImagesModal">
-                    <i class="fas fa-upload me-2"></i>Upload Images
-                </button>
-                <a href="{% url 'exam-create' patient.pk %}" class="btn btn-primary me-2">
-                    <i class="fas fa-plus me-2"></i>New Exam
-                </a>
+                    <a href="{% url 'exam-create' patient.pk %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        <span class="d-none d-lg-inline ms-1">New Exam</span>
+                    </a>
+                </div>
+
                 {% if user.is_authenticated %}
-                <a href="{% url 'patient-delete' patient.pk %}" class="btn btn-warning">
-                    <i class="fas fa-archive me-2"></i>Archive Patient
-                </a>
+                <div class="btn-group" role="group">
+                    <a href="{% url 'patient-delete' patient.pk %}" class="btn btn-warning">
+                        <i class="fas fa-archive"></i>
+                        <span class="d-none d-lg-inline ms-1">Archive</span>
+                    </a>
+                </div>
                 {% endif %}
             {% else %}
                 <a href="{% url 'archived-patient-list' %}" class="btn btn-secondary me-2">
@@ -51,6 +65,8 @@
         </div>
     </div>
 
+    <!-- Modals remain the same - Admission Modal, Discharge Modal, Upload Images Modal -->
+    <!-- (Keep all your existing modal code here) -->
     <!-- Admission Modal -->
     <div class="modal fade" id="admissionModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -197,6 +213,62 @@
         </div>
     </div>
 
+    <!-- Current Admission Alert (if admitted) -->
+    {% if patient.current_admission %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-success shadow">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="alert-heading">
+                            <i class="fas fa-hospital-user me-2"></i>Currently Admitted
+                        </h5>
+                    </div>
+                    {% if patient.current_admission.is_overdue %}
+                        <span class="badge bg-danger">Overdue</span>
+                    {% endif %}
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr>
+                                <td width="50%"><strong>Admission Date:</strong></td>
+                                <td>{{ patient.current_admission.admission_date|date:"M d, Y - h:i A" }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Room Number:</strong></td>
+                                <td>{{ patient.current_admission.room_number }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Attending Physician:</strong></td>
+                                <td>{{ patient.current_admission.attending_physician }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr>
+                                <td width="50%"><strong>Expected Discharge:</strong></td>
+                                <td>{{ patient.current_admission.expected_discharge_date|date:"M d, Y - h:i A" }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Duration:</strong></td>
+                                <td>{{ patient.current_admission.duration.days }} day{{ patient.current_admission.duration.days|pluralize }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Admission Reason:</strong></td>
+                                <td>{{ patient.current_admission.admission_reason|truncatewords:10 }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Personal Information and Exams Row -->
     <div class="row mb-4">
         <!-- Personal Information Card -->
         <div class="col-md-6">
@@ -240,7 +312,11 @@
                         </tr>
                         <tr>
                             <th>Patient Status:</th>
-                            <td>{{ patient.get_patient_status_display }}</td>
+                            <td>
+                                <span class="badge {% if patient.patient_status == 'IN' %}bg-danger{% else %}bg-success{% endif %}">
+                                    {{ patient.get_patient_status_display }}
+                                </span>
+                            </td>
                         </tr>
                         {% if patient.id_number %}
                         <tr>
@@ -278,7 +354,6 @@
                 </div>
             </div>
         </div>
-        
 
         <!-- Ultrasound Examinations Card -->
         <div class="col-md-6">
@@ -333,85 +408,78 @@
             </div>
         </div>
     </div>
-     <!-- Add this inside the Personal Information Card, after the existing table -->
-    {% if patient.current_admission %}
-    <div class="alert alert-success mt-3">
-        <h6 class="alert-heading">
-            <i class="fas fa-hospital-user me-2"></i>Currently Admitted
-        </h6>
-        <hr>
-        <table class="table table-sm table-borderless mb-0">
-            <tr>
-                <td><strong>Admission Date:</strong></td>
-                <td>{{ patient.current_admission.admission_date|date:"M d, Y - h:i A" }}</td>
-            </tr>
-            <tr>
-                <td><strong>Room Number:</strong></td>
-                <td>{{ patient.current_admission.room_number }}</td>
-            </tr>
-            <tr>
-                <td><strong>Attending Physician:</strong></td>
-                <td>{{ patient.current_admission.attending_physician }}</td>
-            </tr>
-            <tr>
-                <td><strong>Expected Discharge:</strong></td>
-                <td>
-                    {{ patient.current_admission.expected_discharge_date|date:"M d, Y - h:i A" }}
-                    {% if patient.current_admission.is_overdue %}
-                        <span class="badge bg-danger ms-2">Overdue</span>
-                    {% endif %}
-                </td>
-            </tr>
-            <tr>
-                <td><strong>Duration:</strong></td>
-                <td>{{ patient.current_admission.duration.days }} days</td>
-            </tr>
-        </table>
-    </div>
-    {% endif %}
 
-    <!-- Admission History -->
+    <!-- Admission History Section (Separate Card) -->
     {% if patient.admission_history %}
-    <div class="mt-3">
-        <h6><i class="fas fa-history me-2"></i>Admission History</h6>
-        <div class="accordion" id="admissionHistoryAccordion">
-            {% for admission in patient.admission_history %}
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="admission{{ admission.pk }}Header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#admission{{ admission.pk }}Collapse" aria-expanded="false">
-                        {{ admission.admission_date|date:"M d, Y" }} - {{ admission.duration.days }} days
-                    </button>
-                </h2>
-                <div id="admission{{ admission.pk }}Collapse" class="accordion-collapse collapse" aria-labelledby="admission{{ admission.pk }}Header" data-bs-parent="#admissionHistoryAccordion">
-                    <div class="accordion-body">
-                        <table class="table table-sm table-borderless">
-                            <tr>
-                                <td><strong>Room:</strong></td>
-                                <td>{{ admission.room_number }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Physician:</strong></td>
-                                <td>{{ admission.attending_physician }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Reason:</strong></td>
-                                <td>{{ admission.admission_reason }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Discharged:</strong></td>
-                                <td>{{ admission.actual_discharge_date|date:"M d, Y - h:i A" }}</td>
-                            </tr>
-                            {% if admission.discharge_notes %}
-                            <tr>
-                                <td><strong>Discharge Notes:</strong></td>
-                                <td>{{ admission.discharge_notes }}</td>
-                            </tr>
-                            {% endif %}
-                        </table>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        Admission History
+                    </h5>
+                    <span class="badge bg-light text-primary">
+                        {{ patient.admission_history.count }} Record{{ patient.admission_history.count|pluralize }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="admissionHistoryAccordion">
+                        {% for admission in patient.admission_history %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="admission{{ admission.pk }}Header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#admission{{ admission.pk }}Collapse" aria-expanded="false">
+                                    <div class="d-flex justify-content-between w-100 me-3">
+                                        <span>
+                                            <i class="fas fa-calendar-alt me-2"></i>
+                                            {{ admission.admission_date|date:"M d, Y" }} - {{ admission.actual_discharge_date|date:"M d, Y" }}
+                                        </span>
+                                        <span class="badge bg-secondary">{{ admission.duration.days }} day{{ admission.duration.days|pluralize }}</span>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="admission{{ admission.pk }}Collapse" class="accordion-collapse collapse" aria-labelledby="admission{{ admission.pk }}Header" data-bs-parent="#admissionHistoryAccordion">
+                                <div class="accordion-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <table class="table table-sm table-borderless">
+                                                <tr>
+                                                    <td width="40%"><strong>Room:</strong></td>
+                                                    <td>{{ admission.room_number }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Physician:</strong></td>
+                                                    <td>{{ admission.attending_physician }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Admitted:</strong></td>
+                                                    <td>{{ admission.admission_date|date:"M d, Y - h:i A" }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Discharged:</strong></td>
+                                                    <td>{{ admission.actual_discharge_date|date:"M d, Y - h:i A" }}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <strong>Reason for Admission:</strong>
+                                                <p class="mt-2 mb-0">{{ admission.admission_reason }}</p>
+                                            </div>
+                                            {% if admission.discharge_notes %}
+                                            <div>
+                                                <strong>Discharge Notes:</strong>
+                                                <p class="mt-2 mb-0">{{ admission.discharge_notes }}</p>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
-            {% endfor %}
         </div>
     </div>
     {% endif %}
@@ -592,6 +660,34 @@
 
 {% block extra_js %}
 <script>
+// Set default admission date to now
+document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    const defaultDateTime = now.toISOString().slice(0, 16);
+    
+    const admissionDateInput = document.getElementById('id_admission_date');
+    const dischargeDateInput = document.getElementById('id_actual_discharge_date');
+    
+    if (admissionDateInput && !admissionDateInput.value) {
+        admissionDateInput.value = defaultDateTime;
+    }
+    
+    if (dischargeDateInput && !dischargeDateInput.value) {
+        dischargeDateInput.value = defaultDateTime;
+    }
+    
+    // Set minimum expected discharge date to admission date
+    if (admissionDateInput) {
+        admissionDateInput.addEventListener('change', function() {
+            const expectedDischargeInput = document.getElementById('id_expected_discharge_date');
+            if (expectedDischargeInput) {
+                expectedDischargeInput.min = this.value;
+            }
+        });
+    }
+});
+
 // Get CSRF token from cookie
 function getCookie(name) {
     let cookieValue = null;
