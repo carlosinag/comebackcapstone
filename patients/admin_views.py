@@ -963,6 +963,66 @@ def admin_users(request):
     
     return render(request, 'admin/users.html', context)
 
+
+@custom_admin_required
+def admin_staff_analytics(request, user_id):
+    """AJAX endpoint for fetching staff analytics"""
+    try:
+        staff_user = User.objects.get(id=user_id, is_staff=True)
+        
+        # Calculate patient statistics
+        total_patients = staff_user.created_patients.count()
+        active_patients = staff_user.created_patients.filter(user__is_active=True).count()
+        
+        # Prepare basic user info
+        user_info = {
+            'id': staff_user.id,
+            'username': staff_user.username,
+            'full_name': f"{staff_user.first_name} {staff_user.last_name}".strip() or "No name set",
+            'email': staff_user.email or "No email set",
+            'is_superuser': staff_user.is_superuser,
+            'is_active': staff_user.is_active,
+            'last_login': staff_user.last_login.strftime("%B %d, %Y %H:%M") if staff_user.last_login else "Never",
+            'date_joined': staff_user.date_joined.strftime("%B %d, %Y"),
+        }
+        
+        # Analytics data
+        analytics = {
+            'total_patients': total_patients,
+            'active_patients': active_patients,
+            'inactive_patients': total_patients - active_patients,
+        }
+        
+        # Chart data for patient status
+        chart_data = {
+            'labels': ['Active Patients', 'Inactive Patients'],
+            'data': [active_patients, total_patients - active_patients],
+            'colors': ['#28a745', '#dc3545']
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'user_info': user_info,
+            'analytics': analytics,
+            'chart_data': chart_data
+        })
+        
+    except User.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Staff user not found'
+        }, status=404)
+    except Exception as e:
+        # Log the error for debugging
+        import traceback
+        print(f"Error in admin_staff_analytics: {str(e)}")
+        print(traceback.format_exc())
+        
+        return JsonResponse({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        }, status=500)
+
 @custom_admin_required
 @require_valid_navigation
 def admin_edit_user(request, user_id):

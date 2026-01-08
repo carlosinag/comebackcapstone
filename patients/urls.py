@@ -81,6 +81,7 @@ urlpatterns = [
     path('custom-admin/edit-procedure/<int:procedure_id>/', admin_views.edit_procedure, name='edit_procedure'),
     path('custom-admin/update-service-price/', admin_views.update_service_price, name='update_service_price'),
     path('custom-admin/users/', admin_views.admin_users, name='admin_users'),
+    path('custom-admin/staff-analytics/<int:user_id>/', admin_views.admin_staff_analytics, name='admin_staff_analytics'),
     path('custom-admin/users/add/', admin_views.admin_add_user, name='admin_add_user'),
     path('custom-admin/users/<int:user_id>/edit/', admin_views.admin_edit_user, name='admin_edit_user'),
     path('custom-admin/users/<int:user_id>/change-password/', admin_views.admin_change_user_password, name='admin_change_user_password'),

@@ -21,6 +21,99 @@
         background: linear-gradient(45deg, #ff6b6b, #ffa500);
         color: white;
     }
+    
+    /* Clickable row styles */
+    #usersTable tbody tr {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    #usersTable tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    /* Analytics card styles */
+    .analytics-card {
+        border-left: 4px solid #007bff;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        border-radius: 8px;
+    }
+    
+    .analytics-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+    }
+    
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #007bff;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+    
+    /* Modal custom styles */
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+    
+    .modal-content {
+        border-radius: 12px;
+        border: none;
+        overflow: hidden;
+    }
+    
+    .modal-header .btn-close {
+        filter: brightness(0) invert(1);
+    }
+    
+    .modal-body .card {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border: none;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .modal-body .card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        transform: translateY(-2px);
+    }
+    
+    /* Section headers */
+    .modal-body h6.text-muted {
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.85rem;
+        border-bottom: 2px solid #e0e0e0;
+        padding-bottom: 0.5rem;
+    }
+    
+    /* Smooth fade in animation */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    #modalContent {
+        animation: fadeIn 0.4s ease-in-out;
+    }
 </style>
 {% endblock %}
 
@@ -74,7 +167,7 @@
     <!-- User List -->
     <div class="card shadow">
         <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Staff Users</h6>
+            <h6 class="m-0 font-weight-bold text-primary">Staff Users (Click row to view analytics)</h6>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -93,7 +186,7 @@
                     </thead>
                     <tbody>
                         {% for user in users %}
-                        <tr>
+                        <tr class="staff-row" data-user-id="{{ user.id }}">
                             <td>{{ user.id }}</td>
                             <td>
                                 <strong>{{ user.username }}</strong>
@@ -130,7 +223,7 @@
                                 {% endif %}
                             </td>
                             <td>{{ user.date_joined|date:"M d, Y" }}</td>
-                            <td>
+                            <td onclick="event.stopPropagation();">
                                 <div class="btn-group" role="group">
                                     <a href="{% url 'admin_edit_user' user.id %}" class="btn btn-sm btn-primary" title="Edit User">
                                         <i class="fas fa-edit"></i>
@@ -152,12 +245,119 @@
         </div>
     </div>
 </div>
+
+<!-- Staff Analytics Modal -->
+<div class="modal fade" id="staffAnalyticsModal" tabindex="-1" aria-labelledby="staffAnalyticsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl" style="max-width: 1200px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="staffAnalyticsModalLabel">
+                    <i class="fas fa-chart-bar me-2"></i>Staff Analytics
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <!-- Loading Spinner -->
+                <div id="modalLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading staff analytics...</p>
+                </div>
+
+                <!-- Content (hidden initially) -->
+                <div id="modalContent" style="display: none;">
+                    <!-- Staff Info Section -->
+                    <div class="card mb-4" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-3 text-muted"><i class="fas fa-user-tie me-2"></i>Staff Information</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-2"><strong>Username:</strong> <span id="staff-username"></span></p>
+                                    <p class="mb-2"><strong>Full Name:</strong> <span id="staff-fullname"></span></p>
+                                    <p class="mb-2"><strong>Email:</strong> <span id="staff-email"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-2"><strong>Status:</strong> <span id="staff-status"></span></p>
+                                    <p class="mb-2"><strong>Last Login:</strong> <span id="staff-lastlogin"></span></p>
+                                    <p class="mb-2"><strong>Date Joined:</strong> <span id="staff-datejoined"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analytics Cards -->
+                    <h6 class="text-muted mb-3"><i class="fas fa-chart-bar me-2"></i>Key Metrics</h6>
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card analytics-card">
+                                <div class="card-body text-center py-4">
+                                    <i class="fas fa-users fa-2x mb-2" style="color: #007bff;"></i>
+                                    <div class="stat-value" id="total-patients">0</div>
+                                    <div class="stat-label">Total Patients Created</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card analytics-card" style="border-left-color: #28a745;">
+                                <div class="card-body text-center py-4">
+                                    <i class="fas fa-user-check fa-2x mb-2" style="color: #28a745;"></i>
+                                    <div class="stat-value text-success" id="active-patients">0</div>
+                                    <div class="stat-label">Active Patients</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card analytics-card" style="border-left-color: #dc3545;">
+                                <div class="card-body text-center py-4">
+                                    <i class="fas fa-user-times fa-2x mb-2" style="color: #dc3545;"></i>
+                                    <div class="stat-value text-danger" id="inactive-patients">0</div>
+                                    <div class="stat-label">Inactive Patients</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart Section -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-3 text-muted">Patient Status Distribution</h6>
+                                    <div style="height: 300px; display: flex; align-items: center; justify-content: center;">
+                                        <canvas id="patientChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-3 text-muted">More Analytics Coming Soon</h6>
+                                    <div style="height: 300px; display: flex; align-items: center; justify-content: center;">
+                                        <p class="text-muted">Additional charts will be displayed here</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+let patientChart = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize toastr
     toastr.options = {
@@ -166,6 +366,147 @@ document.addEventListener('DOMContentLoaded', function() {
         "positionClass": "toast-top-right",
         "timeOut": "3000"
     };
+
+    // Handle row clicks
+    const staffRows = document.querySelectorAll('.staff-row');
+    staffRows.forEach(row => {
+        row.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            loadStaffAnalytics(userId);
+        });
+    });
 });
+
+function loadStaffAnalytics(userId) {
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('staffAnalyticsModal'));
+    modal.show();
+
+    // Show loading, hide content
+    document.getElementById('modalLoading').style.display = 'block';
+    document.getElementById('modalContent').style.display = 'none';
+
+    // Get CSRF token
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                      getCookie('csrftoken');
+
+    // Fetch analytics data
+    fetch(`/custom-admin/staff-analytics/${userId}/`, {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin'
+    })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Received data:', data);
+            if (data.success) {
+                // Populate user info
+                document.getElementById('staff-username').textContent = data.user_info.username;
+                document.getElementById('staff-fullname').textContent = data.user_info.full_name;
+                document.getElementById('staff-email').textContent = data.user_info.email;
+                
+                const statusBadge = data.user_info.is_active 
+                    ? '<span class="badge bg-success">Active</span>' 
+                    : '<span class="badge bg-danger">Inactive</span>';
+                document.getElementById('staff-status').innerHTML = statusBadge;
+                
+                document.getElementById('staff-lastlogin').textContent = data.user_info.last_login;
+                document.getElementById('staff-datejoined').textContent = data.user_info.date_joined;
+
+                // Populate analytics
+                document.getElementById('total-patients').textContent = data.analytics.total_patients;
+                document.getElementById('active-patients').textContent = data.analytics.active_patients;
+                document.getElementById('inactive-patients').textContent = data.analytics.inactive_patients;
+
+                // Render chart
+                renderPatientChart(data.chart_data);
+
+                // Hide loading, show content
+                document.getElementById('modalLoading').style.display = 'none';
+                document.getElementById('modalContent').style.display = 'block';
+            } else {
+                toastr.error(data.error || 'Failed to load analytics');
+                modal.hide();
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            toastr.error('Error: ' + error.message);
+            modal.hide();
+        });
+}
+
+// Helper function to get CSRF cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function renderPatientChart(chartData) {
+    const ctx = document.getElementById('patientChart').getContext('2d');
+    
+    // Destroy existing chart if it exists
+    if (patientChart) {
+        patientChart.destroy();
+    }
+
+    patientChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                data: chartData.data,
+                backgroundColor: chartData.colors,
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        font: {
+                            size: 13
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
 </script>
 {% endblock %}
