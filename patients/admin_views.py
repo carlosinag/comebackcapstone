@@ -30,6 +30,16 @@ def get_analytics_context(start_date=None, end_date=None):
         exam_filter['exam_date__lte'] = end_date
         bill_filter['bill_date__lte'] = end_date
 
+    # Calculate period length for comparison
+    if start_date and end_date:
+        period_days = (end_date - start_date).days + 1
+        previous_start = start_date - timedelta(days=period_days)
+        previous_end = start_date - timedelta(days=1)
+    else:
+        period_days = None
+        previous_start = None
+        previous_end = None
+
     # Weekly revenue (always use week_start, not affected by global filter for this metric)
     week_start = today - timedelta(days=today.weekday())
     weekly_bills = Bill.objects.filter(
@@ -38,16 +48,49 @@ def get_analytics_context(start_date=None, end_date=None):
     )
     weekly_total = weekly_bills.aggregate(Sum('total_amount'))['total_amount__sum']
     weekly_revenue = "{:,.2f}".format(weekly_total if weekly_total else 0)
+    
+    # Previous week comparison
+    prev_week_start = week_start - timedelta(days=7)
+    prev_week_end = week_start - timedelta(days=1)
+    prev_weekly_total = Bill.objects.filter(
+        bill_date__gte=prev_week_start,
+        bill_date__lte=prev_week_end,
+        status__in=['PAID', 'PARTIAL']
+    ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    
+    if prev_weekly_total > 0:
+        weekly_change = ((float(weekly_total or 0) - float(prev_weekly_total)) / float(prev_weekly_total)) * 100
+    else:
+        weekly_change = 100 if weekly_total else 0
+    weekly_change_percent = f"{weekly_change:+.1f}"
 
     # Active patients in last 90 days (or filtered range)
     if start_date and end_date:
         active_patients_qs = UltrasoundExam.objects.filter(**exam_filter).values('patient').distinct()
+        # Previous period comparison
+        prev_active_patients = UltrasoundExam.objects.filter(
+            exam_date__gte=previous_start,
+            exam_date__lte=previous_end
+        ).values('patient').distinct().count()
     else:
         ninety_days_ago = today - timedelta(days=90)
         active_patients_qs = UltrasoundExam.objects.filter(
             exam_date__gte=ninety_days_ago
         ).values('patient').distinct()
+        # Previous 90 days comparison
+        prev_ninety_start = ninety_days_ago - timedelta(days=90)
+        prev_ninety_end = ninety_days_ago - timedelta(days=1)
+        prev_active_patients = UltrasoundExam.objects.filter(
+            exam_date__gte=prev_ninety_start,
+            exam_date__lte=prev_ninety_end
+        ).values('patient').distinct().count()
+    
     active_patients_90d = active_patients_qs.count()
+    if prev_active_patients > 0:
+        active_patients_change = ((active_patients_90d - prev_active_patients) / prev_active_patients) * 100
+    else:
+        active_patients_change = 100 if active_patients_90d else 0
+    active_patients_change_percent = f"{active_patients_change:+.1f}"
 
     # New patients this month (or filtered range)
     if start_date and end_date:
@@ -55,9 +98,27 @@ def get_analytics_context(start_date=None, end_date=None):
             created_at__date__gte=start_date,
             created_at__date__lte=end_date
         ).count()
+        # Previous period comparison
+        prev_new_patients = Patient.objects.filter(
+            created_at__date__gte=previous_start,
+            created_at__date__lte=previous_end
+        ).count()
     else:
         month_start = today.replace(day=1)
         new_patients_month = Patient.objects.filter(created_at__date__gte=month_start).count()
+        # Previous month comparison
+        prev_month_end = month_start - timedelta(days=1)
+        prev_month_start = prev_month_end.replace(day=1)
+        prev_new_patients = Patient.objects.filter(
+            created_at__date__gte=prev_month_start,
+            created_at__date__lte=prev_month_end
+        ).count()
+    
+    if prev_new_patients > 0:
+        new_patients_change = ((new_patients_month - prev_new_patients) / prev_new_patients) * 100
+    else:
+        new_patients_change = 100 if new_patients_month else 0
+    new_patients_change_percent = f"{new_patients_change:+.1f}"
 
     # Average procedures per patient (apply filter)
     exam_qs = UltrasoundExam.objects.filter(**exam_filter) if exam_filter else UltrasoundExam.objects.all()
@@ -65,6 +126,24 @@ def get_analytics_context(start_date=None, end_date=None):
     total_exams = exam_qs.count()
     avg_procs = (total_exams / distinct_patients_with_exam) if distinct_patients_with_exam else 0
     avg_procedures_per_patient = f"{avg_procs:.2f}"
+    
+    # Previous period comparison for avg procedures
+    if previous_start and previous_end:
+        prev_exam_qs = UltrasoundExam.objects.filter(
+            exam_date__gte=previous_start,
+            exam_date__lte=previous_end
+        )
+        prev_distinct_patients = prev_exam_qs.values('patient').distinct().count()
+        prev_total_exams = prev_exam_qs.count()
+        prev_avg_procs = (prev_total_exams / prev_distinct_patients) if prev_distinct_patients else 0
+    else:
+        prev_avg_procs = 0
+    
+    if prev_avg_procs > 0:
+        avg_procs_change = ((avg_procs - prev_avg_procs) / prev_avg_procs) * 100
+    else:
+        avg_procs_change = 100 if avg_procs else 0
+    avg_procs_change_percent = f"{avg_procs_change:+.1f}"
 
     # Procedure distribution (apply filter)
     procedures = exam_qs.values('procedure_type__name').annotate(count=Count('id'))
@@ -202,7 +281,6 @@ def get_analytics_context(start_date=None, end_date=None):
     for l in location_revenue:
         region_code = l['patient__region']
         region_name = region_code_to_name.get(region_code, region_code)
-        # Include all entries with their decoded names
         location_revenue_filtered.append({
             'patient__region': region_name,
             'total_revenue': l['total_revenue']
@@ -221,9 +299,7 @@ def get_analytics_context(start_date=None, end_date=None):
     city_revenue_filtered = []
     for c in city_revenue:
         city_code = c['patient__city']
-        # City codes are already in the correct format (6 digits like "012801")
         city_name = city_code_to_name.get(city_code, city_code)
-        # Include all entries with their decoded names
         city_revenue_filtered.append({
             'patient__city': city_name,
             'total_revenue': c['total_revenue']
@@ -253,8 +329,6 @@ def get_analytics_context(start_date=None, end_date=None):
     patient_type_revenue_values = [float(p['total_revenue']) if p['total_revenue'] else 0 for p in patient_type_revenue]
 
     # Monthly Revenue Trends (last 12 months - NOT affected by filters)
-    # Always show last 12 months regardless of filters
-    # Get other expenses from database
     from billing.models import Expense
     total_expenses = Expense.objects.aggregate(Sum('amount'))['amount__sum'] or Decimal('0')
     
@@ -284,6 +358,23 @@ def get_analytics_context(start_date=None, end_date=None):
     # Insights for banners (apply filter)
     revenue_total_raw = bill_qs.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
     filtered_revenue_total = "{:,.2f}".format(revenue_total_raw)
+    
+    # Calculate previous period revenue for comparison
+    if previous_start and previous_end:
+        prev_bill_qs = Bill.objects.filter(
+            bill_date__gte=previous_start,
+            bill_date__lte=previous_end,
+            status__in=['PAID', 'PARTIAL']
+        )
+        prev_revenue_total = prev_bill_qs.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        
+        if prev_revenue_total > 0:
+            revenue_change = ((float(revenue_total_raw) - float(prev_revenue_total)) / float(prev_revenue_total)) * 100
+            filtered_revenue_change_percent = f"{revenue_change:+.1f}"
+        else:
+            filtered_revenue_change_percent = "+100.0" if revenue_total_raw > 0 else "0.0"
+    else:
+        filtered_revenue_change_percent = None
 
     top_proc_qs = exam_qs.values('procedure_type__name').annotate(count=Count('id')).order_by('-count')
     filtered_top_procedure_name = top_proc_qs[0]['procedure_type__name'] if top_proc_qs else None
@@ -301,9 +392,13 @@ def get_analytics_context(start_date=None, end_date=None):
 
     return {
         'weekly_revenue': weekly_revenue,
+        'weekly_change_percent': weekly_change_percent,
         'active_patients_90d': active_patients_90d,
+        'active_patients_change_percent': active_patients_change_percent,
         'new_patients_month': new_patients_month,
+        'new_patients_change_percent': new_patients_change_percent,
         'avg_procedures_per_patient': avg_procedures_per_patient,
+        'avg_procs_change_percent': avg_procs_change_percent,
         'procedure_distribution_data': procedure_distribution_data,
         'procedure_distribution_labels': procedure_distribution_labels,
         'findings_distribution_data': findings_distribution_data,
@@ -334,6 +429,7 @@ def get_analytics_context(start_date=None, end_date=None):
         'monthly_trend_values': json.dumps(monthly_trend_values),
         'monthly_net_trend_values': json.dumps(monthly_net_trend_values),
         'filtered_revenue_total': filtered_revenue_total,
+        'filtered_revenue_change_percent': filtered_revenue_change_percent,
         'filtered_top_procedure_name': filtered_top_procedure_name,
         'filtered_top_procedure_count': filtered_top_procedure_count,
         'filtered_top_region_label': filtered_top_region_label,

@@ -9,7 +9,7 @@
 <div class="container-fluid pb-5">
     <h1 class="h3 mb-4">Admin Analytics</h1>
 
-    <!-- Analytics Summary Cards -->
+    <!-- Updated Analytics Summary Cards with Comparisons -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-info shadow h-100 py-2">
@@ -18,6 +18,21 @@
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Weekly Revenue</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">₱{{ weekly_revenue }}</div>
+                            {% if weekly_change_percent %}
+                            <div class="mt-2">
+                                <span class="comparison-badge {% if weekly_change_percent|slice:':1' == '+' %}comparison-positive{% elif weekly_change_percent|slice:':1' == '-' %}comparison-negative{% else %}comparison-neutral{% endif %}">
+                                    {% if weekly_change_percent|slice:':1' == '+' %}
+                                        <i class="fas fa-arrow-up"></i>
+                                    {% elif weekly_change_percent|slice:':1' == '-' %}
+                                        <i class="fas fa-arrow-down"></i>
+                                    {% else %}
+                                        <i class="fas fa-minus"></i>
+                                    {% endif %}
+                                    {{ weekly_change_percent }}%
+                                </span>
+                                <span class="small text-muted ml-1">vs last week</span>
+                            </div>
+                            {% endif %}
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-peso-sign fa-2x text-gray-300"></i>
@@ -26,6 +41,7 @@
                 </div>
             </div>
         </div>
+        
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
@@ -33,6 +49,21 @@
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Active Patients (90d)</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_patients_90d }}</div>
+                            {% if active_patients_change_percent %}
+                            <div class="mt-2">
+                                <span class="comparison-badge {% if active_patients_change_percent|slice:':1' == '+' %}comparison-positive{% elif active_patients_change_percent|slice:':1' == '-' %}comparison-negative{% else %}comparison-neutral{% endif %}">
+                                    {% if active_patients_change_percent|slice:':1' == '+' %}
+                                        <i class="fas fa-arrow-up"></i>
+                                    {% elif active_patients_change_percent|slice:':1' == '-' %}
+                                        <i class="fas fa-arrow-down"></i>
+                                    {% else %}
+                                        <i class="fas fa-minus"></i>
+                                    {% endif %}
+                                    {{ active_patients_change_percent }}%
+                                </span>
+                                <span class="small text-muted ml-1">vs prev 90d</span>
+                            </div>
+                            {% endif %}
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-user-check fa-2x text-gray-300"></i>
@@ -41,6 +72,7 @@
                 </div>
             </div>
         </div>
+        
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-secondary shadow h-100 py-2">
                 <div class="card-body">
@@ -48,6 +80,21 @@
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">New Patients (Month)</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">{{ new_patients_month }}</div>
+                            {% if new_patients_change_percent %}
+                            <div class="mt-2">
+                                <span class="comparison-badge {% if new_patients_change_percent|slice:':1' == '+' %}comparison-positive{% elif new_patients_change_percent|slice:':1' == '-' %}comparison-negative{% else %}comparison-neutral{% endif %}">
+                                    {% if new_patients_change_percent|slice:':1' == '+' %}
+                                        <i class="fas fa-arrow-up"></i>
+                                    {% elif new_patients_change_percent|slice:':1' == '-' %}
+                                        <i class="fas fa-arrow-down"></i>
+                                    {% else %}
+                                        <i class="fas fa-minus"></i>
+                                    {% endif %}
+                                    {{ new_patients_change_percent }}%
+                                </span>
+                                <span class="small text-muted ml-1">vs last month</span>
+                            </div>
+                            {% endif %}
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-user-plus fa-2x text-gray-300"></i>
@@ -56,6 +103,7 @@
                 </div>
             </div>
         </div>
+        
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-dark shadow h-100 py-2">
                 <div class="card-body">
@@ -63,6 +111,21 @@
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Avg Procedures / Patient</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">{{ avg_procedures_per_patient }}</div>
+                            {% if avg_procs_change_percent %}
+                            <div class="mt-2">
+                                <span class="comparison-badge {% if avg_procs_change_percent|slice:':1' == '+' %}comparison-positive{% elif avg_procs_change_percent|slice:':1' == '-' %}comparison-negative{% else %}comparison-neutral{% endif %}">
+                                    {% if avg_procs_change_percent|slice:':1' == '+' %}
+                                        <i class="fas fa-arrow-up"></i>
+                                    {% elif avg_procs_change_percent|slice:':1' == '-' %}
+                                        <i class="fas fa-arrow-down"></i>
+                                    {% else %}
+                                        <i class="fas fa-minus"></i>
+                                    {% endif %}
+                                    {{ avg_procs_change_percent }}%
+                                </span>
+                                <span class="small text-muted ml-1">vs prev period</span>
+                            </div>
+                            {% endif %}
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-chart-line fa-2x text-gray-300"></i>
@@ -73,7 +136,7 @@
         </div>
     </div>
 
-    <!-- Insight Banners -->
+    <!-- Updated Insight Banners with Better Comparison Display -->
     <div class="row mb-4">
         <div class="col-lg-4 mb-3">
             <div class="card border-left-primary shadow h-100">
@@ -85,12 +148,22 @@
                         ₱{{ filtered_revenue_total|default:'0.00' }}
                     </div>
                     {% if filtered_revenue_change_percent %}
-                        <div class="mt-2 small text-muted">
-                            vs previous period: {{ filtered_revenue_change_percent }}%
+                        <div class="mt-2">
+                            <span class="comparison-badge {% if filtered_revenue_change_percent|slice:':1' == '+' %}comparison-positive{% elif filtered_revenue_change_percent|slice:':1' == '-' %}comparison-negative{% else %}comparison-neutral{% endif %}">
+                                {% if filtered_revenue_change_percent|slice:':1' == '+' %}
+                                    <i class="fas fa-arrow-up"></i>
+                                {% elif filtered_revenue_change_percent|slice:':1' == '-' %}
+                                    <i class="fas fa-arrow-down"></i>
+                                {% else %}
+                                    <i class="fas fa-minus"></i>
+                                {% endif %}
+                                {{ filtered_revenue_change_percent }}%
+                            </span>
+                            <span class="small text-muted ml-1">vs previous period</span>
                         </div>
                     {% else %}
                         <div class="mt-2 small text-muted">
-                            Change vs previous period: N/A
+                            Select date range to compare
                         </div>
                     {% endif %}
                 </div>
