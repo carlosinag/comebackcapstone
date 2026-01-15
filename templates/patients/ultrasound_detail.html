@@ -83,7 +83,17 @@
                             </tr>
                             <tr>
                                 <td class="fw-bold text-end">Requesting Physician:</td>
-                                <td>N/A</td>
+                                <td>{{ exam.referring_physician|default:"N/A" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-end">Performed By:</td>
+                                <td>
+                                    {% if exam.performed_by %}
+                                        {{ exam.performed_by.get_full_name|default:exam.performed_by.username }}
+                                    {% else %}
+                                        <span class="text-muted">Not recorded</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                         </tbody>
                     </table>

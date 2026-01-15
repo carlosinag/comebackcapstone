@@ -253,6 +253,45 @@
                     </div>
                 </div>
             </form>
+            
+            <!-- Search Legend -->
+            <div class="mt-4 mb-4 pt-3 border-top">
+                <small class="text-muted d-flex align-items-center mb-2">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Searchable Fields:</strong>
+                </small>
+                <div class="row g-2">
+                    <div class="col-md-6 col-lg-3">
+                        <small class="text-muted">
+                            <i class="fas fa-user me-1"></i> First Name
+                        </small>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <small class="text-muted">
+                            <i class="fas fa-user me-1"></i> Last Name
+                        </small>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <small class="text-muted">
+                            <i class="fas fa-phone me-1"></i> Contact Number
+                        </small>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <small class="text-muted">
+                            <i class="fas fa-envelope me-1"></i> Email Address
+                        </small>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <small class="text-muted">
+                            <i class="fas fa-id-card me-1"></i> ID Number
+                        </small>
+                    </div>
+                </div>
+                <small class="text-muted d-block mt-2">
+                    <i class="fas fa-lightbulb me-1"></i>
+                    <em>Tip: The search will match any of these fields. Partial matches are supported.</em>
+                </small>
+            </div>
 
             <!-- Filter Options -->
             {% if request.GET.view != 'annotation' %}

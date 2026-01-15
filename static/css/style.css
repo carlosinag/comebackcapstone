@@ -1,4 +1,7 @@
 /* Custom styles for the Ultrasound Clinic */
+html {
+    scroll-behavior: smooth;
+}
 
 /* General styles */
 body {

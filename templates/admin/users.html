@@ -333,9 +333,9 @@
                         <div class="col-md-6">
                             <div class="card">
                                 <div class="card-body">
-                                    <h6 class="card-subtitle mb-3 text-muted">More Analytics Coming Soon</h6>
+                                    <h6 class="card-subtitle mb-3 text-muted">Examinations Performed</h6>
                                     <div style="height: 300px; display: flex; align-items: center; justify-content: center;">
-                                        <p class="text-muted">Additional charts will be displayed here</p>
+                                        <canvas id="examChart"></canvas>
                                     </div>
                                 </div>
                             </div>
@@ -357,6 +357,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 let patientChart = null;
+let examChart = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize toastr
@@ -427,8 +428,9 @@ function loadStaffAnalytics(userId) {
                 document.getElementById('active-patients').textContent = data.analytics.active_patients;
                 document.getElementById('inactive-patients').textContent = data.analytics.inactive_patients;
 
-                // Render chart
+                // Render charts
                 renderPatientChart(data.chart_data);
+                renderExamChart(data.exam_chart_data || { labels: [], data: [], colors: [] });
 
                 // Hide loading, show content
                 document.getElementById('modalLoading').style.display = 'none';
@@ -502,6 +504,72 @@ function renderPatientChart(chartData) {
                             const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
                             return `${label}: ${value} (${percentage}%)`;
                         }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderExamChart(chartData) {
+    const ctx = document.getElementById('examChart').getContext('2d');
+    
+    // Destroy existing chart if it exists
+    if (examChart) {
+        examChart.destroy();
+    }
+
+    // If no data, show a message
+    if (!chartData.labels || chartData.labels.length === 0) {
+        const canvas = document.getElementById('examChart');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#6c757d';
+        ctx.textAlign = 'center';
+        ctx.fillText('No examinations performed yet', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+
+    examChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                label: 'Number of Examinations',
+                data: chartData.data,
+                backgroundColor: chartData.colors.slice(0, chartData.labels.length),
+                borderColor: chartData.colors.slice(0, chartData.labels.length).map(c => c.replace('0.8', '1')),
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.parsed.y} examination${context.parsed.y !== 1 ? 's' : ''}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1,
+                        precision: 0
+                    }
+                },
+                x: {
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
                     }
                 }
             }

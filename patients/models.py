@@ -252,6 +252,7 @@ class UltrasoundExam(models.Model):
     
     # Additional fields
     technician = models.CharField(max_length=100, blank=True, null=True, help_text="Technician who performed the exam")
+    performed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='performed_exams', verbose_name='Performed By', help_text="Staff member who performed this examination")
     notes = models.TextField(blank=True, null=True, help_text="Additional notes about the examination")
     
     created_at = models.DateTimeField(auto_now_add=True)

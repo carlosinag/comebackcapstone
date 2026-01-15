@@ -112,15 +112,6 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="{{ form.patient_status.id_for_label }}" class="form-label">Patient Status</label>
-                                    {{ form.patient_status }}
-                                    {% if form.patient_status.errors %}
-                                        <div class="text-danger">{{ form.patient_status.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
                         </div>
 
                         <!-- Address Information -->
@@ -668,7 +659,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let errors = [];
 
         // Required fields except street_address
-        const requiredFields = ['id_first_name', 'id_last_name', 'id_birthday', 'id_sex', 'id_marital_status', 'id_patient_type', 'id_patient_status', 'id_region', 'id_province', 'id_city', 'id_barangay', 'id_contact_number', 'id_email'];
+        const requiredFields = ['id_first_name', 'id_last_name', 'id_birthday', 'id_sex', 'id_marital_status', 'id_patient_type', 'id_region', 'id_province', 'id_city', 'id_barangay', 'id_contact_number', 'id_email'];
 
         for (let id of requiredFields) {
             const field = document.getElementById(id);

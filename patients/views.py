@@ -319,7 +319,7 @@ class PatientListView(CustomStaffRequiredMixin, ListView):
         queryset = super().get_queryset().filter(is_archived=False)
         
         # Handle search
-        search_query = self.request.GET.get('search')
+        search_query = self.request.GET.get('search', '').strip()
         if search_query:
             queryset = queryset.filter(
                 models.Q(first_name__icontains=search_query) |
@@ -567,8 +567,11 @@ class UltrasoundExamCreateView(CreateView):
                 messages.warning(self.request, 'Cannot add an exam to an archived patient. Please unarchive first.')
                 return self.form_invalid(form)
             with transaction.atomic():
-                # Save the exam first
-                self.object = form.save()
+                # Set the performed_by field to the current logged-in staff member
+                exam = form.save(commit=False)
+                exam.performed_by = self.request.user
+                exam.save()
+                self.object = exam
 
                 # Handle multiple image uploads
                 files = self.request.FILES.getlist('images[]')
@@ -2160,7 +2163,8 @@ def staff_confirm_appointment(request, appointment_id):
                         exam_time=appointment.appointment_time,
                         referring_physician=referring_physician,
                         status='PENDING',
-                        notes=appointment.notes if appointment.notes else None
+                        notes=appointment.notes if appointment.notes else None,
+                        performed_by=request.user
                     )
                     logger.info(
                         f"Created UltrasoundExam {exam.id} for appointment {appointment_id} "

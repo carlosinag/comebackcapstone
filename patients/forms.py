@@ -31,7 +31,7 @@ class PatientForm(forms.ModelForm):
         model = Patient
         fields = [
             'first_name', 'last_name', 'birthday', 'sex', 'marital_status',
-            'patient_type', 'patient_status', 'id_number',
+            'patient_type', 'id_number',
             'region', 'province', 'city', 'barangay', 'street_address',
             'contact_number', 'email'
         ]
@@ -52,7 +52,6 @@ class PatientForm(forms.ModelForm):
             'sex': forms.Select(attrs={'class': 'form-control'}),
             'marital_status': forms.Select(attrs={'class': 'form-control'}),
             'patient_type': forms.Select(attrs={'class': 'form-control', 'id': 'id_patient_type'}),
-            'patient_status': forms.Select(attrs={'class': 'form-control', 'id': 'id_patient_status'}),
             'id_number': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Enter Senior Citizen/PWD ID number'
@@ -96,7 +95,7 @@ class PatientForm(forms.ModelForm):
         self.fields['barangay'].help_text = 'Select your barangay'
 
         # Set required fields
-        required_fields = ['first_name', 'last_name', 'birthday', 'sex', 'patient_type', 'patient_status', 'region', 'province', 'city', 'barangay', 'contact_number', 'email']
+        required_fields = ['first_name', 'last_name', 'birthday', 'sex', 'patient_type', 'region', 'province', 'city', 'barangay', 'contact_number', 'email']
         for field in required_fields:
             self.fields[field].required = True
 

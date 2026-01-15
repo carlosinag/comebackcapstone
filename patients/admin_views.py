@@ -1096,11 +1096,28 @@ def admin_staff_analytics(request, user_id):
             'colors': ['#28a745', '#dc3545']
         }
         
+        # Top 5 examinations performed by this staff member
+        top_examinations = UltrasoundExam.objects.filter(
+            performed_by=staff_user
+        ).values(
+            'procedure_type__name'
+        ).annotate(
+            count=Count('id')
+        ).order_by('-count')[:5]
+        
+        # Prepare examination chart data
+        exam_chart_data = {
+            'labels': [exam['procedure_type__name'] for exam in top_examinations],
+            'data': [exam['count'] for exam in top_examinations],
+            'colors': ['#007bff', '#28a745', '#ffc107', '#dc3545', '#17a2b8']
+        }
+        
         return JsonResponse({
             'success': True,
             'user_info': user_info,
             'analytics': analytics,
-            'chart_data': chart_data
+            'chart_data': chart_data,
+            'exam_chart_data': exam_chart_data
         })
         
     except User.DoesNotExist:
