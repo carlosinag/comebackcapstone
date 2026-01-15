@@ -20,6 +20,12 @@ from django.core.files.base import ContentFile
 from datetime import datetime, date
 from django.utils.dateparse import parse_date
 from django.db.models import Count
+import cv2
+import numpy as np
+from PIL import Image
+import io
+import urllib.request
+import urllib.parse
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +38,14 @@ def exam_annotations(request, exam_id):
         measurements = None
         notes = None
         drawing_notes = None
+        auto_annotation_notes = None
         on_image_measurements = None
 
         if isinstance(annotations, dict):
             measurements = annotations.get('measurements')
             notes = annotations.get('notes')
             drawing_notes = annotations.get('drawing_notes')
+            auto_annotation_notes = annotations.get('auto_annotation_notes')
             on_image_measurements = annotations.get('on_image_measurements')
 
         return JsonResponse({
@@ -45,6 +53,7 @@ def exam_annotations(request, exam_id):
             'measurements': measurements,
             'notes': notes,
             'drawing_notes': drawing_notes,
+            'auto_annotation_notes': auto_annotation_notes,
             'on_image_measurements': on_image_measurements,
         })
 
@@ -62,6 +71,7 @@ def exam_annotations(request, exam_id):
                 notes = data.get('notes')
                 measurement_data = data.get('measurements') or {}
                 drawing_notes_data = data.get('drawing_notes') or {}
+                auto_annotation_notes_data = data.get('auto_annotation_notes') or {}
                 on_image_measurements = data.get('on_image_measurements')
 
                 # Ensure annotations is a dict we can enrich
@@ -76,6 +86,7 @@ def exam_annotations(request, exam_id):
                 annotations['notes'] = notes
                 annotations['measurements'] = measurement_data
                 annotations['drawing_notes'] = drawing_notes_data
+                annotations['auto_annotation_notes'] = auto_annotation_notes_data
                 if on_image_measurements is not None:
                     annotations['on_image_measurements'] = on_image_measurements
 
@@ -114,6 +125,7 @@ def save_annotation_preview(request, exam_id):
         # Additional structured data (all stored in annotations JSON)
         notes = data.get('notes')
         drawing_notes_data = data.get('drawing_notes') or {}
+        auto_annotation_notes_data = data.get('auto_annotation_notes') or {}
         on_image_measurements = data.get('on_image_measurements') or []
 
         if not image_data:
@@ -143,6 +155,7 @@ def save_annotation_preview(request, exam_id):
         # Enrich annotations with structured data
         annotations['notes'] = notes
         annotations['drawing_notes'] = drawing_notes_data
+        annotations['auto_annotation_notes'] = auto_annotation_notes_data
         annotations['on_image_measurements'] = on_image_measurements
 
         # Optionally keep preview_html inside annotations if you want it retrievable later
@@ -229,4 +242,247 @@ def appointment_calendar_counts(request):
         return JsonResponse({
             'status': 'error',
             'message': 'Error fetching appointment counts'
+        }, status=500)
+
+@require_http_methods(["POST"])
+def auto_annotate_image(request, exam_id):
+    """Auto-annotate ultrasound image using OpenCV, NumPy, and Pillow."""
+    image = get_object_or_404(UltrasoundImage, id=exam_id)
+    
+    try:
+        # Read the image file
+        img = None
+        try:
+            image_path = image.image.path
+            img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+            if img is None:
+                logger.warning(f'cv2.imread returned None for path: {image_path}')
+                # Try loading with PIL and converting
+                pil_img = Image.open(image_path)
+                img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2GRAY)
+        except (ValueError, AttributeError, IOError) as e:
+            logger.error(f'Error loading image from path: {str(e)}')
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Could not read image file: {str(e)}'
+            }, status=400)
+        
+        if img is None or img.size == 0:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Could not read image file. Image may be corrupted or inaccessible.'
+            }, status=400)
+        
+        # Get image dimensions for coordinate mapping
+        img_height, img_width = img.shape
+        
+        # Apply Gaussian blur to reduce noise
+        blurred = cv2.GaussianBlur(img, (5, 5), 0)
+        
+        # Use multiple detection methods and combine results
+        kernel = np.ones((3, 3), np.uint8)
+        all_contours = []
+        
+        # Method 1: Use RETR_EXTERNAL to get only external contours (avoid nested)
+        _, binary1 = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        binary1 = cv2.morphologyEx(binary1, cv2.MORPH_CLOSE, kernel, iterations=1)
+        binary1 = cv2.morphologyEx(binary1, cv2.MORPH_OPEN, kernel, iterations=1)
+        contours1, _ = cv2.findContours(binary1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        all_contours.extend(contours1)
+        
+        # Method 2: Adaptive thresholding for varying lighting
+        binary2 = cv2.adaptiveThreshold(
+            blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+            cv2.THRESH_BINARY_INV, 11, 2
+        )
+        binary2 = cv2.morphologyEx(binary2, cv2.MORPH_CLOSE, kernel, iterations=1)
+        contours2, _ = cv2.findContours(binary2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        all_contours.extend(contours2)
+        
+        # Method 3: Canny edges + findContours to detect boundaries
+        edges = cv2.Canny(blurred, 30, 100)
+        dilated = cv2.dilate(edges, kernel, iterations=1)
+        contours3, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        all_contours.extend(contours3)
+        
+        # Method 4: Mean shift or simple threshold variations
+        mean_val = np.mean(blurred)
+        std_val = np.std(blurred)
+        # Try multiple threshold levels
+        for threshold_factor in [0.6, 0.7, 0.8, 0.9]:
+            _, binary4 = cv2.threshold(
+                blurred, 
+                mean_val * threshold_factor, 
+                255, 
+                cv2.THRESH_BINARY_INV
+            )
+            binary4 = cv2.morphologyEx(binary4, cv2.MORPH_CLOSE, kernel, iterations=1)
+            contours4, _ = cv2.findContours(binary4, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            all_contours.extend(contours4)
+        
+        # Filter contours - focus on smaller, distinct regions
+        min_area = (img_width * img_height) * 0.002  # Lowered to 0.2% - detect smaller structures
+        max_area = (img_width * img_height) * 0.3    # Lowered to 30% - exclude large background
+        
+        contour_info = []
+        seen_signatures = set()
+        
+        for contour in all_contours:
+            area = cv2.contourArea(contour)
+            
+            # Filter by area
+            if area < min_area or area > max_area:
+                continue
+            
+            x, y, w, h = cv2.boundingRect(contour)
+            
+            # Skip if too small
+            if w < 25 or h < 25:
+                continue
+            
+            # Create signature to avoid exact duplicates
+            center_x = x + w // 2
+            center_y = y + h // 2
+            signature = (center_x // 15, center_y // 15, w // 10, h // 10)
+            
+            if signature in seen_signatures:
+                continue
+            seen_signatures.add(signature)
+            
+            contour_info.append({
+                'contour': contour,
+                'area': area,
+                'bbox': (x, y, w, h)
+            })
+        
+        # Sort by area (smaller first) to prioritize distinct structures
+        contour_info.sort(key=lambda c: c['area'])
+        
+        regions = []
+        pixel_to_mm = 0.1  # Conversion factor (adjust based on your calibration)
+        selected_regions = []  # Track selected regions for overlap checking
+        
+        for info in contour_info:
+            contour = info['contour']
+            area = info['area']
+            x, y, w, h = info['bbox']
+            
+            # Check overlap with already selected regions
+            overlaps_significantly = False
+            for selected in selected_regions:
+                sel_x, sel_y, sel_w, sel_h = selected['bbox']
+                
+                # Calculate intersection
+                inter_x = max(x, sel_x)
+                inter_y = max(y, sel_y)
+                inter_w = min(x + w, sel_x + sel_w) - inter_x
+                inter_h = min(y + h, sel_y + sel_h) - inter_y
+                
+                if inter_w > 0 and inter_h > 0:
+                    inter_area = inter_w * inter_h
+                    # If overlap is more than 30% of either region, skip
+                    overlap_ratio1 = inter_area / area
+                    overlap_ratio2 = inter_area / selected['area']
+                    if overlap_ratio1 > 0.3 or overlap_ratio2 > 0.3:
+                        overlaps_significantly = True
+                        break
+            
+            if overlaps_significantly:
+                continue
+            
+            # Calculate compactness (how circular/compact the region is)
+            perimeter = cv2.arcLength(contour, True)
+            if perimeter > 0:
+                compactness = (4 * np.pi * area) / (perimeter * perimeter)
+            else:
+                compactness = 0
+            
+            # Very lenient compactness filter - accept most shapes
+            if compactness < 0.02:  # Even more lenient
+                continue
+            
+            # Exclude regions at the very edge (likely UI elements or borders)
+            edge_threshold = 0.02  # 2% of image dimension
+            is_at_very_edge = (
+                (x < edge_threshold * img_width and (x + w) < 0.1 * img_width) or
+                (y < edge_threshold * img_height and (y + h) < 0.1 * img_height) or
+                ((x + w) > (1 - edge_threshold) * img_width and x > 0.9 * img_width) or
+                ((y + h) > (1 - edge_threshold) * img_height and y > 0.9 * img_height)
+            )
+            
+            if is_at_very_edge:
+                continue
+            
+            # Add to selected regions
+            selected_regions.append({
+                'bbox': (x, y, w, h),
+                'area': area
+            })
+            
+            # Calculate measurements
+            length_mm = max(w, h) * pixel_to_mm
+            area_mm2 = area * pixel_to_mm * pixel_to_mm
+            diameter_mm = 2 * np.sqrt(area / np.pi) * pixel_to_mm
+            
+            # Get contour points for outline
+            # Simplify contour to reduce points
+            epsilon = 0.02 * cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, epsilon, True)
+            
+            # Convert to list of [x, y] coordinates
+            outline_points = [[int(point[0][0]), int(point[0][1])] for point in approx]
+            
+            regions.append({
+                'index': len(regions) + 1,
+                'bbox': {
+                    'x': int(x),
+                    'y': int(y),
+                    'width': int(w),
+                    'height': int(h)
+                },
+                'center': {
+                    'x': int(x + w / 2),
+                    'y': int(y + h / 2)
+                },
+                'measurements': {
+                    'length': round(length_mm, 1),
+                    'area': round(area_mm2, 1),
+                    'diameter': round(diameter_mm, 1),
+                    'width': round(w * pixel_to_mm, 1),
+                    'height': round(h * pixel_to_mm, 1)
+                },
+                'outline': outline_points,
+                'compactness': round(compactness, 3)
+            })
+        
+        # Sort by area (largest first) and limit to top 10 distinct regions
+        regions.sort(key=lambda r: r['bbox']['width'] * r['bbox']['height'], reverse=True)
+        regions = regions[:10]  # Allow up to 10 regions
+        
+        # Debug information
+        total_contours = len(all_contours)
+        filtered_contours = len(contour_info)
+        final_regions = len(regions)
+        
+        return JsonResponse({
+            'status': 'success',
+            'regions': regions,
+            'image_width': img_width,
+            'image_height': img_height,
+            'pixel_to_mm': pixel_to_mm,
+            'debug': {
+                'total_contours_found': total_contours,
+                'filtered_contours': filtered_contours,
+                'final_regions': final_regions,
+                'min_area_threshold': int(min_area),
+                'max_area_threshold': int(max_area),
+                'image_size': f'{img_width}x{img_height}'
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f'Error in auto-annotation: {str(e)}', exc_info=True)
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Error during auto-annotation: {str(e)}'
         }, status=500)
