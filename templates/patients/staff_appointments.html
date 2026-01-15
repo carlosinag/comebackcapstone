@@ -67,11 +67,11 @@
 
                     <!-- New Appointments Notification -->
                     {% if new_appointments_count > 0 and not date_filter %}
-                        <div class="alert alert-info alert-dismissible fade show d-flex align-items-center mb-4" role="alert">
+                        <div id="newAppointmentsNotification" class="alert alert-info alert-dismissible fade show d-flex align-items-center mb-4" role="alert">
                             <i class="fas fa-info-circle me-2 fs-5"></i>
                             <div>
                                 <strong>New Appointments!</strong> 
-                                There {% if new_appointments_count == 1 %}is {{ new_appointments_count }} new appointment{% else %}are {{ new_appointments_count }} new appointments{% endif %} waiting for review.
+                                There {% if new_appointments_count == 1 %}is <span id="newAppointmentsCount">{{ new_appointments_count }}</span> new appointment{% else %}are <span id="newAppointmentsCount">{{ new_appointments_count }}</span> new appointments{% endif %} waiting for review.
                             </div>
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
@@ -117,11 +117,11 @@
                                         </thead>
                                         <tbody>
                                             {% for appointment in appointments %}
-                                            <tr{% if appointment.is_new %} class="table-light border-start border-info border-3"{% endif %}>
+                                            <tr{% if appointment.is_new %} class="table-light border-start border-info border-3 appointment-row" data-appointment-id="{{ appointment.id }}" data-is-new="{% if appointment.is_new %}true{% else %}false{% endif %}"{% else %} class="appointment-row" data-appointment-id="{{ appointment.id }}" data-is-new="false"{% endif %}>
                                                 <td>
                                                     <div class="d-flex align-items-center gap-2">
                                                         {% if appointment.is_new %}
-                                                            <span class="badge bg-info badge-sm">NEW</span>
+                                                            <span class="badge bg-info badge-sm new-badge" data-appointment-id="{{ appointment.id }}">NEW</span>
                                                         {% endif %}
                                                         <div>
                                                             <strong>{{ appointment.patient.first_name }} {{ appointment.patient.last_name }}</strong>
@@ -719,6 +719,139 @@
     }
     
     loadAppointmentCounts();
+})();
+
+// Track seen appointments to hide "new" badges after viewing
+(function() {
+    'use strict';
+    
+    const STORAGE_KEY = 'seen_appointments';
+    
+    // Get seen appointments from localStorage
+    function getSeenAppointments() {
+        try {
+            const seen = localStorage.getItem(STORAGE_KEY);
+            return seen ? JSON.parse(seen) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+    
+    // Save seen appointments to localStorage
+    function saveSeenAppointments(seenIds) {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(seenIds));
+        } catch (e) {
+            console.error('Error saving seen appointments:', e);
+        }
+    }
+    
+    // Mark appointment as seen
+    function markAppointmentAsSeen(appointmentId) {
+        const seen = getSeenAppointments();
+        if (!seen.includes(appointmentId)) {
+            seen.push(appointmentId);
+            saveSeenAppointments(seen);
+        }
+    }
+    
+    // Check if appointment has been seen
+    function hasAppointmentBeenSeen(appointmentId) {
+        const seen = getSeenAppointments();
+        return seen.includes(appointmentId);
+    }
+    
+    // Hide "new" badges for seen appointments
+    function hideSeenAppointmentBadges() {
+        $('.new-badge').each(function() {
+            const appointmentId = parseInt($(this).data('appointment-id'));
+            if (hasAppointmentBeenSeen(appointmentId)) {
+                $(this).hide();
+                // Also remove the border highlight
+                const row = $(this).closest('tr');
+                row.removeClass('table-light border-start border-info border-3');
+            }
+        });
+    }
+    
+    // Mark all visible appointments as seen
+    function markVisibleAppointmentsAsSeen() {
+        $('.appointment-row').each(function() {
+            const appointmentId = parseInt($(this).data('appointment-id'));
+            const isNew = $(this).data('is-new') === true || $(this).data('is-new') === 'true';
+            if (isNew) {
+                markAppointmentAsSeen(appointmentId);
+            }
+        });
+    }
+    
+    // Count unseen new appointments
+    function countUnseenNewAppointments() {
+        let count = 0;
+        $('.new-badge').each(function() {
+            const appointmentId = parseInt($(this).data('appointment-id'));
+            if (!hasAppointmentBeenSeen(appointmentId)) {
+                count++;
+            }
+        });
+        return count;
+    }
+    
+    // Update notification count based on unseen appointments
+    function updateNotificationCount() {
+        const unseenCount = countUnseenNewAppointments();
+        const notification = $('#newAppointmentsNotification');
+        
+        if (notification.length > 0) {
+            if (unseenCount > 0) {
+                // Update count in notification
+                $('#newAppointmentsCount').text(unseenCount);
+                
+                // Update text based on count
+                const notificationText = notification.find('div').first();
+                if (unseenCount === 1) {
+                    notificationText.html('<strong>New Appointments!</strong> There is <span id="newAppointmentsCount">' + unseenCount + '</span> new appointment waiting for review.');
+                } else {
+                    notificationText.html('<strong>New Appointments!</strong> There are <span id="newAppointmentsCount">' + unseenCount + '</span> new appointments waiting for review.');
+                }
+                
+                // Show notification if hidden
+                if (!notification.is(':visible')) {
+                    notification.fadeIn();
+                }
+            } else {
+                // Hide notification if no unseen appointments
+                notification.fadeOut();
+            }
+        }
+    }
+    
+    // Initialize on page load
+    $(document).ready(function() {
+        // First, hide badges for already-seen appointments (from previous visits)
+        hideSeenAppointmentBadges();
+        
+        // Update notification count based on unseen appointments
+        const notification = $('#newAppointmentsNotification');
+        if (notification.length > 0) {
+            updateNotificationCount();
+        }
+        
+        // Mark all visible new appointments as seen after a delay
+        // This ensures they're marked as seen, so badges disappear on next refresh
+        // But they remain visible on current page load
+        setTimeout(function() {
+            markVisibleAppointmentsAsSeen();
+        }, 1000);
+    });
+    
+    // Handle notification dismissal
+    $(document).on('click', '#newAppointmentsNotification .btn-close', function() {
+        // Mark all visible new appointments as seen when notification is dismissed
+        markVisibleAppointmentsAsSeen();
+        hideSeenAppointmentBadges();
+        updateNotificationCount();
+    });
 })();
 </script>
 {% endblock %}

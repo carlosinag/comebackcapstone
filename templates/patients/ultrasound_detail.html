@@ -22,6 +22,9 @@
                 <i class="fas fa-file-invoice-dollar me-2"></i>View Bill
             </a>
             {% endif %}
+            <button type="button" class="btn btn-info btn-sm me-2" data-bs-toggle="modal" data-bs-target="#comparisonModal">
+                <i class="fas fa-balance-scale me-2"></i>Compare Examinations
+            </button>
             <a href="{% url 'download-ultrasound-docx' exam.pk %}" class="btn btn-primary btn-sm me-2">
                 <i class="fas fa-download me-2"></i>Download DOCX
             </a>
@@ -169,6 +172,153 @@
             </div>
         </div>
     </div>
+
+    <!-- Comparison Modal -->
+    <div class="modal fade" id="comparisonModal" tabindex="-1" aria-labelledby="comparisonModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen-lg-down modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="comparisonModalLabel">
+                        <i class="fas fa-balance-scale me-2"></i>Compare Examinations
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="row g-0 h-100">
+                        <!-- Left Panel: Current Examination -->
+                        <div class="col-md-6 border-end comparison-panel">
+                            <div class="p-3">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-file-medical me-2"></i>Current Examination
+                                </h6>
+                                <div class="current-exam-info mb-3">
+                                    <p class="mb-1"><strong>Date:</strong> <span id="current-exam-date">{{ exam.exam_date|date:"F d, Y" }}</span></p>
+                                    <p class="mb-1"><strong>Procedure:</strong> <span id="current-exam-procedure">{{ exam.procedure_type.name|default:"N/A" }}</span></p>
+                                </div>
+                                
+                                <!-- Image Tabs for Current Exam -->
+                                <div id="current-exam-images-container">
+                                    {% if exam.images.all %}
+                                        <ul class="nav nav-tabs mb-3" id="currentImageTabs" role="tablist">
+                                            {% for image in exam.images.all %}
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link {% if forloop.first %}active{% endif %}" 
+                                                        id="current-tab-{{ forloop.counter0 }}" 
+                                                        data-bs-toggle="tab" 
+                                                        data-bs-target="#current-pane-{{ forloop.counter0 }}" 
+                                                        type="button" 
+                                                        role="tab">
+                                                    Image {{ forloop.counter }}
+                                                </button>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                        <div class="tab-content" id="currentImageTabContent">
+                                            {% for image in exam.images.all %}
+                                            <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" 
+                                                 id="current-pane-{{ forloop.counter0 }}" 
+                                                 role="tabpanel">
+                                                <div class="comparison-image-container">
+                                                    {% if image.annotated_image %}
+                                                        <img src="{{ image.annotated_image.url }}" 
+                                                             class="img-fluid comparison-image" 
+                                                             alt="{{ image.caption|default:'Annotated Ultrasound Image' }}">
+                                                    {% else %}
+                                                        <img src="{{ image.image.url }}" 
+                                                             class="img-fluid comparison-image" 
+                                                             alt="{{ image.caption|default:'Original Ultrasound Image' }}">
+                                                    {% endif %}
+                                                    <p class="text-center mt-2 mb-0">
+                                                        <small class="text-muted">{{ image.caption|default:"Ultrasound Image" }}</small>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i>No images available for this examination.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Findings and Impression for Current Exam -->
+                                <div class="mt-3">
+                                    <h6 class="text-muted mb-2"><i class="fas fa-stethoscope me-2"></i>Findings</h6>
+                                    <div class="border-start border-primary border-3 ps-3 mb-3">
+                                        <p class="mb-0 small" style="white-space: pre-line;" id="current-exam-findings">{{ exam.findings|default:"No findings recorded." }}</p>
+                                    </div>
+                                    <h6 class="text-muted mb-2"><i class="fas fa-brain me-2"></i>Impression</h6>
+                                    <div class="border-start border-success border-3 ps-3">
+                                        <p class="mb-0 small" style="white-space: pre-line;" id="current-exam-impression">{{ exam.impression|default:"No impression recorded." }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Right Panel: Comparison Examinations -->
+                        <div class="col-md-6 comparison-panel">
+                            <div class="p-3 h-100 d-flex flex-column">
+                                <h6 class="text-success mb-3">
+                                    <i class="fas fa-history me-2"></i>Previous Examinations
+                                </h6>
+                                
+                                <!-- Loading State -->
+                                <div id="comparison-loading" class="text-center py-5">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="mt-2 text-muted">Loading similar examinations...</p>
+                                </div>
+                                
+                                <!-- Examination List -->
+                                <div id="comparison-exam-list" class="flex-grow-1 overflow-auto" style="display: none; max-height: 400px;">
+                                    <!-- List will be populated by JavaScript -->
+                                </div>
+                                
+                                <!-- Selected Exam Display -->
+                                <div id="comparison-selected-exam" style="display: none;">
+                                    <div class="selected-exam-header mb-3">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="back-to-list-btn">
+                                            <i class="fas fa-arrow-left me-2"></i>Back to List
+                                        </button>
+                                        <div class="mt-2">
+                                            <p class="mb-1"><strong>Date:</strong> <span id="selected-exam-date"></span></p>
+                                            <p class="mb-1"><strong>Procedure:</strong> <span id="selected-exam-procedure"></span></p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Image Tabs for Selected Exam -->
+                                    <div id="selected-exam-images-container">
+                                        <!-- Will be populated by JavaScript -->
+                                    </div>
+                                    
+                                    <!-- Findings and Impression for Selected Exam -->
+                                    <div class="mt-3">
+                                        <h6 class="text-muted mb-2"><i class="fas fa-stethoscope me-2"></i>Findings</h6>
+                                        <div class="border-start border-primary border-3 ps-3 mb-3">
+                                            <p class="mb-0 small" style="white-space: pre-line;" id="selected-exam-findings"></p>
+                                        </div>
+                                        <h6 class="text-muted mb-2"><i class="fas fa-brain me-2"></i>Impression</h6>
+                                        <div class="border-start border-success border-3 ps-3">
+                                            <p class="mb-0 small" style="white-space: pre-line;" id="selected-exam-impression"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Empty State -->
+                                <div id="comparison-empty-state" class="text-center py-5" style="display: none;">
+                                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">No prior examination found</p>
+                                    <small class="text-muted">There are no other examinations of the same type for this patient.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -183,6 +333,186 @@ document.addEventListener('DOMContentLoaded', function() {
         modalImage.src = imageSrc;
         modalTitle.textContent = caption;
     });
+
+    // Comparison Modal Functionality
+    var comparisonModal = document.getElementById('comparisonModal');
+    var currentExamId = {{ exam.pk }};
+    var similarExamsUrl = '{% url "get-similar-examinations" exam.pk %}';
+    var similarExams = [];
+    var selectedExam = null;
+
+    // Load similar examinations when modal opens
+    comparisonModal.addEventListener('show.bs.modal', function() {
+        loadSimilarExaminations();
+    });
+
+    // Reset modal state when closed
+    comparisonModal.addEventListener('hidden.bs.modal', function() {
+        resetComparisonModal();
+    });
+
+    function loadSimilarExaminations() {
+        var loadingDiv = document.getElementById('comparison-loading');
+        var examListDiv = document.getElementById('comparison-exam-list');
+        var emptyStateDiv = document.getElementById('comparison-empty-state');
+        var selectedExamDiv = document.getElementById('comparison-selected-exam');
+
+        // Show loading, hide others
+        loadingDiv.style.display = 'block';
+        examListDiv.style.display = 'none';
+        emptyStateDiv.style.display = 'none';
+        selectedExamDiv.style.display = 'none';
+
+        // Make AJAX request
+        fetch(similarExamsUrl, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            loadingDiv.style.display = 'none';
+            
+            if (data.success) {
+                similarExams = data.examinations;
+                
+                if (similarExams.length === 0) {
+                    emptyStateDiv.style.display = 'block';
+                } else {
+                    displayExamList(similarExams);
+                    examListDiv.style.display = 'block';
+                }
+            } else {
+                emptyStateDiv.innerHTML = '<i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i><p class="text-muted">Error loading examinations</p>';
+                emptyStateDiv.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            loadingDiv.style.display = 'none';
+            emptyStateDiv.innerHTML = '<i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i><p class="text-muted">Error loading examinations</p>';
+            emptyStateDiv.style.display = 'block';
+        });
+    }
+
+    function displayExamList(exams) {
+        var examListDiv = document.getElementById('comparison-exam-list');
+        examListDiv.innerHTML = '';
+
+        exams.forEach(function(exam) {
+            var examCard = document.createElement('div');
+            examCard.className = 'card mb-2 exam-list-item';
+            examCard.style.cursor = 'pointer';
+            examCard.dataset.examId = exam.id;
+            
+            examCard.innerHTML = `
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${exam.exam_date}</h6>
+                            <small class="text-muted">${exam.procedure_type}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-info">${exam.image_count} image${exam.image_count !== 1 ? 's' : ''}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            examCard.addEventListener('click', function() {
+                selectExam(exam);
+            });
+
+            examListDiv.appendChild(examCard);
+        });
+    }
+
+    function selectExam(exam) {
+        selectedExam = exam;
+        
+        // Hide list, show selected exam view
+        document.getElementById('comparison-exam-list').style.display = 'none';
+        document.getElementById('comparison-selected-exam').style.display = 'block';
+
+        // Update exam info
+        document.getElementById('selected-exam-date').textContent = exam.exam_date;
+        document.getElementById('selected-exam-procedure').textContent = exam.procedure_type;
+        document.getElementById('selected-exam-findings').textContent = exam.findings;
+        document.getElementById('selected-exam-impression').textContent = exam.impression;
+
+        // Create image tabs
+        createImageTabs(exam.images, 'selected');
+    }
+
+    function createImageTabs(images, prefix) {
+        var containerId = prefix + '-exam-images-container';
+        var container = document.getElementById(containerId);
+        
+        if (images.length === 0) {
+            container.innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>No images available for this examination.</div>';
+            return;
+        }
+
+        // Create tabs
+        var tabsHtml = '<ul class="nav nav-tabs mb-3" id="' + prefix + 'ImageTabs" role="tablist">';
+        var contentHtml = '<div class="tab-content" id="' + prefix + 'ImageTabContent">';
+
+        images.forEach(function(image, index) {
+            var tabId = prefix + '-tab-' + index;
+            var paneId = prefix + '-pane-' + index;
+            var imageUrl = image.annotated_image_url || image.image_url;
+            
+            tabsHtml += `
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link ${index === 0 ? 'active' : ''}" 
+                            id="${tabId}" 
+                            data-bs-toggle="tab" 
+                            data-bs-target="#${paneId}" 
+                            type="button" 
+                            role="tab">
+                        Image ${index + 1}
+                    </button>
+                </li>
+            `;
+
+            contentHtml += `
+                <div class="tab-pane fade ${index === 0 ? 'show active' : ''}" 
+                     id="${paneId}" 
+                     role="tabpanel">
+                    <div class="comparison-image-container">
+                        <img src="${imageUrl}" 
+                             class="img-fluid comparison-image" 
+                             alt="${image.caption}">
+                        <p class="text-center mt-2 mb-0">
+                            <small class="text-muted">${image.caption}</small>
+                        </p>
+                    </div>
+                </div>
+            `;
+        });
+
+        tabsHtml += '</ul>';
+        contentHtml += '</div>';
+
+        container.innerHTML = tabsHtml + contentHtml;
+    }
+
+    // Back to list button
+    document.getElementById('back-to-list-btn').addEventListener('click', function() {
+        document.getElementById('comparison-selected-exam').style.display = 'none';
+        document.getElementById('comparison-exam-list').style.display = 'block';
+        selectedExam = null;
+    });
+
+    function resetComparisonModal() {
+        selectedExam = null;
+        document.getElementById('comparison-exam-list').style.display = 'none';
+        document.getElementById('comparison-selected-exam').style.display = 'none';
+        document.getElementById('comparison-loading').style.display = 'none';
+        document.getElementById('comparison-empty-state').style.display = 'none';
+    }
 });
 </script>
 
@@ -206,6 +536,123 @@ document.addEventListener('DOMContentLoaded', function() {
     .border-start {
         border-left: 3px solid #007bff !important;
     }
+}
+
+/* Comparison Modal Styles */
+.comparison-panel {
+    min-height: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.comparison-image-container {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    text-align: center;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.comparison-image {
+    max-width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.exam-list-item {
+    transition: all 0.2s ease;
+}
+
+.exam-list-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.exam-list-item:active {
+    transform: translateX(2px);
+}
+
+#comparison-exam-list {
+    scrollbar-width: thin;
+    scrollbar-color: #dee2e6 #f8f9fa;
+}
+
+#comparison-exam-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#comparison-exam-list::-webkit-scrollbar-track {
+    background: #f8f9fa;
+}
+
+#comparison-exam-list::-webkit-scrollbar-thumb {
+    background-color: #dee2e6;
+    border-radius: 3px;
+}
+
+#comparison-exam-list::-webkit-scrollbar-thumb:hover {
+    background-color: #adb5bd;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+    .comparison-panel {
+        border-right: none !important;
+        border-bottom: 1px solid #dee2e6;
+        min-height: 400px;
+        max-height: 50vh;
+    }
+    
+    .comparison-image {
+        max-height: 300px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .comparison-panel {
+        min-height: 350px;
+        max-height: 45vh;
+    }
+    
+    .comparison-image {
+        max-height: 250px;
+    }
+    
+    .nav-tabs {
+        font-size: 0.875rem;
+    }
+    
+    .nav-tabs .nav-link {
+        padding: 0.375rem 0.5rem;
+    }
+}
+
+/* Tab styling for comparison */
+#currentImageTabs .nav-link,
+#selectedImageTabs .nav-link {
+    color: #495057;
+    border: 1px solid transparent;
+}
+
+#currentImageTabs .nav-link:hover,
+#selectedImageTabs .nav-link:hover {
+    border-color: #dee2e6 #dee2e6 #fff;
+    color: #007bff;
+}
+
+#currentImageTabs .nav-link.active,
+#selectedImageTabs .nav-link.active {
+    color: #007bff;
+    background-color: #fff;
+    border-color: #dee2e6 #dee2e6 #fff;
+    font-weight: 500;
 }
 </style>
 {% endblock %}

@@ -646,6 +646,64 @@ class UltrasoundExamDetailView(CustomStaffRequiredMixin, DetailView):
     template_name = 'patients/ultrasound_detail.html'
     context_object_name = 'exam'
 
+@custom_staff_member_required
+def get_similar_examinations(request, exam_id):
+    """
+    AJAX endpoint to fetch similar examinations for comparison.
+    Returns examinations with the same patient and procedure_type, excluding the current exam.
+    """
+    try:
+        current_exam = get_object_or_404(UltrasoundExam, pk=exam_id)
+        
+        # Get similar examinations: same patient, same procedure_type, different exam_date
+        similar_exams = UltrasoundExam.objects.filter(
+            patient=current_exam.patient,
+            procedure_type=current_exam.procedure_type
+        ).exclude(
+            pk=current_exam.pk
+        ).order_by('-exam_date', '-exam_time')
+        
+        exams_data = []
+        for exam in similar_exams:
+            images = exam.images.all()
+            image_data = []
+            for img in images:
+                image_data.append({
+                    'id': img.id,
+                    'image_url': img.image.url if img.image else None,
+                    'annotated_image_url': img.annotated_image.url if img.annotated_image else None,
+                    'caption': img.caption or 'Ultrasound Image'
+                })
+            
+            exams_data.append({
+                'id': exam.id,
+                'exam_date': exam.exam_date.strftime('%B %d, %Y'),
+                'exam_time': exam.exam_time.strftime('%I:%M %p') if exam.exam_time else '',
+                'procedure_type': exam.procedure_type.name if exam.procedure_type else 'N/A',
+                'findings': exam.findings or 'No findings recorded.',
+                'impression': exam.impression or 'No impression recorded.',
+                'images': image_data,
+                'image_count': len(image_data)
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'examinations': exams_data,
+            'current_exam': {
+                'id': current_exam.id,
+                'exam_date': current_exam.exam_date.strftime('%B %d, %Y'),
+                'exam_time': current_exam.exam_time.strftime('%I:%M %p') if current_exam.exam_time else '',
+                'procedure_type': current_exam.procedure_type.name if current_exam.procedure_type else 'N/A',
+                'findings': current_exam.findings or 'No findings recorded.',
+                'impression': current_exam.impression or 'No impression recorded.',
+            }
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
 class ImageAnnotationView(CustomStaffRequiredMixin, DetailView):
     model = Patient
     template_name = 'patients/image_annotation.html'
