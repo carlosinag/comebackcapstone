@@ -221,7 +221,7 @@ class UltrasoundExamForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Filter only active service types
         self.fields['procedure_type'].queryset = ServiceType.objects.filter(is_active=True)
-        self.fields['procedure_type'].empty_label = "Select a procedure type..." 
+        self.fields['procedure_type'].empty_label = "Select a medical examination type..." 
 
 class AppointmentForm(forms.ModelForm):
     """Form for patients to book appointments."""
@@ -229,7 +229,7 @@ class AppointmentForm(forms.ModelForm):
     procedure_type = forms.ChoiceField(
         widget=forms.Select(attrs={
             'class': 'form-control',
-            'placeholder': 'Select procedure type'
+            'placeholder': 'Select medical examination type'
         })
     )
 

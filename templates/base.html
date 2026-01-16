@@ -389,6 +389,41 @@
             border-left-color: #e74c3c;
         }
     </style>
+    
+    <!-- Notification Badge Styling -->
+    <style>
+        #notification-badge {
+            top: -5px !important;
+            right: -5px !important;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            animation: pulse 2s infinite;
+            z-index: 1001;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        #notification-bell {
+            position: relative;
+        }
+        
+        #notification-bell:hover {
+            opacity: 0.8;
+        }
+        
+        #notification-dropdown {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        #notification-dropdown .dropdown-item:hover {
+            background-color: #f8f9fa !important;
+        }
+    </style>
+    
     {% block extra_css %}{% endblock %}
 </head>
 <body class="skeleton-active">

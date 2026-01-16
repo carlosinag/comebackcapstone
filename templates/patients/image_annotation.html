@@ -121,11 +121,11 @@
                                                 <div class="col-md-4">
                                                     <div class="card">
                                                         <div class="card-header">
-                                                            <h5 class="card-title mb-0">Procedure Measurements</h5>
+                                                            <h5 class="card-title mb-0">Medical Examination Measurements</h5>
                                                         </div>
                                                         <div class="card-body">
                                                             <div class="mb-3">
-                                                                <label class="form-label">Procedure Type:</label>
+                                                                <label class="form-label">Medical Examination Type:</label>
                                                                 <input type="text" class="form-control" value="{{ exam.procedure_type.name }}" readonly>
                                                                 <input type="hidden" id="procedure-type-{{ image.id }}" value="{{ exam.procedure_type.name|clean_procedure_type }}">
                                                             </div>
@@ -314,7 +314,7 @@
                 console.log('Initializing canvas for image ' + imageId);
                 initCanvas(imageId);
                 
-                // Automatically load procedure fields based on the exam's procedure type
+                // Automatically load medical examination fields based on the exam's medical examination type
                 const procedureTypeHidden = document.getElementById(`procedure-type-${imageId}`);
                 if (procedureTypeHidden && procedureTypeHidden.value) {
                     loadProcedureFields(imageId);
@@ -822,18 +822,18 @@
     function loadProcedureFields(examId) {
         const procedureTypeHidden = document.getElementById(`procedure-type-${examId}`);
         if (!procedureTypeHidden) {
-            console.error('Procedure type hidden field not found');
+            console.error('Medical examination type hidden field not found');
             return;
         }
 
-        // Get and clean up the procedure type value
+        // Get and clean up the medical examination type value
         let procedureType = procedureTypeHidden.value.toLowerCase()
             .replace(/\s+ultrasound/i, '')  // Remove "ultrasound" and spaces before it
             .replace(/\s+/g, '')  // Remove all spaces
             .trim();
             
-        console.log('Procedure type from hidden field:', procedureTypeHidden.value);
-        console.log('Cleaned procedure type:', procedureType);
+        console.log('Medical examination type from hidden field:', procedureTypeHidden.value);
+        console.log('Cleaned medical examination type:', procedureType);
         
         const fieldsContainer = document.getElementById(`procedure-fields-${examId}`);
         if (!fieldsContainer) {

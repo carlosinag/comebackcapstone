@@ -10,13 +10,20 @@ def send_notification_sync(user_id, notification_type, title, message, appointme
     Creates a notification in the database and sends it via WebSocket.
     """
     # Create notification in database
-    notification = Notification.objects.create(
-        user_id=user_id,
-        notification_type=notification_type,
-        title=title,
-        message=message,
-        appointment_id=appointment_id
-    )
+    try:
+        notification = Notification.objects.create(
+            user_id=user_id,
+            notification_type=notification_type,
+            title=title,
+            message=message,
+            appointment_id=appointment_id
+        )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error creating notification for user {user_id}: {str(e)}")
+        # Still try to send via WebSocket even if DB save fails
+        notification = None
     
     # Send via WebSocket in a separate thread
     def run_async_notification():
@@ -30,10 +37,14 @@ def send_notification_sync(user_id, notification_type, title, message, appointme
                 message=message,
                 appointment_id=appointment_id
             ))
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error sending WebSocket notification to user {user_id}: {str(e)}")
         finally:
             loop.close()
     
-    thread = threading.Thread(target=run_async_notification)
+    thread = threading.Thread(target=run_async_notification, daemon=True)
     thread.start()
     
     return notification
@@ -66,6 +77,13 @@ def notify_patient_appointment_update(appointment, action):
         title = 'Appointment Cancelled'
         message = f'Your {appointment.procedure_type} appointment on {appointment.appointment_date} at {appointment.appointment_time} has been cancelled.'
     else:
+        return
+
+    # Check if patient has a user account
+    if not hasattr(appointment.patient, 'user') or not appointment.patient.user:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Patient {appointment.patient.id} does not have a user account - cannot send notification")
         return
 
     send_notification_sync(

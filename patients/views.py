@@ -727,7 +727,7 @@ class ImageAnnotationView(CustomStaffRequiredMixin, DetailView):
             # Otherwise show all exams
             context['exams'] = self.object.ultrasound_exams.all().order_by('-exam_date', '-exam_time')
         
-        # Add active procedure types to context
+        # Add active medical examination types to context
         context['procedure_types'] = ServiceType.objects.filter(is_active=True)
         return context
 
@@ -870,7 +870,7 @@ def home_dashboard(request):
     monthly_revenue_data.reverse()
     monthly_revenue_labels.reverse()
 
-    # Procedure Distribution Data
+    # Medical Examination Distribution Data
     procedure_data = []
     procedure_labels = []
     procedures = UltrasoundExam.objects.values('procedure_type__name').annotate(count=Count('id')).order_by('-count')[:8]
@@ -1055,7 +1055,7 @@ def generate_report(request, exam_id):
     doc.add_heading('Examination Details:', level=2)
     doc.add_paragraph(f'Date: {exam.exam_date}')
     doc.add_paragraph(f'Time: {exam.exam_time}')
-    doc.add_paragraph(f'Procedure: {exam.procedure_type.name} ULTRASOUND')
+    doc.add_paragraph(f'Medical Examination: {exam.procedure_type.name} ULTRASOUND')
     doc.add_paragraph(f'REQUESTING PHYSICIAN: {exam.referring_physician}')
     doc.add_paragraph(f'WARD: {exam.patient.get_patient_status_display()}')
     

@@ -109,7 +109,7 @@
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Avg Procedures / Patient</div>
+                            <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Avg Medical Examinations / Patient</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">{{ avg_procedures_per_patient }}</div>
                             {% if avg_procs_change_percent %}
                             <div class="mt-2">
@@ -173,18 +173,18 @@
             <div class="card border-left-success shadow h-100">
                 <div class="card-body">
                     <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                        Top procedure in period
+                        Top medical examination in period
                     </div>
                     {% if filtered_top_procedure_name %}
                         <div class="h6 mb-0 font-weight-bold text-gray-800">
                             {{ filtered_top_procedure_name }}
                         </div>
                         <div class="mt-1 small text-muted">
-                            {{ filtered_top_procedure_count }} procedures
+                            {{ filtered_top_procedure_count }} medical examinations
                         </div>
                     {% else %}
                         <div class="small text-muted">
-                            No procedure data in this date range.
+                            No medical examination data in this date range.
                         </div>
                     {% endif %}
                 </div>
@@ -224,7 +224,7 @@
         <div class="col-xl-6 col-lg-6">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Procedure Type Distribution</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Medical Examination Type Distribution</h6>
                 </div>
                 <div class="card-body">
                     <canvas id="procedureDistributionChart" style="height: 400px;"></canvas>
@@ -270,7 +270,7 @@
         <div class="col-xl-6 col-lg-6">
         <div class="card shadow mb-4">
             <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Daily Procedures (Current Week)</h6>
+                <h6 class="m-0 font-weight-bold text-primary">Daily Medical Examinations (Current Week)</h6>
             </div>
             <div class="card-body">
                 <div style="position: relative; height: 400px;">
@@ -339,12 +339,12 @@
         </div>
     </div>
 
-    <!-- Charts Row 5: Revenue by Procedure Type -->
+    <!-- Charts Row 5: Revenue by Medical Examination Type -->
     <div class="row">
         <div class="col-xl-6 col-lg-6">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Revenue by Procedure Type</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Revenue by Medical Examination Type</h6>
                 </div>
                 <div class="card-body">
                     <canvas id="procedureRevenueChart" style="height: 400px;"></canvas>
@@ -354,7 +354,7 @@
         <div class="col-xl-6 col-lg-6">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Procedure Count and Revenue (Top 10)</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Medical Examination Count and Revenue (Top 10)</h6>
                 </div>
                 <div class="card-body">
                     <canvas id="procedureCountRevenueChart" style="height: 400px;"></canvas>
@@ -568,7 +568,7 @@
         return new Chart(canvas, config);
     }
 
-    // Procedure Type Distribution (Doughnut)
+    // Medical Examination Type Distribution (Doughnut)
     const procedureDistributionData = {{ procedure_distribution_data|default:'[]'|safe }};
     const procedureDistributionLabels = {{ procedure_distribution_labels|default:'[]'|safe }};
     createChart('procedureDistributionChart', {
@@ -864,7 +864,7 @@
         updateMonthlyRevenueChart(currentDisplayMonth);
     });
 
-    // Daily Procedures (Current Week) - Stacked Bar with Week Navigation
+    // Daily Medical Examinations (Current Week) - Stacked Bar with Week Navigation
     const dailyProceduresData = {{ daily_procedures_data|default:'[]'|safe }};
 
     // Organize data by week
@@ -1240,7 +1240,7 @@
             datasets: [
                 {
                     type: 'bar',
-                    label: 'Procedure Count',
+                    label: 'Medical Examination Count',
                     data: procedureCounts,
                     backgroundColor: chartColors.secondary,
                     borderColor: chartColors.secondary,
@@ -1296,7 +1296,7 @@
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Procedure Count'
+                        text: 'Medical Examination Count'
                     }
                 },
                 y1: {

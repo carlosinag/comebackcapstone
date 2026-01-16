@@ -43,7 +43,7 @@
                                 <p class="mb-1"><strong>Time:</strong> {{ appointment.appointment_time|time:"g:i A" }}</p>
                             </div>
                             <div class="col-md-6">
-                                <p class="mb-1"><strong>Procedure:</strong> {{ appointment.procedure_type }}</p>
+                                <p class="mb-1"><strong>Medical Examination:</strong> {{ appointment.procedure_type }}</p>
                                 <p class="mb-1"><strong>Contact:</strong> {{ appointment.patient.contact_number }}</p>
                                 <p class="mb-0"><strong>Status:</strong> 
                                     <span class="badge bg-success">Confirmed</span>
@@ -63,7 +63,7 @@
                             <i class="fas fa-check-double me-2"></i>Mark as Completed
                         </h6>
                         <p class="mb-2">Are you sure you want to mark this appointment as completed?</p>
-                        <p class="mb-0"><strong>Note:</strong> This indicates that the patient has attended their appointment and the procedure has been completed.</p>
+                        <p class="mb-0"><strong>Note:</strong> This indicates that the patient has attended their appointment and the medical examination has been completed.</p>
                     </div>
 
                     <form method="post">
@@ -95,7 +95,7 @@
                         </li>
                         <li class="mb-2">
                             <i class="fas fa-stethoscope text-primary me-2"></i>
-                            <strong>Procedure:</strong> Confirm that the ultrasound procedure has been performed
+                            <strong>Medical Examination:</strong> Confirm that the ultrasound medical examination has been performed
                         </li>
                         <li class="mb-2">
                             <i class="fas fa-file-medical text-info me-2"></i>

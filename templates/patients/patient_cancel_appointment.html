@@ -39,7 +39,7 @@
                                 <p class="mb-1"><strong>Time:</strong> {{ appointment.appointment_time|time:"g:i A" }}</p>
                             </div>
                             <div class="col-md-6">
-                                <p class="mb-1"><strong>Procedure:</strong> {{ appointment.procedure_type }}</p>
+                                <p class="mb-1"><strong>Medical Examination:</strong> {{ appointment.procedure_type }}</p>
                                 <p class="mb-1"><strong>Status:</strong> 
                                     {% if appointment.status == 'PENDING' %}
                                         <span class="badge bg-warning">Pending</span>

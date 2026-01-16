@@ -3,7 +3,7 @@
 {% block skeleton %}
 {% endblock %}
 
-{% block title %}Add New Procedure{% endblock %}
+{% block title %}Add New Medical Examination{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -137,16 +137,16 @@
     <div>
       <h1 class="title">
         <span class="title-icon"><i class="fas fa-plus-circle"></i></span>
-        Add New Procedure
+        Add New Medical Examination
       </h1>
-      <p class="subtitle">Create a new medical procedure for your clinic</p>
+      <p class="subtitle">Create a new medical examination for your clinic</p>
     </div>
 
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb small mb-0">
         <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
         <li class="breadcrumb-item"><a href="{% url 'admin_prices' %}">Prices</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Add Procedure</li>
+        <li class="breadcrumb-item active" aria-current="page">Add Medical Examination</li>
       </ol>
     </nav>
   </div>
@@ -158,7 +158,7 @@
       <div class="card-top">
         <div class="d-flex align-items-center gap-3">
           <i class="fas fa-stethoscope"></i>
-          <span class="card-title">Procedure Information</span>
+          <span class="card-title">Medical Examination Information</span>
         </div>
       </div>
 
@@ -169,7 +169,7 @@
           <div class="row gx-4 gy-4">
 
             <div class="col-md-6">
-              <label class="field-label"><i class="fas fa-tag field-icon"></i> Procedure Name <span class="req">*</span></label>
+              <label class="field-label"><i class="fas fa-tag field-icon"></i> Medical Examination Name <span class="req">*</span></label>
               {{ form.name }}
             </div>
 
@@ -220,7 +220,7 @@
                 <i class="fas fa-undo"></i> Reset
               </button>
               <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save"></i> Add Procedure
+                <i class="fas fa-save"></i> Add Medical Examination
               </button>
             </div>
           </div>
@@ -233,12 +233,12 @@
   <!-- Tips Section -->
   <div class="info-row d-flex justify-content-center mt-4">
     <div class="tips-box">
-      <div class="tips-header"><i class="fas fa-info-circle me-2"></i> Tips for Adding Procedures</div>
+      <div class="tips-header"><i class="fas fa-info-circle me-2"></i> Tips for Adding Medical Examinations</div>
       <div class="tips-grid">
         <div class="tip"><i class="fas fa-check-circle"></i> Use clear, descriptive names</div>
         <div class="tip"><i class="fas fa-check-circle"></i> Set competitive pricing</div>
         <div class="tip"><i class="fas fa-check-circle"></i> Provide detailed descriptions</div>
-        <div class="tip"><i class="fas fa-check-circle"></i> Keep procedures active for bookings</div>
+        <div class="tip"><i class="fas fa-check-circle"></i> Keep medical examinations active for bookings</div>
         <div class="tip"><i class="fas fa-check-circle"></i> Review pricing regularly</div>
         <div class="tip"><i class="fas fa-check-circle"></i> Update descriptions as needed</div>
       </div>
