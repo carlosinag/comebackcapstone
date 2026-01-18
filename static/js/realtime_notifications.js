@@ -69,52 +69,37 @@ class RealtimeNotifications {
             </div>
         `;
 
-        // Add to page - try navbar first, then create floating button
-        const navbar = document.querySelector('.navbar-nav') || document.querySelector('.navbar');
-        if (navbar) {
-            const notificationContainer = document.createElement('div');
-            notificationContainer.className = 'nav-item dropdown';
-            notificationContainer.style.display = 'flex';
-            notificationContainer.style.alignItems = 'center';
-            notificationContainer.appendChild(notificationBell);
-            notificationContainer.appendChild(notificationDropdown);
-            navbar.appendChild(notificationContainer);
-            
-            // Style notification bell for navbar
-            notificationBell.style.padding = '8px 12px';
-            notificationBell.style.display = 'flex';
-            notificationBell.style.alignItems = 'center';
-        } else {
-            // No navbar found - create floating notification button
-            const floatingContainer = document.createElement('div');
-            floatingContainer.id = 'floating-notification-container';
-            floatingContainer.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1050;';
-            floatingContainer.appendChild(notificationBell);
-            floatingContainer.appendChild(notificationDropdown);
-            document.body.appendChild(floatingContainer);
-            
-            // Style the floating bell
-            const bellIcon = notificationBell.querySelector('i');
-            if (bellIcon) {
-                bellIcon.style.cssText = 'font-size: 1.5rem; color: #0d6efd; cursor: pointer; padding: 10px; background: white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.3s;';
-                bellIcon.addEventListener('mouseenter', () => {
-                    bellIcon.style.transform = 'scale(1.1)';
-                    bellIcon.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
-                });
-                bellIcon.addEventListener('mouseleave', () => {
-                    bellIcon.style.transform = 'scale(1)';
-                    bellIcon.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-                });
-            }
-            
-            // Position dropdown for floating button
-            notificationDropdown.style.position = 'absolute';
-            notificationDropdown.style.top = '100%';
-            notificationDropdown.style.right = '0';
-            notificationDropdown.style.marginTop = '10px';
-            notificationDropdown.style.zIndex = '1051';
-            notificationDropdown.style.maxWidth = 'min(350px, calc(100vw - 40px))';
+        // Always create floating notification button in bottom right
+        const floatingContainer = document.createElement('div');
+        floatingContainer.id = 'floating-notification-container';
+        floatingContainer.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 1050;';
+        floatingContainer.appendChild(notificationBell);
+        floatingContainer.appendChild(notificationDropdown);
+        document.body.appendChild(floatingContainer);
+        
+        // Style the floating bell
+        const bellIcon = notificationBell.querySelector('i');
+        if (bellIcon) {
+            bellIcon.style.cssText = 'font-size: 1.8rem; color: #0d6efd; cursor: pointer; padding: 15px; background: white; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: all 0.3s ease;';
+            bellIcon.addEventListener('mouseenter', () => {
+                bellIcon.style.transform = 'scale(1.1)';
+                bellIcon.style.boxShadow = '0 6px 16px rgba(0,0,0,0.3)';
+            });
+            bellIcon.addEventListener('mouseleave', () => {
+                bellIcon.style.transform = 'scale(1)';
+                bellIcon.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+            });
         }
+        
+        // Position dropdown for floating button (above the bell)
+        notificationDropdown.style.position = 'absolute';
+        notificationDropdown.style.bottom = '100%';
+        notificationDropdown.style.right = '0';
+        notificationDropdown.style.marginBottom = '10px';
+        notificationDropdown.style.marginTop = '0';
+        notificationDropdown.style.top = 'auto';
+        notificationDropdown.style.zIndex = '1051';
+        notificationDropdown.style.maxWidth = 'min(350px, calc(100vw - 40px))';
 
         // Setup dropdown toggle
         notificationBell.addEventListener('click', (e) => {
@@ -140,12 +125,12 @@ class RealtimeNotifications {
                         notificationDropdown.style.left = 'auto';
                     }
                     
-                    // Adjust vertical position if dropdown goes below viewport
-                    if (rect.bottom > viewportHeight - 10) {
-                        notificationDropdown.style.top = 'auto';
-                        notificationDropdown.style.bottom = '100%';
-                        notificationDropdown.style.marginTop = '0';
-                        notificationDropdown.style.marginBottom = '10px';
+                    // Adjust vertical position if dropdown goes above viewport (for bottom-right floating button)
+                    if (rect.top < 10) {
+                        notificationDropdown.style.bottom = 'auto';
+                        notificationDropdown.style.top = '100%';
+                        notificationDropdown.style.marginBottom = '0';
+                        notificationDropdown.style.marginTop = '10px';
                     }
                 }, 10);
             }
@@ -330,7 +315,10 @@ class RealtimeNotifications {
             'APPOINTMENT_BOOKED': 'calendar-plus',
             'APPOINTMENT_CONFIRMED': 'check-circle',
             'APPOINTMENT_CANCELLED': 'times-circle',
-            'APPOINTMENT_UPDATED': 'edit',
+            'APPOINTMENT_UPDATED': 'calendar-alt',
+            'EXAM_CREATED': 'file-medical',
+            'EXAM_UPDATED': 'file-medical-alt',
+            'EXAM_COMPLETED': 'check-double',
             'GENERAL': 'info-circle'
         };
         return icons[type] || 'bell';

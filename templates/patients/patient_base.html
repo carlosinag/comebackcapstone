@@ -19,33 +19,69 @@
             max-width: 100%;
         }
         
-        /* Patient Portal Navbar Styling */
-        .patient-navbar {
-            width: 100%;
-            max-width: 100%;
-            padding-left: 15px;
-            padding-right: 15px;
-        }
-        
-        .patient-navbar .container-fluid {
-            max-width: 100%;
-            padding-left: 15px;
-            padding-right: 15px;
-        }
-        
-        /* Notification bell styling in navbar */
-        .navbar-nav .nav-item {
-            display: flex;
-            align-items: center;
+        /* Floating notification bell styling - bottom right */
+        #floating-notification-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1050;
         }
         
         #notification-bell {
-            padding: 8px 12px;
+            cursor: pointer;
+            padding: 0;
+        }
+        
+        #notification-bell i {
+            font-size: 1.8rem;
+            color: #0d6efd;
+            padding: 15px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        #notification-bell:hover i {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
         }
         
         /* Responsive notification dropdown */
         #notification-dropdown {
-            max-width: min(350px, calc(100vw - 30px));
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            margin-bottom: 10px;
+            width: 350px;
+            max-width: min(350px, calc(100vw - 40px));
+            z-index: 1051;
+            overflow-x: hidden;
+        }
+        
+        /* Notification dropdown list container */
+        #notifications-list {
+            max-height: 500px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        /* Notification dropdown items */
+        #notification-dropdown .dropdown-item {
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            overflow-x: hidden;
+            min-width: 0;
+        }
+        
+        #notification-dropdown .dropdown-item p {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+            overflow-x: hidden;
         }
         
         /* Notification badge styling */
@@ -62,14 +98,24 @@
             50% { transform: scale(1.1); }
         }
         
-        /* Notification bell hover effect */
-        #notification-bell:hover {
-            opacity: 0.8;
-        }
-        
         /* Notification dropdown item hover */
         #notification-dropdown .dropdown-item:hover {
             background-color: #f8f9fa !important;
+        }
+        
+        /* Notification dividers */
+        #notification-dropdown .dropdown-divider {
+            margin: 0.5rem 0;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        /* Modal notification cards */
+        .notification-card {
+            transition: opacity 0.3s ease;
+        }
+        
+        .notification-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         /* Ensure content doesn't overflow */
@@ -82,19 +128,7 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Patient Portal Header with Notifications -->
-    {% if user.is_authenticated %}
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4 patient-navbar">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'patient-portal' %}">
-                <i class="fas fa-hospital me-2"></i>Patient Portal
-            </a>
-            <div class="navbar-nav ms-auto">
-                <!-- Notification bell will be added here by JavaScript -->
-            </div>
-        </div>
-    </nav>
-    {% endif %}
+    <!-- Notification bell will be added here by JavaScript as floating button -->
     
     <!-- Page Content -->
     <div class="container-fluid">
@@ -154,11 +188,345 @@
         });
     </script>
     
-    <!-- Real-time Notifications for Patients -->
+    <!-- Simple Notification Bell for Patients -->
     {% if user.is_authenticated %}
-    <script src="{% static 'js/realtime_notifications.js' %}"></script>
+    <div id="floating-notification-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1050;">
+        <div id="notification-bell" style="cursor: pointer;">
+            <div class="position-relative">
+                <i class="fas fa-bell fa-lg" style="font-size: 1.8rem; color: #0d6efd; padding: 15px; background: white; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: all 0.3s ease;"></i>
+                {% if total_notifications|default:0 > 0 %}
+                <span id="notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
+                      style="font-size: 0.7rem; padding: 0.25em 0.5em; min-width: 18px; line-height: 1.2;">
+                    {% if total_notifications > 99 %}99+{% else %}{{ total_notifications }}{% endif %}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div id="notification-dropdown" class="dropdown-menu" style="position: absolute; bottom: 100%; right: 0; margin-bottom: 10px; width: 350px; max-width: min(350px, calc(100vw - 40px)); z-index: 1051; display: none; overflow-x: hidden;">
+            <div class="dropdown-header d-flex justify-content-between align-items-center" style="background-color: #f8f9fa; padding: 0.75rem 1rem;">
+                <h6 class="mb-0 fw-bold">Notifications</h6>
+            </div>
+            <div class="dropdown-divider"></div>
+            <div id="notifications-list" style="max-height: 400px; overflow-y: auto; overflow-x: hidden; word-wrap: break-word; overflow-wrap: break-word;">
+                {% if confirmed_appointments or upcoming_appointments %}
+                    {% for appointment in confirmed_appointments %}
+                    <div class="dropdown-item notification-item" data-notification-id="confirmed_{{ appointment.id }}" style="cursor: pointer; border-left: 3px solid #28a745; white-space: normal; word-wrap: break-word; overflow-wrap: break-word; overflow-x: hidden; min-width: 0;">
+                        <div class="d-flex align-items-start">
+                            <div class="flex-shrink-0 me-2 mt-1">
+                                <i class="fas fa-check-circle text-success" style="font-size: 1.2rem;"></i>
+                            </div>
+                            <div class="flex-grow-1" style="min-width: 0; word-wrap: break-word; overflow-wrap: break-word;">
+                                <h6 class="mb-1 fw-bold" style="font-size: 0.9rem; word-wrap: break-word; overflow-wrap: break-word;">Appointment Confirmed</h6>
+                                <p class="mb-1 small text-muted" style="font-size: 0.8rem; line-height: 1.4; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; overflow-x: hidden;">
+                                    Your {{ appointment.procedure_type }} appointment on {{ appointment.appointment_date|date:"F d, Y" }} at {{ appointment.appointment_time|time:"g:i A" }} has been confirmed.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% if not forloop.last %}<div class="dropdown-divider"></div>{% endif %}
+                    {% endfor %}
+                    
+                    {% if confirmed_appointments and upcoming_appointments %}<div class="dropdown-divider"></div>{% endif %}
+                    
+                    {% for appointment in upcoming_appointments %}
+                    <div class="dropdown-item notification-item" data-notification-id="upcoming_{{ appointment.id }}" style="cursor: pointer; border-left: 3px solid #ffc107; white-space: normal; word-wrap: break-word; overflow-wrap: break-word; overflow-x: hidden; min-width: 0;">
+                        <div class="d-flex align-items-start">
+                            <div class="flex-shrink-0 me-2 mt-1">
+                                <i class="fas fa-calendar-alt text-warning" style="font-size: 1.2rem;"></i>
+                            </div>
+                            <div class="flex-grow-1" style="min-width: 0; word-wrap: break-word; overflow-wrap: break-word;">
+                                <h6 class="mb-1 fw-bold" style="font-size: 0.9rem; word-wrap: break-word; overflow-wrap: break-word;">Upcoming Appointment</h6>
+                                <p class="mb-1 small text-muted" style="font-size: 0.8rem; line-height: 1.4; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; overflow-x: hidden;">
+                                    You have a {{ appointment.procedure_type }} appointment coming up on {{ appointment.appointment_date|date:"F d, Y" }} at {{ appointment.appointment_time|time:"g:i A" }}.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% if not forloop.last %}<div class="dropdown-divider"></div>{% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center p-3">
+                        <i class="fas fa-bell-slash fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">No notifications</p>
+                    </div>
+                {% endif %}
+            </div>
+            {% if confirmed_appointments or upcoming_appointments %}
+            <div class="dropdown-divider"></div>
+            <div class="text-center p-2">
+                <button type="button" class="btn btn-sm btn-outline-primary w-100" id="see-all-notifications-btn">
+                    <i class="fas fa-list me-1"></i>See All Notifications
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const notificationBell = document.getElementById('notification-bell');
+            const notificationDropdown = document.getElementById('notification-dropdown');
+            const floatingContainer = document.getElementById('floating-notification-container');
+            
+            if (notificationBell && notificationDropdown) {
+                // Toggle dropdown
+                notificationBell.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const isShowing = notificationDropdown.style.display === 'block';
+                    notificationDropdown.style.display = isShowing ? 'none' : 'block';
+                    notificationDropdown.classList.toggle('show', !isShowing);
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (floatingContainer && !floatingContainer.contains(e.target)) {
+                        notificationDropdown.style.display = 'none';
+                        notificationDropdown.classList.remove('show');
+                    }
+                });
+                
+                // Hover effect for bell
+                const bellIcon = notificationBell.querySelector('i');
+                if (bellIcon) {
+                    bellIcon.addEventListener('mouseenter', function() {
+                        this.style.transform = 'scale(1.1)';
+                        this.style.boxShadow = '0 6px 16px rgba(0,0,0,0.3)';
+                    });
+                    bellIcon.addEventListener('mouseleave', function() {
+                        this.style.transform = 'scale(1)';
+                        this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+                    });
+                }
+            }
+        });
+    </script>
+    {% endif %}
+    
+    <!-- All Notifications Modal -->
+    {% if user.is_authenticated %}
+    <div class="modal fade" id="allNotificationsModal" tabindex="-1" aria-labelledby="allNotificationsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="allNotificationsModalLabel">
+                        <i class="fas fa-bell me-2"></i>All Notifications
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="all-notifications-body" style="max-height: 600px; overflow-y: auto;">
+                    <div class="text-center p-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading notifications...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
     {% endif %}
     
     {% block extra_js %}{% endblock %}
+    
+    <!-- Notification Modal Script -->
+    {% if user.is_authenticated %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const seeAllBtn = document.getElementById('see-all-notifications-btn');
+            const allNotificationsModal = new bootstrap.Modal(document.getElementById('allNotificationsModal'));
+            const allNotificationsBody = document.getElementById('all-notifications-body');
+            
+            if (seeAllBtn) {
+                seeAllBtn.addEventListener('click', function() {
+                    // Close dropdown
+                    const notificationDropdown = document.getElementById('notification-dropdown');
+                    if (notificationDropdown) {
+                        notificationDropdown.style.display = 'none';
+                        notificationDropdown.classList.remove('show');
+                    }
+                    
+                    // Load and show all notifications
+                    loadAllNotifications();
+                    allNotificationsModal.show();
+                });
+            }
+            
+            function loadAllNotifications() {
+                allNotificationsBody.innerHTML = `
+                    <div class="text-center p-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading notifications...</p>
+                    </div>
+                `;
+                
+                fetch('{% url "patient-all-notifications" %}')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.notifications && data.notifications.length > 0) {
+                            let html = '';
+                            data.notifications.forEach((notification, index) => {
+                                const iconClass = notification.type === 'confirmed' ? 'fa-check-circle text-success' : 'fa-calendar-alt text-warning';
+                                const borderColor = notification.type === 'confirmed' ? '#28a745' : '#ffc107';
+                                
+                                html += `
+                                    <div class="card mb-3 notification-card" data-notification-id="${notification.id}" style="border-left: 4px solid ${borderColor};">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex align-items-start">
+                                                        <div class="flex-shrink-0 me-3">
+                                                            <i class="fas ${iconClass}" style="font-size: 1.5rem;"></i>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-2 fw-bold">${escapeHtml(notification.title)}</h6>
+                                                            <p class="mb-1 text-muted small">${escapeHtml(notification.message)}</p>
+                                                            <small class="text-muted">
+                                                                <i class="fas fa-calendar me-1"></i>${escapeHtml(notification.date)} 
+                                                                <i class="fas fa-clock ms-2 me-1"></i>${escapeHtml(notification.time)}
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-danger delete-notification-btn" data-notification-id="${notification.id}" title="Delete notification">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            allNotificationsBody.innerHTML = html;
+                            
+                            // Add delete button handlers
+                            document.querySelectorAll('.delete-notification-btn').forEach(btn => {
+                                btn.addEventListener('click', function() {
+                                    const notificationId = this.dataset.notificationId;
+                                    deleteNotification(notificationId);
+                                });
+                            });
+                        } else {
+                            allNotificationsBody.innerHTML = `
+                                <div class="text-center p-4">
+                                    <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">No notifications available</p>
+                                </div>
+                            `;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading notifications:', error);
+                        allNotificationsBody.innerHTML = `
+                            <div class="text-center p-4">
+                                <i class="fas fa-exclamation-triangle fa-2x text-danger mb-3"></i>
+                                <p class="text-danger">Error loading notifications. Please try again.</p>
+                            </div>
+                        `;
+                    });
+            }
+            
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+            
+            function deleteNotification(notificationId) {
+                if (!confirm('Are you sure you want to delete this notification?')) {
+                    return;
+                }
+                
+                const csrftoken = getCookie('csrftoken');
+                const formData = new FormData();
+                formData.append('notification_id', notificationId);
+                
+                fetch('{% url "patient-delete-notification" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove notification card from modal
+                        const notificationCard = document.querySelector(`.notification-card[data-notification-id="${notificationId}"]`);
+                        if (notificationCard) {
+                            notificationCard.style.transition = 'opacity 0.3s';
+                            notificationCard.style.opacity = '0';
+                            setTimeout(() => {
+                                notificationCard.remove();
+                                
+                                // Check if no notifications left
+                                const remainingNotifications = document.querySelectorAll('.notification-card');
+                                if (remainingNotifications.length === 0) {
+                                    allNotificationsBody.innerHTML = `
+                                        <div class="text-center p-4">
+                                            <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                                            <p class="text-muted">No notifications available</p>
+                                        </div>
+                                    `;
+                                }
+                                
+                                // Update badge count
+                                updateBadgeCount();
+                            }, 300);
+                        }
+                        
+                        // Show success message
+                        if (typeof toastr !== 'undefined') {
+                            toastr.success('Notification deleted successfully');
+                        }
+                    } else {
+                        if (typeof toastr !== 'undefined') {
+                            toastr.error(data.error || 'Failed to delete notification');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting notification:', error);
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error('Error deleting notification. Please try again.');
+                    }
+                });
+            }
+            
+            function updateBadgeCount() {
+                const remainingNotifications = document.querySelectorAll('.notification-card').length;
+                const badge = document.getElementById('notification-badge');
+                if (badge) {
+                    if (remainingNotifications > 0) {
+                        badge.textContent = remainingNotifications > 99 ? '99+' : remainingNotifications;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            }
+            
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        });
+    </script>
+    {% endif %}
 </body>
 </html> 

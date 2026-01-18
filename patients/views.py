@@ -29,6 +29,7 @@ from django.conf import settings
 from functools import wraps
 from .utils import send_appointment_accepted_email
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from .notification_utils import send_notification_sync
 
 logger = logging.getLogger(__name__)
 
@@ -1136,11 +1137,158 @@ def patient_portal(request):
         # If page is out of range, deliver last page
         recent_exams = paginator.page(paginator.num_pages)
     
+    # Get confirmed appointments for notifications
+    now = timezone.now()
+    confirmed_appointments = Appointment.objects.filter(
+        patient=patient,
+        status='CONFIRMED',
+        appointment_date__gte=now.date()  # Only future confirmed appointments
+    ).order_by('appointment_date', 'appointment_time')[:10]  # Limit to 10 most recent
+    
+    # Get upcoming appointments (within next 24 hours) - only PENDING to avoid double counting
+    tomorrow = now + timedelta(days=1)
+    upcoming_appointments = Appointment.objects.filter(
+        patient=patient,
+        appointment_date__gte=now.date(),
+        appointment_date__lte=tomorrow.date(),
+        status='PENDING'  # Only PENDING to avoid double counting with confirmed
+    ).order_by('appointment_date', 'appointment_time')
+    
+    # Calculate total unique notifications
+    total_notifications = len(confirmed_appointments) + len(upcoming_appointments)
+    
     context = {
         'patient': patient,
         'recent_exams': recent_exams,
+        'confirmed_appointments': confirmed_appointments,
+        'upcoming_appointments': upcoming_appointments,
+        'total_notifications': total_notifications,
     }
     return render(request, 'patients/patient_portal.html', context)
+
+@login_required
+def patient_all_notifications(request):
+    """Get all notifications for the patient (for modal display)"""
+    if not hasattr(request.user, 'patient'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    
+    patient = request.user.patient
+    now = timezone.now()
+    
+    # Get all confirmed appointments
+    confirmed_appointments = Appointment.objects.filter(
+        patient=patient,
+        status='CONFIRMED',
+        appointment_date__gte=now.date()
+    ).order_by('appointment_date', 'appointment_time')
+    
+    # Get all upcoming pending appointments
+    upcoming_appointments = Appointment.objects.filter(
+        patient=patient,
+        appointment_date__gte=now.date(),
+        status='PENDING'
+    ).order_by('appointment_date', 'appointment_time')
+    
+    notifications = []
+    for appointment in confirmed_appointments:
+        notifications.append({
+            'id': f'confirmed_{appointment.id}',
+            'type': 'confirmed',
+            'title': 'Appointment Confirmed',
+            'message': f'Your {appointment.procedure_type} appointment on {appointment.appointment_date.strftime("%B %d, %Y")} at {appointment.appointment_time.strftime("%I:%M %p")} has been confirmed.',
+            'date': appointment.appointment_date.strftime("%B %d, %Y"),
+            'time': appointment.appointment_time.strftime("%I:%M %p"),
+            'procedure': appointment.procedure_type,
+        })
+    
+    for appointment in upcoming_appointments:
+        notifications.append({
+            'id': f'upcoming_{appointment.id}',
+            'type': 'upcoming',
+            'title': 'Upcoming Appointment',
+            'message': f'You have a {appointment.procedure_type} appointment coming up on {appointment.appointment_date.strftime("%B %d, %Y")} at {appointment.appointment_time.strftime("%I:%M %p")}.',
+            'date': appointment.appointment_date.strftime("%B %d, %Y"),
+            'time': appointment.appointment_time.strftime("%I:%M %p"),
+            'procedure': appointment.procedure_type,
+        })
+    
+    return JsonResponse({'notifications': notifications})
+
+@custom_staff_member_required
+def staff_all_notifications(request):
+    """Get all new appointments for staff (for modal display)"""
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    # Get new appointments (created in last 7 days, status PENDING)
+    seven_days_ago = timezone.now() - timedelta(days=7)
+    new_appointments = Appointment.objects.filter(
+        created_at__gte=seven_days_ago,
+        status='PENDING'
+    ).select_related('patient').order_by('-created_at')
+    
+    notifications = []
+    for appointment in new_appointments:
+        notifications.append({
+            'id': f'appointment_{appointment.id}',
+            'appointment_id': appointment.id,
+            'type': 'new_appointment',
+            'title': f'New appointment from {appointment.patient.first_name} {appointment.patient.last_name}',
+            'message': f'{appointment.procedure_type} exam on {appointment.appointment_date.strftime("%B %d, %Y")}',
+            'date': appointment.appointment_date.strftime("%B %d, %Y"),
+            'time': appointment.appointment_time.strftime("%I:%M %p"),
+            'procedure': appointment.procedure_type,
+            'patient_name': f'{appointment.patient.first_name} {appointment.patient.last_name}',
+        })
+    
+    return JsonResponse({'notifications': notifications})
+
+@custom_staff_member_required
+def staff_delete_notification(request):
+    """Delete a notification (mark appointment as seen - for now just return success)"""
+    if request.method == 'POST':
+        notification_id = request.POST.get('notification_id')
+        if notification_id:
+            # Parse notification ID (format: 'appointment_123')
+            parts = notification_id.split('_')
+            if len(parts) == 2 and parts[0] == 'appointment':
+                appointment_id = parts[1]
+                try:
+                    appointment = Appointment.objects.get(id=appointment_id)
+                    # For now, we'll just return success
+                    # In the future, you could add a "seen_by_staff" field to track which staff have seen it
+                    return JsonResponse({'success': True})
+                except Appointment.DoesNotExist:
+                    return JsonResponse({'error': 'Appointment not found'}, status=404)
+        
+        return JsonResponse({'error': 'Invalid notification ID'}, status=400)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@login_required
+def patient_delete_notification(request):
+    """Delete a notification (appointment-based)"""
+    if not hasattr(request.user, 'patient'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    
+    if request.method == 'POST':
+        notification_id = request.POST.get('notification_id')
+        if notification_id:
+            # Parse notification ID (format: 'confirmed_123' or 'upcoming_123')
+            parts = notification_id.split('_')
+            if len(parts) == 2:
+                notification_type, appointment_id = parts
+                try:
+                    appointment = Appointment.objects.get(id=appointment_id, patient=request.user.patient)
+                    # For now, we'll just return success since we're not storing notifications in DB
+                    # In a real implementation, you'd delete the Notification object here
+                    return JsonResponse({'success': True})
+                except Appointment.DoesNotExist:
+                    return JsonResponse({'error': 'Notification not found'}, status=404)
+        
+        return JsonResponse({'error': 'Invalid notification ID'}, status=400)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 def patient_logout(request):
     logout(request)

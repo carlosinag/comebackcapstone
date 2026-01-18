@@ -490,6 +490,80 @@
 
 {% block extra_js %}
 <script>
+// Toastr notification for new appointments
+(function() {
+    'use strict';
+    
+    // Configure toastr to not auto-dismiss and show close button
+    if (typeof toastr !== 'undefined') {
+        toastr.options = {
+            closeButton: true,
+            debug: false,
+            newestOnTop: true,
+            progressBar: false,
+            positionClass: "toast-top-right",
+            preventDuplicates: true,
+            onclick: null,
+            showDuration: "300",
+            hideDuration: "1000",
+            timeOut: 0,  // Don't auto-dismiss
+            extendedTimeOut: 0,  // Don't auto-dismiss on hover
+            showEasing: "swing",
+            hideEasing: "linear",
+            showMethod: "fadeIn",
+            hideMethod: "fadeOut",
+            tapToDismiss: false  // Only dismiss when X is clicked
+        };
+        
+        // Show notification on page load (only once, not when date filter is applied)
+        $(document).ready(function() {
+            const STORAGE_KEY = 'appointments_notification_shown';
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasDateFilter = urlParams.has('date');
+            
+            // Check if user came from another page (not from this same page with filters)
+            const referrer = document.referrer;
+            const currentPath = window.location.pathname;
+            const isFromAnotherPage = referrer && 
+                !referrer.includes(currentPath);
+            
+            // If user came from another page, reset the flag so notification shows again
+            if (isFromAnotherPage) {
+                sessionStorage.removeItem(STORAGE_KEY);
+            }
+            
+            // Check if notification was already shown in this session
+            const notificationShown = sessionStorage.getItem(STORAGE_KEY) === 'true';
+            
+            // Show notification only if:
+            // 1. No date filter is applied AND
+            // 2. Notification hasn't been shown yet in this session
+            const shouldShowNotification = !hasDateFilter && !notificationShown;
+            
+            if (shouldShowNotification) {
+                const newAppointmentsCount = {% if new_appointments_count %}{{ new_appointments_count }}{% else %}0{% endif %};
+                let message = '';
+                
+                if (newAppointmentsCount === 0) {
+                    message = 'There are no new appointments';
+                    toastr.info(message, 'Appointments Status');
+                } else if (newAppointmentsCount === 1) {
+                    message = 'There is 1 new appointment';
+                    toastr.info(message, 'New Appointments');
+                } else {
+                    message = 'There are ' + newAppointmentsCount + ' new appointments';
+                    toastr.info(message, 'New Appointments');
+                }
+                
+                // Mark notification as shown in sessionStorage
+                sessionStorage.setItem(STORAGE_KEY, 'true');
+            }
+        });
+    }
+})();
+</script>
+
+<script>
 (function() {
     'use strict';
     

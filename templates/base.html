@@ -414,13 +414,84 @@
             opacity: 0.8;
         }
         
-        #notification-dropdown {
-            max-height: 400px;
-            overflow-y: auto;
+        /* Staff Notification Bell Styling */
+        #staff-notification-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1050;
         }
         
-        #notification-dropdown .dropdown-item:hover {
+        #staff-notification-bell {
+            cursor: pointer;
+            padding: 0;
+        }
+        
+        #staff-notification-bell i {
+            font-size: 1.8rem;
+            color: #0d6efd;
+            padding: 15px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        #staff-notification-bell:hover i {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+        }
+        
+        #staff-notification-dropdown {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            margin-bottom: 10px;
+            width: 350px;
+            max-width: min(350px, calc(100vw - 40px));
+            z-index: 1051;
+            overflow-x: hidden;
+            background: white;
+            border: 1px solid rgba(0,0,0,0.15);
+            border-radius: 0.375rem;
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+        }
+        
+        #staff-notification-dropdown.show {
+            display: block !important;
+        }
+        
+        #staff-notifications-list {
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        #staff-notification-dropdown .dropdown-item {
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            overflow-x: hidden;
+            min-width: 0;
+        }
+        
+        #staff-notification-dropdown .dropdown-item:hover {
             background-color: #f8f9fa !important;
+        }
+        
+        #staff-notification-dropdown .dropdown-divider {
+            margin: 0.5rem 0;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .staff-notification-card {
+            transition: opacity 0.3s ease;
+        }
+        
+        .staff-notification-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
     </style>
     
@@ -638,6 +709,65 @@
         </div>
         {% endif %}
 
+        <!-- Staff Notification Bell -->
+        {% if user.is_authenticated and user.is_staff and not user.is_superuser %}
+        <div id="staff-notification-container">
+            <div id="staff-notification-bell">
+                <div class="position-relative">
+                    <i class="fas fa-bell fa-lg" style="font-size: 1.8rem; color: #0d6efd; padding: 15px; background: white; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: all 0.3s ease;"></i>
+                    {% if new_appointments_count|default:0 > 0 %}
+                    <span id="staff-notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
+                          style="font-size: 0.7rem; padding: 0.25em 0.5em; min-width: 18px; line-height: 1.2;">
+                        {% if new_appointments_count > 99 %}99+{% else %}{{ new_appointments_count }}{% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div id="staff-notification-dropdown" class="dropdown-menu shadow" style="position: absolute; bottom: 100%; right: 0; margin-bottom: 10px; width: 350px; max-width: min(350px, calc(100vw - 40px)); z-index: 1051; display: none !important; overflow-x: hidden; background: white; border-radius: 0.375rem;">
+                <div class="dropdown-header d-flex justify-content-between align-items-center" style="background-color: #f8f9fa; padding: 0.75rem 1rem;">
+                    <h6 class="mb-0 fw-bold">New Appointments</h6>
+                </div>
+                <div class="dropdown-divider"></div>
+                <div id="staff-notifications-list" style="max-height: 400px; overflow-y: auto; overflow-x: hidden; word-wrap: break-word; overflow-wrap: break-word;">
+                    {% if new_appointments %}
+                        {% for appointment in new_appointments %}
+                        <a href="{% url 'staff-appointment-detail' appointment.id %}" class="dropdown-item notification-item" data-notification-id="appointment_{{ appointment.id }}" style="cursor: pointer; border-left: 3px solid #0d6efd; white-space: normal; word-wrap: break-word; overflow-wrap: break-word; overflow-x: hidden; min-width: 0; text-decoration: none;">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0 me-2 mt-1">
+                                    <i class="fas fa-calendar-plus text-primary" style="font-size: 1.2rem;"></i>
+                                </div>
+                                <div class="flex-grow-1" style="min-width: 0; word-wrap: break-word; overflow-wrap: break-word;">
+                                    <h6 class="mb-1 fw-bold" style="font-size: 0.9rem; word-wrap: break-word; overflow-wrap: break-word; color: #212529;">
+                                        New appointment from {{ appointment.patient.first_name }} {{ appointment.patient.last_name }}
+                                    </h6>
+                                    <p class="mb-1 small text-muted" style="font-size: 0.8rem; line-height: 1.4; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; overflow-x: hidden;">
+                                        {{ appointment.procedure_type }} exam on {{ appointment.appointment_date|date:"F d, Y" }}
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                        {% if not forloop.last %}<div class="dropdown-divider"></div>{% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center p-3">
+                            <i class="fas fa-bell-slash fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">No new appointments</p>
+                        </div>
+                    {% endif %}
+                </div>
+                {% if new_appointments %}
+                <div class="dropdown-divider"></div>
+                <div class="text-center p-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary w-100" id="staff-see-all-notifications-btn">
+                        <i class="fas fa-list me-1"></i>See All Notifications
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Mobile Toggle Button -->
         <button class="btn btn-primary sidebar-toggle" type="button">
             <i class="fas fa-bars"></i>
@@ -776,9 +906,53 @@
         };
     </script>
     
-    <!-- Real-time Notifications for Staff -->
-    {% if user.is_authenticated and not user.is_superuser %}
-    <script src="{% static 'js/realtime_notifications.js' %}"></script>
+    <!-- Staff Notification Bell Script -->
+    {% if user.is_authenticated and user.is_staff and not user.is_superuser %}
+    <script>
+        $(document).ready(function() {
+            const $notificationBell = $('#staff-notification-bell');
+            const $notificationDropdown = $('#staff-notification-dropdown');
+            const $floatingContainer = $('#staff-notification-container');
+            
+            if ($notificationBell.length && $notificationDropdown.length) {
+                // Toggle dropdown
+                $notificationBell.on('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const isShowing = $notificationDropdown.hasClass('show');
+                    if (isShowing) {
+                        $notificationDropdown.css('display', 'none').removeClass('show');
+                    } else {
+                        $notificationDropdown.css('display', 'block').addClass('show');
+                    }
+                });
+                
+                // Close dropdown when clicking outside
+                $(document).on('click', function(e) {
+                    if ($floatingContainer.length && !$(e.target).closest($floatingContainer).length) {
+                        $notificationDropdown.hide().removeClass('show');
+                    }
+                });
+                
+                // Hover effect for bell
+                const $bellIcon = $notificationBell.find('i');
+                if ($bellIcon.length) {
+                    $bellIcon.on('mouseenter', function() {
+                        $(this).css({
+                            'transform': 'scale(1.1)',
+                            'box-shadow': '0 6px 16px rgba(0,0,0,0.3)'
+                        });
+                    });
+                    $bellIcon.on('mouseleave', function() {
+                        $(this).css({
+                            'transform': 'scale(1)',
+                            'box-shadow': '0 4px 12px rgba(0,0,0,0.2)'
+                        });
+                    });
+                }
+            }
+        });
+    </script>
     {% endif %}
     
     <!-- Profile Dropdown Script -->
@@ -877,6 +1051,161 @@
         });
     </script>
 
+    <!-- Staff All Notifications Modal -->
+    {% if user.is_authenticated and user.is_staff and not user.is_superuser %}
+    <div class="modal fade" id="staffAllNotificationsModal" tabindex="-1" aria-labelledby="staffAllNotificationsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="staffAllNotificationsModalLabel">
+                        <i class="fas fa-bell me-2"></i>All New Appointments
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="staff-all-notifications-body" style="max-height: 600px; overflow-y: auto;">
+                    <div class="text-center p-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading notifications...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            const seeAllBtn = $('#staff-see-all-notifications-btn');
+            const allNotificationsModalElement = document.getElementById('staffAllNotificationsModal');
+            const allNotificationsBody = $('#staff-all-notifications-body');
+            // Get base URL by replacing the ID from a sample URL
+            const sampleUrl = '{% url "staff-appointment-detail" 999999 %}';
+            // Remove the placeholder ID and any trailing slashes, then ensure proper format
+            const appointmentDetailUrlBase = sampleUrl.replace('/999999/', '').replace(/\/+$/, '');
+            let allNotificationsModal = null;
+            
+            if (allNotificationsModalElement) {
+                allNotificationsModal = new bootstrap.Modal(allNotificationsModalElement);
+            }
+            
+            if (seeAllBtn.length && allNotificationsModal) {
+                seeAllBtn.on('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const notificationDropdown = $('#staff-notification-dropdown');
+                    notificationDropdown.hide().removeClass('show');
+                    loadAllStaffNotifications();
+                    allNotificationsModal.show();
+                });
+            }
+            
+            function loadAllStaffNotifications() {
+                allNotificationsBody.html('<div class="text-center p-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2 text-muted">Loading notifications...</p></div>');
+                
+                $.ajax({
+                    url: '{% url "staff-all-notifications" %}',
+                    method: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        if (data.notifications && data.notifications.length > 0) {
+                            let html = '';
+                            data.notifications.forEach(function(notification) {
+                                const detailUrl = appointmentDetailUrlBase + '/' + notification.appointment_id + '/';
+                                html += '<div class="card mb-3 staff-notification-card" data-notification-id="' + notification.id + '" data-appointment-id="' + notification.appointment_id + '" style="border-left: 4px solid #0d6efd; cursor: pointer;" onclick="window.location.href=\'' + detailUrl + '\'"><div class="card-body"><div class="d-flex justify-content-between align-items-start"><div class="flex-grow-1"><div class="d-flex align-items-start"><div class="flex-shrink-0 me-3"><i class="fas fa-calendar-plus text-primary" style="font-size: 1.5rem;"></i></div><div class="flex-grow-1"><h6 class="mb-2 fw-bold">' + escapeHtml(notification.title) + '</h6><p class="mb-1 text-muted small">' + escapeHtml(notification.message) + '</p><small class="text-muted"><i class="fas fa-calendar me-1"></i>' + escapeHtml(notification.date) + ' <i class="fas fa-clock ms-2 me-1"></i>' + escapeHtml(notification.time) + '</small></div></div></div><button type="button" class="btn btn-sm btn-outline-danger delete-staff-notification-btn ms-2" data-notification-id="' + notification.id + '" title="Delete notification" onclick="event.stopPropagation(); deleteStaffNotification(\'' + notification.id + '\');"><i class="fas fa-trash"></i></button></div></div></div>';
+                            });
+                            allNotificationsBody.html(html);
+                        } else {
+                            allNotificationsBody.html('<div class="text-center p-4"><i class="fas fa-bell-slash fa-3x text-muted mb-3"></i><p class="text-muted">No new appointments available</p></div>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error loading notifications:', error);
+                        allNotificationsBody.html('<div class="text-center p-4"><i class="fas fa-exclamation-triangle fa-2x text-danger mb-3"></i><p class="text-danger">Error loading notifications. Please try again.</p></div>');
+                    }
+                });
+            }
+            
+            window.deleteStaffNotification = function(notificationId) {
+                if (!confirm('Are you sure you want to remove this notification?')) return;
+                
+                $.ajax({
+                    url: '{% url "staff-delete-notification" %}',
+                    method: 'POST',
+                    data: {
+                        'notification_id': notificationId,
+                        'csrfmiddlewaretoken': getCookie('csrftoken')
+                    },
+                    success: function(data) {
+                        if (data.success) {
+                            const card = $('.staff-notification-card[data-notification-id="' + notificationId + '"]');
+                            if (card.length) {
+                                card.fadeOut(300, function() {
+                                    $(this).remove();
+                                    const remaining = $('.staff-notification-card').length;
+                                    if (remaining === 0) {
+                                        allNotificationsBody.html('<div class="text-center p-4"><i class="fas fa-bell-slash fa-3x text-muted mb-3"></i><p class="text-muted">No new appointments available</p></div>');
+                                    }
+                                    updateStaffBadgeCount();
+                                });
+                            }
+                            if (typeof toastr !== 'undefined') {
+                                toastr.success('Notification removed successfully');
+                            }
+                        } else {
+                            if (typeof toastr !== 'undefined') {
+                                toastr.error(data.error || 'Failed to remove notification');
+                            }
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error deleting notification:', error);
+                        if (typeof toastr !== 'undefined') {
+                            toastr.error('Error removing notification. Please try again.');
+                        }
+                    }
+                });
+            };
+            
+            function updateStaffBadgeCount() {
+                const count = $('.staff-notification-card').length;
+                const badge = $('#staff-notification-badge');
+                if (badge.length) {
+                    if (count > 0) {
+                        badge.text(count > 99 ? '99+' : count).show();
+                    } else {
+                        badge.hide();
+                    }
+                }
+            }
+            
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+            
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        });
+    </script>
+    {% endif %}
+    
     {% block extra_js %}{% endblock %}
     <!-- ========== SKELETON LOADING SCRIPT ========== -->
     <script>

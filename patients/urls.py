@@ -29,6 +29,14 @@ urlpatterns = [
     path('patient-bills/', views.patient_bills, name='patient-bills'),
     path('patient-bills/<str:bill_number>/', views.patient_bill_detail, name='patient-bill-detail'),
     
+    # Patient notifications
+    path('patient-notifications/all/', views.patient_all_notifications, name='patient-all-notifications'),
+    path('patient-notifications/delete/', views.patient_delete_notification, name='patient-delete-notification'),
+    
+    # Staff notifications
+    path('staff-notifications/all/', views.staff_all_notifications, name='staff-all-notifications'),
+    path('staff-notifications/delete/', views.staff_delete_notification, name='staff-delete-notification'),
+    
     # Staff appointment management
     path('staff/appointments/', views.staff_appointments, name='staff-appointments'),
     path('staff/appointments/<int:appointment_id>/', views.staff_appointment_detail, name='staff-appointment-detail'),
