@@ -1813,11 +1813,27 @@ def patient_appointments(request):
         return redirect('landing')
     
     patient = request.user.patient
-    appointments = patient.appointments.all().order_by('appointment_date', 'appointment_time')
+    # Order by latest appointment made (created_at) - most recent first
+    appointments = patient.appointments.all().order_by('-created_at')
+    
+    # Paginate - 5 appointments per page
+    paginator = Paginator(appointments, 5)
+    page = request.GET.get('page')
+    
+    try:
+        page_obj = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range, deliver last page
+        page_obj = paginator.page(paginator.num_pages)
     
     context = {
         'patient': patient,
-        'appointments': appointments,
+        'appointments': page_obj,
+        'page_obj': page_obj,
+        'is_paginated': page_obj.has_other_pages(),
     }
     return render(request, 'patients/patient_appointments.html', context)
 
@@ -1834,12 +1850,23 @@ def patient_bills(request):
     patient = request.user.patient
     bills = (
         Bill.objects.filter(patient=patient)
-        .order_by('-bill_date')
+        .order_by('-created_at')
     )
+
+    paginator = Paginator(bills, 10)
+    page = request.GET.get('page')
+    try:
+        page_obj = paginator.page(page)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
 
     context = {
         'patient': patient,
-        'bills': bills,
+        'bills': page_obj,
+        'page_obj': page_obj,
+        'is_paginated': page_obj.has_other_pages(),
     }
     return render(request, 'patients/patient_bills.html', context)
 

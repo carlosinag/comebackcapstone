@@ -98,4 +98,81 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Find the discount input field (crispy forms uses id_discount or name="discount")
+    let discountInput = document.getElementById('id_discount');
+    if (!discountInput) {
+        discountInput = document.querySelector('input[name="discount"]');
+    }
+    const form = document.querySelector('form');
+    
+    if (!discountInput) {
+        console.warn('Discount field not found');
+        return;
+    }
+    
+    // Show notification only once per "invalid session"; reset when user fixes the value
+    let hasShownNotificationForCurrentInvalid = false;
+    
+    // Function to validate discount value
+    function validateDiscount(value) {
+        const numValue = parseFloat(value);
+        // Check if value is negative (zero is allowed, empty is allowed for now)
+        if (value !== '' && !isNaN(numValue) && numValue < 0) {
+            return false;
+        }
+        return true;
+    }
+    
+    // Function to show error notification (only if we haven't already for this invalid state)
+    function showInvalidDiscountNotificationIfNeeded() {
+        if (hasShownNotificationForCurrentInvalid) return;
+        hasShownNotificationForCurrentInvalid = true;
+        if (typeof toastr !== 'undefined') {
+            toastr.error('Invalid number. Discount cannot be negative. Please use zero or a positive number.', 'Invalid Discount');
+        } else {
+            alert('Invalid number. Discount cannot be negative. Please use zero or a positive number.');
+        }
+    }
+    
+    // Validate on input (real-time feedback)
+    discountInput.addEventListener('input', function() {
+        const value = this.value.trim();
+        const invalid = value !== '' && !validateDiscount(value);
+        if (invalid) {
+            showInvalidDiscountNotificationIfNeeded();
+            this.setCustomValidity('Discount cannot be negative');
+        } else {
+            hasShownNotificationForCurrentInvalid = false;
+            this.setCustomValidity('');
+        }
+    });
+    
+    // Validate on blur (when user leaves the field)
+    discountInput.addEventListener('blur', function() {
+        const value = this.value.trim();
+        const invalid = value !== '' && !validateDiscount(value);
+        if (invalid) {
+            showInvalidDiscountNotificationIfNeeded();
+            this.setCustomValidity('Discount cannot be negative');
+        } else {
+            hasShownNotificationForCurrentInvalid = false;
+            this.setCustomValidity('');
+        }
+    });
+    
+    // Validate on form submission (always show if invalid, since user is trying to submit)
+    form.addEventListener('submit', function(e) {
+        const value = discountInput.value.trim();
+        if (value !== '' && !validateDiscount(value)) {
+            e.preventDefault();
+            showInvalidDiscountNotificationIfNeeded();
+            discountInput.focus();
+            return false;
+        }
+    });
+});
+</script>
 {% endblock %} 

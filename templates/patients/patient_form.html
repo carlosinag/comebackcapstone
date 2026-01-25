@@ -31,7 +31,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="{{ form.first_name.id_for_label }}" class="form-label">{{ form.first_name.label }}</label>
-                                    {{ form.first_name }}
+                                    {% render_field form.first_name id="id_first_name" %}
                                     {% if form.first_name.errors %}
                                         <div class="text-danger">{{ form.first_name.errors.0 }}</div>
                                     {% endif %}
@@ -43,7 +43,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="{{ form.last_name.id_for_label }}" class="form-label">{{ form.last_name.label }}</label>
-                                    {{ form.last_name }}
+                                    {% render_field form.last_name id="id_last_name" %}
                                     {% if form.last_name.errors %}
                                         <div class="text-danger">{{ form.last_name.errors.0 }}</div>
                                     {% endif %}
@@ -57,7 +57,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="{{ form.birthday.id_for_label }}" class="form-label">Birthday</label>
-                                    {{ form.birthday }}
+                                    {% render_field form.birthday id="id_birthday" %}
                                     {% if form.birthday.errors %}
                                         <div class="text-danger">{{ form.birthday.errors.0 }}</div>
                                     {% endif %}
@@ -226,6 +226,41 @@ document.addEventListener('DOMContentLoaded', function () {
   el.addEventListener('input', function () {
     this.value = this.value.replace(/[^0-9]/g, '');
   });
+  
+  // Auto-capitalize first letter of first name and last name
+  const firstNameInput = document.getElementById('id_first_name');
+  const lastNameInput = document.getElementById('id_last_name');
+  
+  function capitalizeFirstLetter(text) {
+    if (!text) return text;
+    // Split by spaces, capitalize first letter of each word, and join back
+    return text.split(' ').map(word => {
+      if (word.length === 0) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    }).join(' ');
+  }
+  
+  if (firstNameInput) {
+    firstNameInput.addEventListener('input', function() {
+      const cursorPosition = this.selectionStart;
+      const originalValue = this.value;
+      this.value = capitalizeFirstLetter(originalValue);
+      // Restore cursor position (adjust for length changes)
+      const lengthDiff = this.value.length - originalValue.length;
+      this.setSelectionRange(cursorPosition + lengthDiff, cursorPosition + lengthDiff);
+    });
+  }
+  
+  if (lastNameInput) {
+    lastNameInput.addEventListener('input', function() {
+      const cursorPosition = this.selectionStart;
+      const originalValue = this.value;
+      this.value = capitalizeFirstLetter(originalValue);
+      // Restore cursor position (adjust for length changes)
+      const lengthDiff = this.value.length - originalValue.length;
+      this.setSelectionRange(cursorPosition + lengthDiff, cursorPosition + lengthDiff);
+    });
+  }
 });
 document.addEventListener('DOMContentLoaded', function() {
     const regionSelect = document.getElementById('id_region');
@@ -578,9 +613,39 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }, 0);
 
-    // Age calculation from birthday
+    // Age calculation from birthday and date validation
     const birthdayInput = document.getElementById('id_birthday');
     const ageInput = document.getElementById('calculated_age');
+    
+    // Set max date to today to prevent future dates
+    if (birthdayInput) {
+        const today = new Date().toISOString().split('T')[0];
+        birthdayInput.setAttribute('max', today);
+        
+        // Validate on change to prevent future dates
+        birthdayInput.addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            const todayDate = new Date();
+            todayDate.setHours(0, 0, 0, 0);
+            
+            if (selectedDate > todayDate) {
+                alert('Birthday cannot be in the future. Please select a valid past date.');
+                this.value = '';
+                this.focus();
+                return;
+            }
+            
+            if (ageInput) {
+                ageInput.value = calculateAge(this.value);
+            }
+        });
+        
+        // Set initial value if editing
+        if (ageInput) {
+            ageInput.value = calculateAge(birthdayInput.value);
+        }
+    }
+    
     function calculateAge(birthday) {
         if (!birthday) return '';
         const today = new Date();
@@ -591,13 +656,6 @@ document.addEventListener('DOMContentLoaded', function() {
             age--;
         }
         return age >= 0 ? age : '';
-    }
-    if (birthdayInput) {
-        birthdayInput.addEventListener('change', function() {
-            ageInput.value = calculateAge(this.value);
-        });
-        // Set initial value if editing
-        ageInput.value = calculateAge(birthdayInput.value);
     }
 
     // Restrict contact number input to digits only and limit to 13 characters

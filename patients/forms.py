@@ -48,7 +48,12 @@ class PatientForm(forms.ModelForm):
                 'pattern': '[A-Za-z ]+',
                 'title': 'Only letters and spaces are allowed'
             }),
-            'birthday': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'placeholder': 'Select birthday'}),
+            'birthday': forms.DateInput(attrs={
+                'class': 'form-control', 
+                'type': 'date', 
+                'placeholder': 'Select birthday',
+                'max': date.today().strftime('%Y-%m-%d')
+            }),
             'sex': forms.Select(attrs={'class': 'form-control'}),
             'marital_status': forms.Select(attrs={'class': 'form-control'}),
             'patient_type': forms.Select(attrs={'class': 'form-control', 'id': 'id_patient_type'}),
@@ -104,6 +109,32 @@ class PatientForm(forms.ModelForm):
         for field in optional_fields:
             self.fields[field].required = False
 
+    def clean_first_name(self):
+        first_name = self.cleaned_data.get('first_name')
+        if first_name:
+            # Capitalize first letter of each word
+            first_name = first_name.strip()
+            # Split by spaces, capitalize each word, and join back
+            first_name = ' '.join(word.capitalize() for word in first_name.split())
+        return first_name
+    
+    def clean_last_name(self):
+        last_name = self.cleaned_data.get('last_name')
+        if last_name:
+            # Capitalize first letter of each word
+            last_name = last_name.strip()
+            # Split by spaces, capitalize each word, and join back
+            last_name = ' '.join(word.capitalize() for word in last_name.split())
+        return last_name
+    
+    def clean_birthday(self):
+        birthday = self.cleaned_data.get('birthday')
+        if birthday:
+            # Check if birthday is in the future
+            if birthday > date.today():
+                raise forms.ValidationError("Birthday cannot be in the future. Please select a valid past date.")
+        return birthday
+    
     def clean_contact_number(self):
         contact_number = self.cleaned_data.get('contact_number')
         if contact_number:

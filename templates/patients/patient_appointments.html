@@ -33,12 +33,11 @@
                                         <th>Medical Examination</th>
                                         <th>Status</th>
                                         <th>Reason</th>
-                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for appointment in appointments %}
-                                    <tr {% if appointment.status != 'CANCELLED' and appointment.status != 'COMPLETED' %}onclick="window.location.href = '{{ appointment.id }}/update';" style="cursor: pointer;{% endif %}">
+                                    <tr {% if appointment.status != 'CANCELLED' and appointment.status != 'COMPLETED' %}onclick="window.location.href = '{{ appointment.id }}/update';" class="clickable-row"{% endif %}>
                                         <td>
                                             <div>
                                                 <strong>{{ appointment.appointment_date|date:"M d, Y" }}</strong>
@@ -61,27 +60,75 @@
                                         <td>
                                             <small class="text-muted">{{ appointment.reason|truncatechars:50 }}</small>
                                         </td>
-                                        <td>
-                                            <div class="btn-group" role="group">
-                                                {% if appointment.status == 'PENDING' %}
-                                                    <a href="{% url 'patient-update-appointment' appointment.id %}" class="btn btn-sm btn-outline-warning">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                    <a href="{% url 'patient-cancel-appointment' appointment.id %}" class="btn btn-sm btn-outline-danger">
-                                                        <i class="fas fa-times"></i>
-                                                    </a>
-                                                {% elif appointment.status == 'CONFIRMED' %}
-                                                    <span class="text-success">
-                                                        <i class="fas fa-check-circle"></i> Confirmed
-                                                    </span>
-                                                {% endif %}
-                                            </div>
-                                        </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
                         </div>
+                        
+                        <!-- Pagination Controls -->
+                        {% if is_paginated %}
+                        <nav aria-label="Appointment pagination" class="mt-3">
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1" aria-label="First">
+                                        <span aria-hidden="true">&laquo;&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">&laquo;&laquo;</span>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link">&laquo;</span>
+                                </li>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Last">
+                                        <span aria-hidden="true">&raquo;&raquo;</span>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">&raquo;</span>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link">&raquo;&raquo;</span>
+                                </li>
+                                {% endif %}
+                            </ul>
+                            <div class="text-center mt-2">
+                                <small class="text-muted">
+                                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} appointments
+                                </small>
+                            </div>
+                        </nav>
+                        {% endif %}
                     {% else %}
                         <div class="text-center py-5">
                             <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
@@ -170,12 +217,29 @@
         transform: translateY(-2px);
     }
     
-    .btn-group .btn {
-        margin-right: 2px;
-    }
-    
     .table td {
         vertical-align: middle;
+    }
+    
+    /* Prevent horizontal scrollbar on hover */
+    .table-responsive {
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+    
+    /* Hover effect for clickable rows */
+    .clickable-row {
+        cursor: pointer;
+        transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .clickable-row:hover {
+        background-color: #f8f9fa;
+        box-shadow: inset 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+    
+    .pagination {
+        margin-top: 1rem;
     }
 </style>
 {% endblock %} 
